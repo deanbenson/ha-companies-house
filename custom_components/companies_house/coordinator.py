@@ -268,6 +268,11 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
 
     async def _async_setup(self) -> None:
         """Seed from the stored snapshot."""
+        self.load_snapshot()
+
+    @callback
+    def load_snapshot(self) -> None:
+        """Seed ``data`` from the stored snapshot, if there is one."""
         snapshot = self.snapshots.get(self.snapshot_key)
         if snapshot is not None and snapshot.data is not None:
             try:
@@ -440,7 +445,13 @@ class CompanyRuntime(_Runtime):
         }
 
     async def async_first_refresh(self) -> None:
-        """Refresh every coordinator once at setup, tolerating failures."""
+        """Refresh every coordinator once at setup, tolerating failures.
+
+        Snapshots are loaded first so a fresh one costs no request, and so
+        changes since the last run are detected rather than replayed.
+        """
+        for coordinator in self.coordinators.values():
+            coordinator.load_snapshot()
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
         self.recompute_tier()
@@ -813,10 +824,10 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
                 )
             )
 
-    async def _async_update_data(self) -> CompanyProfile:
-        profile = await super()._async_update_data()
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Re-evaluate the tier once the new profile is in place."""
         self.company.recompute_tier()
-        return profile
 
 
 def _officer_payload(officer: Any) -> dict[str, Any]:
@@ -867,7 +878,7 @@ class OfficersCoordinator(_CompanyCoordinator[OfficerList]):
 def _psc_payload(psc: Any) -> dict[str, Any]:
     return {
         "name": psc.name,
-        "kind": psc.kind,
+        "psc_kind": psc.kind,
         "natures_of_control": list(psc.natures_of_control),
         "notified_on": psc.notified_on.isoformat() if psc.notified_on else None,
         "ceased_on": psc.ceased_on.isoformat() if psc.ceased_on else None,
@@ -909,7 +920,7 @@ class PscCoordinator(_CompanyCoordinator[PscData]):
                         "statement-added",
                         {
                             "name": statement.linked_psc_name,
-                            "kind": "statement",
+                            "psc_kind": "statement",
                             "natures_of_control": [],
                             "notified_on": statement.notified_on.isoformat()
                             if statement.notified_on
@@ -1050,6 +1061,8 @@ class OfficerRuntime(_Runtime):
 
     async def async_first_refresh(self) -> None:
         """Refresh both coordinators once at setup."""
+        for coordinator in self.coordinators.values():
+            coordinator.load_snapshot()
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
 
