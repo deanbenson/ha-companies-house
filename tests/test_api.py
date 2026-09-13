@@ -127,7 +127,7 @@ async def test_budget_guard_scheduled_stops_at_80_percent(
 
 async def test_pacing_caps_at_two_per_second(fake_clock: FakeClock) -> None:
     """Sustained rate is capped at 2 requests per second."""
-    limiter = RateLimiter(clock=fake_clock, sleep=fake_clock.sleep)
+    limiter = RateLimiter(max_per_second=2, clock=fake_clock, sleep=fake_clock.sleep)
     start = fake_clock.now
     for _ in range(5):
         await limiter.acquire(Priority.ON_DEMAND)

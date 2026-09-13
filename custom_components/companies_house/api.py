@@ -152,7 +152,7 @@ class RateLimiter:
         *,
         limit: int = RATE_LIMIT_DEFAULT,
         window: float = RATE_WINDOW_DEFAULT.total_seconds(),
-        max_per_second: float = RATE_MAX_PER_SECOND,
+        max_per_second: float | None = None,
         scheduled_fraction: float = BUDGET_SCHEDULED_FRACTION,
         clock: Callable[[], float] = time.time,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
@@ -160,7 +160,10 @@ class RateLimiter:
         """Initialise the limiter."""
         self.limit = limit
         self.window = window
-        self.max_per_second = max_per_second
+        # Resolved at call time so tests can switch pacing off.
+        self.max_per_second = (
+            RATE_MAX_PER_SECOND if max_per_second is None else max_per_second
+        )
         self.scheduled_fraction = scheduled_fraction
         self._clock = clock
         self._sleep = sleep

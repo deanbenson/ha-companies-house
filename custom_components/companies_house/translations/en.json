@@ -4,24 +4,720 @@
     "step": {
       "user": {
         "title": "Connect to Companies House",
-        "description": "Enter the API key of an application registered on the Companies House developer hub.",
+        "description": "Enter the API key of an application registered at https://developer.company-information.service.gov.uk/. One key is one budget: 600 requests per 5 minutes.",
         "data": {
           "api_key": "API key"
         },
         "data_description": {
-          "api_key": "A REST API key from https://developer.company-information.service.gov.uk/"
+          "api_key": "A REST API key for an application registered on the Companies House developer hub."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Companies House",
+        "description": "The API key was rejected. Enter a working key.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "A REST API key for an application registered on the Companies House developer hub."
+        }
+      },
+      "reconfigure": {
+        "title": "Replace the API key",
+        "description": "Enter a new key. Monitored companies and officers are kept.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "A REST API key for an application registered on the Companies House developer hub."
         }
       }
     },
     "abort": {
-      "not_implemented": "Not implemented yet.",
-      "already_configured": "This API key is already configured."
+      "already_configured": "This API key is already configured.",
+      "reauth_successful": "Reauthentication was successful.",
+      "reconfigure_successful": "The API key was replaced."
     },
     "error": {
       "invalid_auth": "The API key was rejected.",
       "rate_limited": "The API is rate limiting this key. Try again in a few minutes.",
       "cannot_connect": "Could not connect to Companies House.",
       "unknown": "Unexpected error."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Companies House options",
+        "description": "Projected scheduled requests per 5 minute window with these settings: {projected} (the flow refuses more than {limit}).",
+        "data": {
+          "due_soon_days": "Due soon threshold",
+          "document_directory": "Document directory",
+          "max_pages": "Maximum pages per list",
+          "cadence_multiplier": "Cadence multiplier"
+        },
+        "data_description": {
+          "due_soon_days": "Days before a deadline at which the due soon sensors turn on.",
+          "document_directory": "Where download_document writes files. A folder per company is created inside it.",
+          "max_pages": "Cap on pages fetched for long officer, PSC and charge lists (100 items per page).",
+          "cadence_multiplier": "Multiply every polling interval, for people who want everything slower."
+        }
+      }
+    },
+    "error": {
+      "budget_exceeded": "This configuration would exceed the request budget. Increase the cadence multiplier or monitor fewer companies."
+    }
+  },
+  "config_subentries": {
+    "company": {
+      "entry_type": "Company",
+      "initiate_flow": {
+        "user": "Add company",
+        "reconfigure": "Reconfigure company"
+      },
+      "step": {
+        "user": {
+          "title": "Find a company",
+          "description": "Search the register by name, or by postcode for the company at an address.",
+          "data": {
+            "query": "Company name",
+            "postcode": "Postcode"
+          },
+          "data_description": {
+            "query": "Part of the company name.",
+            "postcode": "Optional. Narrows the search to companies registered at this postcode."
+          }
+        },
+        "select": {
+          "title": "Choose the company",
+          "data": {
+            "selection": "Company"
+          }
+        },
+        "confirm": {
+          "title": "Monitor {company}",
+          "description": "Company number {number}. Choose what to monitor.",
+          "data": {
+            "datasets": "Datasets",
+            "close_watch": "Close watch",
+            "label": "Label"
+          },
+          "data_description": {
+            "datasets": "Profile and filing history are always monitored. Untick datasets you do not need.",
+            "close_watch": "Probe every 15 minutes in business hours instead of the adaptive cadence.",
+            "label": "Optional note shown in the subentry title, such as the address or your relationship to the company."
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure company",
+          "menu_options": {
+            "settings": "Change settings",
+            "track_officer": "Track an officer of this company"
+          }
+        },
+        "settings": {
+          "title": "Settings for {company}",
+          "description": "Company number {number}.",
+          "data": {
+            "datasets": "Datasets",
+            "close_watch": "Close watch",
+            "label": "Label"
+          },
+          "data_description": {
+            "datasets": "Profile and filing history are always monitored. Untick datasets you do not need.",
+            "close_watch": "Probe every 15 minutes in business hours instead of the adaptive cadence.",
+            "label": "Optional note shown in the subentry title."
+          }
+        },
+        "track_officer": {
+          "title": "Track an officer of {company}",
+          "description": "Pick a current officer to create an officer subentry in one step.",
+          "data": {
+            "selection": "Officer"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Could not connect to Companies House.",
+        "no_results": "No companies matched. Try a different name or postcode."
+      },
+      "abort": {
+        "already_configured": "This company is already monitored.",
+        "invalid_auth": "The API key was rejected. Reauthenticate the integration first.",
+        "officer_added": "{name} is now tracked as an officer.",
+        "officer_already_configured": "That officer is already tracked.",
+        "no_officers": "This company has no current officers on the register.",
+        "reconfigure_successful": "The company settings were updated."
+      }
+    },
+    "officer": {
+      "entry_type": "Officer",
+      "initiate_flow": {
+        "user": "Add officer",
+        "reconfigure": "Reconfigure officer"
+      },
+      "step": {
+        "user": {
+          "title": "Find an officer",
+          "description": "Names collide constantly; the month and year of birth in the results is what tells people apart.",
+          "data": {
+            "query": "Officer name"
+          }
+        },
+        "select": {
+          "title": "Choose the officer",
+          "data": {
+            "selection": "Officer"
+          }
+        },
+        "reconfigure": {
+          "title": "Reconfigure officer",
+          "description": "Officer id {officer_id}. The register name is used once appointments load; this is the fallback.",
+          "data": {
+            "officer_name": "Display name"
+          }
+        }
+      },
+      "error": {
+        "cannot_connect": "Could not connect to Companies House.",
+        "no_results": "No officers matched."
+      },
+      "abort": {
+        "already_configured": "This officer is already tracked.",
+        "invalid_auth": "The API key was rejected. Reauthenticate the integration first.",
+        "reconfigure_successful": "The officer was updated."
+      }
+    }
+  },
+  "selector": {
+    "datasets": {
+      "options": {
+        "officers": "Officers",
+        "psc": "Persons with significant control",
+        "charges": "Charges",
+        "insolvency": "Insolvency",
+        "structure": "Registers, exemptions and UK establishments"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_deadline": {
+        "name": "Next deadline"
+      },
+      "next_deadline_type": {
+        "name": "Next deadline type",
+        "state": {
+          "accounts": "Accounts",
+          "confirmation_statement": "Confirmation statement"
+        }
+      },
+      "days_to_next_deadline": {
+        "name": "Days to next deadline"
+      },
+      "accounts_next_due": {
+        "name": "Accounts next due"
+      },
+      "confirmation_statement_next_due": {
+        "name": "Confirmation statement next due"
+      },
+      "company_status": {
+        "name": "Company status",
+        "state": {
+          "active": "Active",
+          "dissolved": "Dissolved",
+          "liquidation": "Liquidation",
+          "receivership": "Receiver action",
+          "administration": "In administration",
+          "voluntary-arrangement": "Voluntary arrangement",
+          "converted-closed": "Converted / closed",
+          "insolvency-proceedings": "Insolvency proceedings",
+          "registered": "Registered",
+          "removed": "Removed",
+          "closed": "Closed",
+          "open": "Open"
+        }
+      },
+      "last_filing_date": {
+        "name": "Last filing date"
+      },
+      "last_filing_description": {
+        "name": "Last filing"
+      },
+      "officers_active": {
+        "name": "Officers active"
+      },
+      "psc_active": {
+        "name": "PSC active"
+      },
+      "charges_outstanding": {
+        "name": "Charges outstanding"
+      },
+      "company_name": {
+        "name": "Company name"
+      },
+      "company_status_detail": {
+        "name": "Company status detail",
+        "state": {
+          "active": "Active",
+          "dissolved": "Dissolved",
+          "converted-closed": "Converted / closed",
+          "transferred-from-uk": "Transferred from UK",
+          "active-proposal-to-strike-off": "Active proposal to strike off",
+          "petition-to-restore-dissolved": "Petition to restore dissolved",
+          "transformed-to-se": "Transformed to SE",
+          "converted-to-plc": "Converted to PLC",
+          "converted-to-uk-societas": "Converted to UK Societas",
+          "converted-to-ukeig": "Converted to UKEIG"
+        }
+      },
+      "company_type": {
+        "name": "Company type"
+      },
+      "company_subtype": {
+        "name": "Company subtype"
+      },
+      "jurisdiction": {
+        "name": "Jurisdiction",
+        "state": {
+          "england-wales": "England and Wales",
+          "wales": "Wales",
+          "scotland": "Scotland",
+          "northern-ireland": "Northern Ireland",
+          "european-union": "European Union",
+          "united-kingdom": "United Kingdom",
+          "england": "England",
+          "noneu": "Foreign (non EU)"
+        }
+      },
+      "date_of_creation": {
+        "name": "Date of creation"
+      },
+      "date_of_cessation": {
+        "name": "Date of cessation"
+      },
+      "registered_office_address": {
+        "name": "Registered office address"
+      },
+      "polling_tier": {
+        "name": "Polling tier",
+        "state": {
+          "close_watch": "Close watch",
+          "deadline": "Deadline within 30 days",
+          "normal": "Normal",
+          "quiet": "Quiet",
+          "dissolved": "Dissolved"
+        }
+      },
+      "company_age": {
+        "name": "Company age"
+      },
+      "accounts_next_made_up_to": {
+        "name": "Accounts next made up to"
+      },
+      "accounts_last_made_up_to": {
+        "name": "Accounts last made up to"
+      },
+      "accounts_next_period_start": {
+        "name": "Accounts next period start"
+      },
+      "accounting_reference_date": {
+        "name": "Accounting reference date"
+      },
+      "last_accounts_type": {
+        "name": "Last accounts type"
+      },
+      "confirmation_statement_next_made_up_to": {
+        "name": "Confirmation statement next made up to"
+      },
+      "confirmation_statement_last_made_up_to": {
+        "name": "Confirmation statement last made up to"
+      },
+      "days_to_accounts_due": {
+        "name": "Days to accounts due"
+      },
+      "days_to_confirmation_statement_due": {
+        "name": "Days to confirmation statement due"
+      },
+      "sic_codes": {
+        "name": "SIC codes"
+      },
+      "primary_sic_description": {
+        "name": "Primary SIC description"
+      },
+      "officers_total": {
+        "name": "Officers total"
+      },
+      "officers_resigned": {
+        "name": "Officers resigned"
+      },
+      "directors_active": {
+        "name": "Directors active"
+      },
+      "secretaries_active": {
+        "name": "Secretaries active"
+      },
+      "llp_members_active": {
+        "name": "LLP members active"
+      },
+      "psc_total": {
+        "name": "PSC total"
+      },
+      "psc_statements": {
+        "name": "PSC statements"
+      },
+      "charges_total": {
+        "name": "Charges total"
+      },
+      "charges_part_satisfied": {
+        "name": "Charges part satisfied"
+      },
+      "charges_satisfied": {
+        "name": "Charges satisfied"
+      },
+      "filings_total": {
+        "name": "Filings total"
+      },
+      "filings_last_12_months": {
+        "name": "Filings last 12 months"
+      },
+      "days_since_last_filing": {
+        "name": "Days since last filing"
+      },
+      "last_filing_category": {
+        "name": "Last filing category"
+      },
+      "previous_names_count": {
+        "name": "Previous names"
+      },
+      "uk_establishments_count": {
+        "name": "UK establishments"
+      },
+      "insolvency_cases_count": {
+        "name": "Insolvency cases"
+      },
+      "registers_held": {
+        "name": "Registers held"
+      },
+      "appointments_active": {
+        "name": "Appointments active"
+      },
+      "appointments_total": {
+        "name": "Appointments total"
+      },
+      "most_recent_company": {
+        "name": "Most recent company"
+      },
+      "last_appointment_date": {
+        "name": "Last appointment date"
+      },
+      "appointments_resigned": {
+        "name": "Appointments resigned"
+      },
+      "first_appointment_date": {
+        "name": "First appointment date"
+      },
+      "nationality": {
+        "name": "Nationality"
+      },
+      "country_of_residence": {
+        "name": "Country of residence"
+      },
+      "occupation": {
+        "name": "Occupation"
+      },
+      "date_of_birth": {
+        "name": "Date of birth"
+      },
+      "officer_role": {
+        "name": "Officer role"
+      },
+      "requests_used": {
+        "name": "Requests used this window"
+      },
+      "requests_remaining": {
+        "name": "Requests remaining"
+      },
+      "budget_used": {
+        "name": "Budget used"
+      },
+      "window_resets_at": {
+        "name": "Window resets at"
+      },
+      "last_successful_update": {
+        "name": "Last successful update"
+      },
+      "last_error": {
+        "name": "Last error"
+      },
+      "companies_monitored": {
+        "name": "Companies monitored"
+      },
+      "officers_monitored": {
+        "name": "Officers monitored"
+      },
+      "next_scheduled_probe": {
+        "name": "Next scheduled probe"
+      }
+    },
+    "binary_sensor": {
+      "accounts_overdue": {
+        "name": "Accounts overdue"
+      },
+      "confirmation_statement_overdue": {
+        "name": "Confirmation statement overdue"
+      },
+      "accounts_due_soon": {
+        "name": "Accounts due soon"
+      },
+      "confirmation_statement_due_soon": {
+        "name": "Confirmation statement due soon"
+      },
+      "proposed_strike_off": {
+        "name": "Proposed strike off"
+      },
+      "insolvent": {
+        "name": "Insolvent"
+      },
+      "registered_office_in_dispute": {
+        "name": "Registered office in dispute"
+      },
+      "undeliverable_registered_office": {
+        "name": "Undeliverable registered office"
+      },
+      "is_active": {
+        "name": "Is active"
+      },
+      "can_file": {
+        "name": "Can file"
+      },
+      "has_outstanding_charges": {
+        "name": "Has outstanding charges"
+      },
+      "has_insolvency_history": {
+        "name": "Has insolvency history"
+      },
+      "has_super_secure_officers": {
+        "name": "Has super secure officers"
+      },
+      "has_exemptions": {
+        "name": "Has exemptions"
+      },
+      "disqualified": {
+        "name": "Disqualified"
+      },
+      "has_active_appointments": {
+        "name": "Has active appointments"
+      }
+    },
+    "event": {
+      "filing": {
+        "name": "Filing",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "accounts": "Accounts",
+              "confirmation-statement": "Confirmation statement",
+              "officers": "Officers",
+              "persons-with-significant-control": "Persons with significant control",
+              "address": "Address",
+              "capital": "Capital",
+              "charges": "Charges",
+              "mortgage": "Mortgage",
+              "change-of-name": "Change of name",
+              "resolution": "Resolution",
+              "incorporation": "Incorporation",
+              "gazette": "Gazette",
+              "insolvency": "Insolvency",
+              "dissolution": "Dissolution",
+              "other": "Other"
+            }
+          }
+        }
+      },
+      "officer_change": {
+        "name": "Officer change",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "appointed": "Appointed",
+              "resigned": "Resigned",
+              "details-changed": "Details changed"
+            }
+          }
+        }
+      },
+      "psc_change": {
+        "name": "PSC change",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "notified": "Notified",
+              "ceased": "Ceased",
+              "statement-added": "Statement added",
+              "details-changed": "Details changed"
+            }
+          }
+        }
+      },
+      "charge_change": {
+        "name": "Charge change",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "created": "Created",
+              "satisfied": "Satisfied",
+              "part-satisfied": "Part satisfied",
+              "acquired": "Acquired"
+            }
+          }
+        }
+      },
+      "status_change": {
+        "name": "Status change",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "status-changed": "Status changed",
+              "strike-off-proposed": "Strike off proposed",
+              "strike-off-discontinued": "Strike off discontinued",
+              "dissolved": "Dissolved"
+            }
+          }
+        }
+      },
+      "profile_change": {
+        "name": "Profile change",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "name-changed": "Name changed",
+              "address-changed": "Address changed",
+              "sic-changed": "SIC codes changed",
+              "accounting-reference-date-changed": "Accounting reference date changed"
+            }
+          }
+        }
+      },
+      "appointment": {
+        "name": "Appointment",
+        "state_attributes": {
+          "event_type": {
+            "state": {
+              "appointed": "Appointed",
+              "resigned": "Resigned",
+              "company-status-changed": "Company status changed",
+              "disqualified": "Disqualified"
+            }
+          }
+        }
+      }
+    },
+    "calendar": {
+      "deadlines": {
+        "name": "Deadlines"
+      },
+      "all_deadlines": {
+        "name": "All deadlines"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "The Companies House API key was rejected."
+    },
+    "cannot_connect": {
+      "message": "Could not reach Companies House: {error}"
+    },
+    "rate_limited": {
+      "message": "Companies House is rate limiting requests."
+    },
+    "budget_exhausted": {
+      "message": "The scheduled request budget for this window is spent."
+    },
+    "not_found": {
+      "message": "The resource no longer exists on the register."
+    },
+    "no_entry": {
+      "message": "Companies House is not set up."
+    },
+    "entry_not_loaded": {
+      "message": "The Companies House integration is not loaded."
+    },
+    "invalid_company_number": {
+      "message": "{company_number} is not a valid company number."
+    },
+    "invalid_kind": {
+      "message": "{kind} is not a valid kind."
+    },
+    "invalid_target": {
+      "message": "The target is not a Companies House device or config entry."
+    },
+    "invalid_date": {
+      "message": "{value} is not a valid date (use YYYY-MM-DD)."
+    },
+    "api_error": {
+      "message": "Companies House returned an error: {error}"
+    },
+    "document_write_failed": {
+      "message": "Could not write the document: {error}"
+    }
+  },
+  "issues": {
+    "invalid_auth": {
+      "title": "Companies House API key rejected",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Reauthenticate",
+            "description": "The API key was rejected. Reauthenticate the integration to continue monitoring."
+          }
+        }
+      }
+    },
+    "rate_limited": {
+      "title": "Companies House is throttling requests",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Persistent rate limiting",
+            "description": "The API has returned 429 for more than three windows. Something else is using this key, or the configuration is too busy. Confirm to raise the cadence multiplier by one."
+          }
+        }
+      }
+    },
+    "company_dissolved": {
+      "title": "{company} ({number}) has been dissolved",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Company dissolved",
+            "description": "{company} ({number}) is dissolved or removed from the register. It is polled monthly now; confirm to stop monitoring it and remove its device."
+          }
+        }
+      }
+    },
+    "company_not_found": {
+      "title": "{number} is not on the register",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Company not found",
+            "description": "Companies House returns not found for company {number}. Confirm to stop monitoring it and remove its device."
+          }
+        }
+      }
+    },
+    "officer_not_found": {
+      "title": "Officer {name} no longer resolves",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Officer not found",
+            "description": "The appointments for officer id {officer_id} ({name}) no longer exist. Confirm to stop tracking and remove the device."
+          }
+        }
+      }
     }
   }
 }

@@ -7,35 +7,248 @@ from dataclasses import dataclass, field
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.typing import ConfigType
 
-from .const import LOGGER
+from .api import CompaniesHouseClient
+from .const import (
+    CONF_API_KEY,
+    CONF_CLOSE_WATCH,
+    CONF_COMPANY_NUMBER,
+    CONF_DATASETS,
+    CONF_DATE_OF_BIRTH_MONTH,
+    CONF_DATE_OF_BIRTH_YEAR,
+    CONF_MAX_PAGES,
+    CONF_OFFICER_ID,
+    CONF_OFFICER_NAME,
+    DEFAULT_MAX_PAGES,
+    DOMAIN,
+    LOGGER,
+    SUBENTRY_TYPE_COMPANY,
+    SUBENTRY_TYPE_OFFICER,
+    Dataset,
+)
+from .coordinator import AccountCoordinator, CompanyRuntime, OfficerRuntime
+from .entity import service_device_info
+from .models import DateOfBirth
+from .services import async_setup_services
+from .store import ChangeStore
 
-PLATFORMS: list[Platform] = []
+PLATFORMS: list[Platform] = [
+    Platform.BINARY_SENSOR,
+    Platform.CALENDAR,
+    Platform.EVENT,
+    Platform.SENSOR,
+]
 
 
 @dataclass
 class CompaniesHouseRuntimeData:
     """Runtime data stored on the config entry."""
 
-    companies: dict[str, object] = field(default_factory=dict)
-    officers: dict[str, object] = field(default_factory=dict)
+    client: CompaniesHouseClient
+    store: ChangeStore
+    account: AccountCoordinator
+    service_device_id: str = ""
+    companies: dict[str, CompanyRuntime] = field(default_factory=dict)
+    officers: dict[str, OfficerRuntime] = field(default_factory=dict)
 
 
 type CompaniesHouseConfigEntry = ConfigEntry[CompaniesHouseRuntimeData]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Register the actions so they exist without a config entry."""
+    async_setup_services(hass)
+    return True
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: CompaniesHouseConfigEntry
 ) -> bool:
     """Set up Companies House from a config entry."""
-    entry.runtime_data = CompaniesHouseRuntimeData()
-    LOGGER.debug("Set up Companies House entry %s", entry.entry_id)
+    client = CompaniesHouseClient(
+        async_get_clientsession(hass),
+        entry.data[CONF_API_KEY],
+        max_pages=int(entry.options.get(CONF_MAX_PAGES, DEFAULT_MAX_PAGES)),
+    )
+    store = ChangeStore(hass, entry.entry_id)
+    await store.async_load()
+
+    runtime = CompaniesHouseRuntimeData(
+        client=client,
+        store=store,
+        account=AccountCoordinator(
+            hass,
+            entry,
+            client,
+            lambda: list(entry.runtime_data.companies.values()),
+            lambda: list(entry.runtime_data.officers.values()),
+        ),
+    )
+    entry.runtime_data = runtime
+
+    # The service device must exist before company devices point at it.
+    device_registry = dr.async_get(hass)
+    service_device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id, **service_device_info(entry)
+    )
+    runtime.service_device_id = service_device.id
+
+    for subentry in entry.subentries.values():
+        if subentry.subentry_type == SUBENTRY_TYPE_COMPANY:
+            datasets = {Dataset.PROFILE, Dataset.FILINGS} | {
+                Dataset(d)
+                for d in subentry.data.get(CONF_DATASETS, [d.value for d in Dataset])
+                if d in Dataset.__members__.values()
+            }
+            company = CompanyRuntime(
+                hass,
+                entry,
+                subentry,
+                client,
+                store,
+                company_number=subentry.data[CONF_COMPANY_NUMBER],
+                close_watch=bool(subentry.data.get(CONF_CLOSE_WATCH, False)),
+                datasets=datasets,
+            )
+            await company.async_first_refresh()
+            runtime.companies[subentry.subentry_id] = company
+        elif subentry.subentry_type == SUBENTRY_TYPE_OFFICER:
+            month = subentry.data.get(CONF_DATE_OF_BIRTH_MONTH)
+            year = subentry.data.get(CONF_DATE_OF_BIRTH_YEAR)
+            officer = OfficerRuntime(
+                hass,
+                entry,
+                subentry,
+                client,
+                store,
+                officer_id=subentry.data[CONF_OFFICER_ID],
+                officer_name=subentry.data.get(CONF_OFFICER_NAME, ""),
+                date_of_birth=DateOfBirth(month=month, year=year)
+                if month is not None and year is not None
+                else None,
+            )
+            await officer.async_first_refresh()
+            runtime.officers[subentry.subentry_id] = officer
+
+    _raise_if_auth_failed(runtime)
+    if not runtime.companies and not runtime.officers:
+        # Nothing has exercised the key yet; test it so a bad key is caught now.
+        await _validate_key(client)
+
+    _prune_store(runtime)
+    await runtime.account.async_config_entry_first_refresh()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    for company in runtime.companies.values():
+        company.mark_ready()
+    for officer in runtime.officers.values():
+        officer.mark_ready()
+    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    LOGGER.debug(
+        "Set up %s with %d companies and %d officers",
+        entry.title,
+        len(runtime.companies),
+        len(runtime.officers),
+    )
     return True
+
+
+def _raise_if_auth_failed(runtime: CompaniesHouseRuntimeData) -> None:
+    for company in runtime.companies.values():
+        for coordinator in company.coordinators.values():
+            if isinstance(coordinator.last_exception, ConfigEntryAuthFailed):
+                raise coordinator.last_exception
+    for officer in runtime.officers.values():
+        for coordinator in officer.coordinators.values():
+            if isinstance(coordinator.last_exception, ConfigEntryAuthFailed):
+                raise coordinator.last_exception
+
+
+async def _validate_key(client: CompaniesHouseClient) -> None:
+    from homeassistant.exceptions import ConfigEntryNotReady
+
+    from .api import CompaniesHouseAuthError, CompaniesHouseError
+
+    try:
+        await client.validate_key()
+    except CompaniesHouseAuthError as err:
+        raise ConfigEntryAuthFailed(
+            translation_domain=DOMAIN, translation_key="invalid_auth"
+        ) from err
+    except CompaniesHouseError as err:
+        raise ConfigEntryNotReady(
+            translation_domain=DOMAIN,
+            translation_key="cannot_connect",
+            translation_placeholders={"error": str(err)},
+        ) from err
+
+
+def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
+    """Forget state for companies and officers that are no longer configured."""
+    wanted_companies = {c.company_number for c in runtime.companies.values()}
+    wanted_officers = {o.officer_id for o in runtime.officers.values()}
+    for number in list(runtime.store.companies):
+        if number not in wanted_companies:
+            runtime.store.forget_company(number)
+    for officer_id in list(runtime.store.officers):
+        if officer_id not in wanted_officers:
+            runtime.store.forget_officer(officer_id)
+
+
+async def _async_update_listener(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry
+) -> None:
+    """Reload after options or subentries change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(
     hass: HomeAssistant, entry: CompaniesHouseConfigEntry
 ) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        runtime = entry.runtime_data
+        for company in runtime.companies.values():
+            await company.async_shutdown()
+        for officer in runtime.officers.values():
+            await officer.async_shutdown()
+        await runtime.account.async_shutdown()
+        await runtime.store.async_save()
+    return unloaded
+
+
+async def async_remove_entry(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry
+) -> None:
+    """Delete the store when the entry is removed."""
+    await ChangeStore(hass, entry.entry_id).async_remove()
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry, device: dr.DeviceEntry
+) -> bool:
+    """Allow removing a device that no longer matches a configured subentry."""
+    runtime = entry.runtime_data
+    live = {(DOMAIN, entry.entry_id)}
+    live.update(
+        (DOMAIN, f"company_{c.company_number}") for c in runtime.companies.values()
+    )
+    live.update((DOMAIN, f"officer_{o.officer_id}") for o in runtime.officers.values())
+    return not any(identifier in live for identifier in device.identifiers)
+
+
+async def async_migrate_entry(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry
+) -> bool:
+    """Migrate old config entries. Version 1.1 is the first release."""
+    LOGGER.debug(
+        "Migrating entry %s from %s.%s",
+        entry.entry_id,
+        entry.version,
+        entry.minor_version,
+    )
+    return entry.version <= 1

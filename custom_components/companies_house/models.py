@@ -935,6 +935,9 @@ class Appointment(StorableModel):
     appointed_on: date | None = None
     appointed_before: date | None = None
     resigned_on: date | None = None
+    nationality: str | None = None
+    occupation: str | None = None
+    country_of_residence: str | None = None
 
     @classmethod
     def from_api(cls, data: JsonDict) -> Appointment:
@@ -950,6 +953,9 @@ class Appointment(StorableModel):
             appointed_on=parse_date(data.get("appointed_on")),
             appointed_before=parse_date(data.get("appointed_before")),
             resigned_on=parse_date(data.get("resigned_on")),
+            nationality=_str(data.get("nationality")),
+            occupation=_str(data.get("occupation")),
+            country_of_residence=_str(data.get("country_of_residence")),
         )
 
     @property
