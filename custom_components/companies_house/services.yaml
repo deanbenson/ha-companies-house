@@ -1,0 +1,379 @@
+search_companies:
+  fields:
+    config_entry_id:
+      selector: &id001
+        config_entry:
+          integration: companies_house
+    query:
+      selector: &id002
+        text: {}
+      required: true
+      example: Example Trading
+    items_per_page:
+      selector: &id004
+        number:
+          min: 1
+          max: 100
+          mode: box
+    start_index:
+      selector: &id005
+        number:
+          min: 0
+          max: 10000
+          mode: box
+advanced_search:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_name_includes:
+      selector: *id002
+    company_name_excludes:
+      selector: *id002
+    location:
+      selector: *id002
+    postcode:
+      selector: *id002
+    sic_codes:
+      selector:
+        text:
+          multiple: true
+    company_status:
+      selector:
+        select:
+          multiple: true
+          custom_value: true
+          options:
+          - active
+          - dissolved
+          - open
+          - closed
+          - converted-closed
+          - receivership
+          - administration
+          - liquidation
+          - insolvency-proceedings
+          - voluntary-arrangement
+          - registered
+          - removed
+    company_type:
+      selector:
+        text:
+          multiple: true
+    incorporated_from:
+      selector: &id003
+        date: {}
+    incorporated_to:
+      selector: *id003
+    dissolved_from:
+      selector: *id003
+    dissolved_to:
+      selector: *id003
+    size:
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: box
+alphabetical_search:
+  fields:
+    config_entry_id:
+      selector: *id001
+    query:
+      selector: *id002
+      required: true
+      example: Pulse
+    search_above:
+      selector: *id002
+    search_below:
+      selector: *id002
+    size:
+      selector: *id004
+dissolved_search:
+  fields:
+    config_entry_id:
+      selector: *id001
+    query:
+      selector: *id002
+      required: true
+      example: Pulse
+    search_type:
+      selector:
+        select:
+          options:
+          - alphabetical
+          - best-match
+          - previous-name-dissolved
+    start_index:
+      selector: *id005
+    size:
+      selector: *id004
+search_officers:
+  fields:
+    config_entry_id:
+      selector: *id001
+    query:
+      selector: *id002
+      required: true
+      example: Jane Smith
+    items_per_page:
+      selector: *id004
+    start_index:
+      selector: *id005
+search_disqualified_officers:
+  fields:
+    config_entry_id:
+      selector: *id001
+    query:
+      selector: *id002
+      required: true
+      example: Jane Smith
+    items_per_page:
+      selector: *id004
+search_all:
+  fields:
+    config_entry_id:
+      selector: *id001
+    query:
+      selector: *id002
+      required: true
+      example: Smith
+    items_per_page:
+      selector: *id004
+get_company:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_registered_office:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_officers:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    register_view:
+      selector:
+        boolean: {}
+    order_by:
+      selector:
+        select:
+          options:
+          - appointed_on
+          - resigned_on
+          - surname
+    items_per_page:
+      selector: *id004
+get_officer_appointment:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    appointment_id:
+      selector: *id002
+      required: true
+get_officer_appointments:
+  fields:
+    config_entry_id:
+      selector: *id001
+    officer_id:
+      selector: *id002
+      required: true
+get_disqualification:
+  fields:
+    config_entry_id:
+      selector: *id001
+    officer_id:
+      selector: *id002
+      required: true
+    kind:
+      selector:
+        select:
+          options:
+          - natural
+          - corporate
+get_filing_history:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    category:
+      selector: *id002
+    items_per_page:
+      selector: *id004
+    start_index:
+      selector: *id005
+get_filing:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    transaction_id:
+      selector: *id002
+      required: true
+get_charges:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_charge:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    charge_id:
+      selector: *id002
+      required: true
+get_psc:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_psc_detail:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+    kind:
+      selector:
+        select:
+          options:
+          - individual
+          - corporate-entity
+          - legal-person
+          - super-secure
+          - individual-beneficial-owner
+          - corporate-entity-beneficial-owner
+          - legal-person-beneficial-owner
+          - super-secure-beneficial-owner
+      required: true
+    notification_id:
+      selector: *id002
+      required: true
+get_psc_statements:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_insolvency:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_exemptions:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_registers:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+get_uk_establishments:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: FC012345
+get_document_metadata:
+  fields:
+    config_entry_id:
+      selector: *id001
+    document_id:
+      selector: *id002
+      required: true
+download_document:
+  fields:
+    config_entry_id:
+      selector: *id001
+    document_id:
+      selector: *id002
+      required: true
+    content_type:
+      selector:
+        select:
+          options:
+          - application/pdf
+          - application/xhtml+xml
+          - application/xml
+          - text/csv
+          - application/json
+          - application/zip
+    company_number:
+      selector: *id002
+    transaction_id:
+      selector: *id002
+    description:
+      selector: *id002
+    filing_date:
+      selector: *id003
+    filename:
+      selector: *id002
+refresh:
+  fields:
+    config_entry_id:
+      selector: *id001
+    device_id:
+      selector:
+        device:
+          integration: companies_house
+          multiple: true
+    datasets:
+      selector:
+        select:
+          multiple: true
+          options:
+          - profile
+          - filings
+          - officers
+          - psc
+          - charges
+          - insolvency
+          - structure

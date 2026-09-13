@@ -661,6 +661,557 @@
     },
     "document_write_failed": {
       "message": "Could not write the document: {error}"
+    },
+    "path_not_allowed": {
+      "message": "{path} is not an allowed directory. Add it to allowlist_external_dirs or use a media directory."
+    }
+  },
+  "services": {
+    "search_companies": {
+      "name": "Search companies",
+      "description": "Search the register for companies by name.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        },
+        "start_index": {
+          "name": "Start index",
+          "description": "Offset into the result set for paging."
+        }
+      }
+    },
+    "advanced_search": {
+      "name": "Advanced company search",
+      "description": "Search companies by name, location, SIC codes, status, type and incorporation or dissolution dates.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_name_includes": {
+          "name": "Name includes",
+          "description": "Words the company name must contain."
+        },
+        "company_name_excludes": {
+          "name": "Name excludes",
+          "description": "Words the company name must not contain."
+        },
+        "location": {
+          "name": "Location",
+          "description": "Matches the registered office address, for example a town or postcode."
+        },
+        "postcode": {
+          "name": "Postcode",
+          "description": "Registered office postcode."
+        },
+        "sic_codes": {
+          "name": "SIC codes",
+          "description": "One or more SIC codes."
+        },
+        "company_status": {
+          "name": "Company status",
+          "description": "One or more statuses, for example active or dissolved."
+        },
+        "company_type": {
+          "name": "Company type",
+          "description": "One or more company types, for example ltd or llp."
+        },
+        "incorporated_from": {
+          "name": "Incorporated from",
+          "description": "Earliest incorporation date."
+        },
+        "incorporated_to": {
+          "name": "Incorporated to",
+          "description": "Latest incorporation date."
+        },
+        "dissolved_from": {
+          "name": "Dissolved from",
+          "description": "Earliest dissolution date."
+        },
+        "dissolved_to": {
+          "name": "Dissolved to",
+          "description": "Latest dissolution date."
+        },
+        "size": {
+          "name": "Size",
+          "description": "Number of results to return."
+        }
+      }
+    },
+    "alphabetical_search": {
+      "name": "Alphabetical company search",
+      "description": "Companies alphabetically around a name.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "search_above": {
+          "name": "Search above",
+          "description": "Company name to page upwards from."
+        },
+        "search_below": {
+          "name": "Search below",
+          "description": "Company name to page downwards from."
+        },
+        "size": {
+          "name": "Size",
+          "description": "Number of results to return."
+        }
+      }
+    },
+    "dissolved_search": {
+      "name": "Dissolved company search",
+      "description": "Search dissolved companies.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "search_type": {
+          "name": "Search type",
+          "description": "How to search."
+        },
+        "start_index": {
+          "name": "Start index",
+          "description": "Offset into the result set for paging."
+        },
+        "size": {
+          "name": "Size",
+          "description": "Number of results to return."
+        }
+      }
+    },
+    "search_officers": {
+      "name": "Search officers",
+      "description": "Search the register for officers by name.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        },
+        "start_index": {
+          "name": "Start index",
+          "description": "Offset into the result set for paging."
+        }
+      }
+    },
+    "search_disqualified_officers": {
+      "name": "Search disqualified officers",
+      "description": "Search the disqualified directors register by name. Names collide; check the date of birth.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        }
+      }
+    },
+    "search_all": {
+      "name": "Search everything",
+      "description": "Search companies, officers and disqualified officers together.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "query": {
+          "name": "Query",
+          "description": "Search text."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        }
+      }
+    },
+    "get_company": {
+      "name": "Get company",
+      "description": "Get a company profile.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_registered_office": {
+      "name": "Get registered office",
+      "description": "Get a company's registered office address.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_officers": {
+      "name": "Get officers",
+      "description": "List a company's officers.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "register_view": {
+          "name": "Register view",
+          "description": "Only officers on the public register."
+        },
+        "order_by": {
+          "name": "Order by",
+          "description": "Sort order."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        }
+      }
+    },
+    "get_officer_appointment": {
+      "name": "Get officer appointment",
+      "description": "Get one appointment on a company.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "appointment_id": {
+          "name": "Appointment id",
+          "description": "From the officer list links."
+        }
+      }
+    },
+    "get_officer_appointments": {
+      "name": "Get officer appointments",
+      "description": "List every appointment an officer holds across every company.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "officer_id": {
+          "name": "Officer id",
+          "description": "From the officer's appointments link, not the appointment id."
+        }
+      }
+    },
+    "get_disqualification": {
+      "name": "Get disqualification",
+      "description": "Get a disqualified officer record.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "officer_id": {
+          "name": "Officer id",
+          "description": "The disqualified officer id from a search result."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "Natural person or corporate officer."
+        }
+      }
+    },
+    "get_filing_history": {
+      "name": "Get filing history",
+      "description": "List a company's filings, newest first, with rendered descriptions.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "category": {
+          "name": "Category",
+          "description": "Comma separated categories to filter by, for example accounts,officers."
+        },
+        "items_per_page": {
+          "name": "Items per page",
+          "description": "Number of results to return (1 to 100)."
+        },
+        "start_index": {
+          "name": "Start index",
+          "description": "Offset into the result set for paging."
+        }
+      }
+    },
+    "get_filing": {
+      "name": "Get filing",
+      "description": "Get one filing.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "transaction_id": {
+          "name": "Transaction id",
+          "description": "From the filing history or a filing event."
+        }
+      }
+    },
+    "get_charges": {
+      "name": "Get charges",
+      "description": "List a company's charges.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_charge": {
+      "name": "Get charge",
+      "description": "Get one charge.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "charge_id": {
+          "name": "Charge id",
+          "description": "From the charge list links."
+        }
+      }
+    },
+    "get_psc": {
+      "name": "Get PSCs",
+      "description": "List persons with significant control.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_psc_detail": {
+      "name": "Get PSC detail",
+      "description": "Get one PSC notification.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "kind": {
+          "name": "Kind",
+          "description": "The kind of PSC, which selects the endpoint."
+        },
+        "notification_id": {
+          "name": "Notification id",
+          "description": "From the PSC list links."
+        }
+      }
+    },
+    "get_psc_statements": {
+      "name": "Get PSC statements",
+      "description": "List PSC statements.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_insolvency": {
+      "name": "Get insolvency",
+      "description": "Get insolvency cases.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_exemptions": {
+      "name": "Get exemptions",
+      "description": "Get exemptions.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_registers": {
+      "name": "Get registers",
+      "description": "Get registers.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_uk_establishments": {
+      "name": "Get UK establishments",
+      "description": "List an overseas company's UK establishments.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "get_document_metadata": {
+      "name": "Get document metadata",
+      "description": "Get metadata for a filed document.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "document_id": {
+          "name": "Document id",
+          "description": "From a filing's document link or a filing event."
+        }
+      }
+    },
+    "download_document": {
+      "name": "Download document",
+      "description": "Download a filed document into the document directory, named by filing date and description. Never overwrites.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "document_id": {
+          "name": "Document id",
+          "description": "From a filing's document link or a filing event."
+        },
+        "content_type": {
+          "name": "Content type",
+          "description": "Format to request."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "transaction_id": {
+          "name": "Transaction id",
+          "description": "With a company number, fetches the filing for the date and description."
+        },
+        "description": {
+          "name": "Description",
+          "description": "Overrides the description in the filename."
+        },
+        "filing_date": {
+          "name": "Filing date",
+          "description": "Overrides the date in the filename."
+        },
+        "filename": {
+          "name": "Filename",
+          "description": "Overrides the whole filename."
+        }
+      }
+    },
+    "refresh": {
+      "name": "Refresh",
+      "description": "Refresh monitored companies and officers now, using the on demand budget.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Config entry",
+          "description": "Optional. Which Companies House account to use when more than one is configured."
+        },
+        "device_id": {
+          "name": "Device",
+          "description": "Company or officer devices to refresh. All when empty."
+        },
+        "datasets": {
+          "name": "Datasets",
+          "description": "Which datasets to refresh. All when empty."
+        }
+      }
     }
   },
   "issues": {

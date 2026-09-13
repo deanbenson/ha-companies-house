@@ -10,6 +10,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build_services import SERVICES_STRINGS
 
 ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "companies_house"
 
@@ -475,7 +479,11 @@ def build() -> dict:
             "document_write_failed": {
                 "message": "Could not write the document: {error}"
             },
+            "path_not_allowed": {
+                "message": "{path} is not an allowed directory. Add it to allowlist_external_dirs or use a media directory."
+            },
         },
+        "services": SERVICES_STRINGS,
         "issues": {
             "invalid_auth": {
                 "title": "Companies House API key rejected",
