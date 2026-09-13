@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -89,7 +89,7 @@ async def test_system_health(
     assert await async_setup_component(hass, "system_health", {})
     with patch(
         "custom_components.companies_house.system_health.system_health.async_check_can_reach_url",
-        return_value="ok",
+        new=Mock(return_value="ok"),
     ):
         info = await system_health_info(hass)
         assert info == {"can_reach_server": "ok"}
