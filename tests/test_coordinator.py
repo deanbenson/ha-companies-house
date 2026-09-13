@@ -813,7 +813,6 @@ async def test_not_found_company_and_officer_flag_state(
     assert officer.state.not_found
 
 
-
 async def test_budget_error_on_first_fetch_fails_update(
     hass: HomeAssistant, setup_entry: Callable[..., Any]
 ) -> None:
