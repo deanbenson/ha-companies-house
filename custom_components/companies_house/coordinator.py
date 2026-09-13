@@ -66,6 +66,12 @@ from .models import (
     Structure,
     parse_date,
 )
+from .repairs import (
+    async_clear_rate_limited,
+    async_clear_subentry_issue,
+    async_raise_rate_limited,
+    async_raise_subentry_issue,
+)
 from .scheduler import (
     appointments_next_run,
     compute_tier,
@@ -727,6 +733,16 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
 
     def _on_not_found(self) -> None:
         self.company.state.not_found = True
+        async_raise_subentry_issue(
+            self.hass,
+            key="company_not_found",
+            entry_id=self.company.entry.entry_id,
+            subentry_id=self.company.subentry.subentry_id,
+            placeholders={
+                "number": self.company_number,
+                "company": self.company.company_name,
+            },
+        )
 
     def _detect_changes(
         self, previous: CompanyProfile, current: CompanyProfile
@@ -826,8 +842,30 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
 
     @callback
     def _async_refresh_finished(self) -> None:
-        """Re-evaluate the tier once the new profile is in place."""
+        """Re-evaluate the tier once the new profile is in place, and manage issues."""
         self.company.recompute_tier()
+        if not self.last_update_success or self.data is None:
+            return
+        if self.company.state.not_found:
+            self.company.state.not_found = False
+            async_clear_subentry_issue(
+                self.hass, "company_not_found", self.company_number
+            )
+        if self.data.company_status in FINISHED_STATUSES:
+            async_raise_subentry_issue(
+                self.hass,
+                key="company_dissolved",
+                entry_id=self.company.entry.entry_id,
+                subentry_id=self.company.subentry.subentry_id,
+                placeholders={
+                    "number": self.company_number,
+                    "company": self.data.company_name,
+                },
+            )
+        else:
+            async_clear_subentry_issue(
+                self.hass, "company_dissolved", self.company_number
+            )
 
 
 def _officer_payload(officer: Any) -> dict[str, Any]:
@@ -1145,6 +1183,29 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
 
     def _on_not_found(self) -> None:
         self.officer.state.not_found = True
+        async_raise_subentry_issue(
+            self.hass,
+            key="officer_not_found",
+            entry_id=self.officer.entry.entry_id,
+            subentry_id=self.officer.subentry.subentry_id,
+            placeholders={
+                "officer_id": self.officer.officer_id,
+                "name": self.officer.officer_name,
+            },
+        )
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Clear the not found issue once the officer resolves again."""
+        if (
+            self.last_update_success
+            and self.data is not None
+            and self.officer.state.not_found
+        ):
+            self.officer.state.not_found = False
+            async_clear_subentry_issue(
+                self.hass, "officer_not_found", self.officer.officer_id
+            )
 
     def _detect_changes(
         self, previous: AppointmentList, current: AppointmentList
@@ -1359,14 +1420,24 @@ class AccountCoordinator(DataUpdateCoordinator[AccountStatus]):
         self._companies = companies
         self._officers = officers
 
-    async def _async_update_data(self) -> AccountStatus:
-        companies = list(self._companies())
-        next_probe: tuple[datetime, str] | None = None
-        for company in companies:
+    def next_probe(self) -> tuple[datetime, str] | None:
+        """Return the soonest scheduled probe and its company, live."""
+        soonest: tuple[datetime, str] | None = None
+        for company in self._companies():
             if company.probe.next_run is not None and (
-                next_probe is None or company.probe.next_run < next_probe[0]
+                soonest is None or company.probe.next_run < soonest[0]
             ):
-                next_probe = (company.probe.next_run, company.company_name)
+                soonest = (company.probe.next_run, company.company_name)
+        return soonest
+
+    async def _async_update_data(self) -> AccountStatus:
+        assert self.config_entry is not None
+        if self.client.limiter.persistently_throttled():
+            async_raise_rate_limited(self.hass, self.config_entry.entry_id)
+        else:
+            async_clear_rate_limited(self.hass, self.config_entry.entry_id)
+        companies = list(self._companies())
+        next_probe = self.next_probe()
         return AccountStatus(
             rate_limit=self.client.limiter.status(),
             last_success=self.client.last_success,

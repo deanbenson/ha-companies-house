@@ -913,8 +913,8 @@ SERVICE_SENSORS: tuple[ServiceSensorDescription, ...] = (
         key="next_scheduled_probe",
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.TIMESTAMP,
-        value_fn=lambda c: c.data.next_probe,
-        attrs_fn=lambda c: {"company": c.data.next_probe_company},
+        value_fn=lambda c: p[0] if (p := c.next_probe()) else None,
+        attrs_fn=lambda c: {"company": p[1] if (p := c.next_probe()) else None},
     ),
 )
 

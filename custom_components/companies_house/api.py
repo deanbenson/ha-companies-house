@@ -154,8 +154,8 @@ class RateLimiter:
         window: float = RATE_WINDOW_DEFAULT.total_seconds(),
         max_per_second: float | None = None,
         scheduled_fraction: float = BUDGET_SCHEDULED_FRACTION,
-        clock: Callable[[], float] = time.time,
-        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+        clock: Callable[[], float] | None = None,
+        sleep: Callable[[float], Awaitable[None]] | None = None,
     ) -> None:
         """Initialise the limiter."""
         self.limit = limit
@@ -165,8 +165,9 @@ class RateLimiter:
             RATE_MAX_PER_SECOND if max_per_second is None else max_per_second
         )
         self.scheduled_fraction = scheduled_fraction
-        self._clock = clock
-        self._sleep = sleep
+        # Looked up lazily so a patched ``time.time`` (tests) is honoured.
+        self._clock = clock or (lambda: time.time())  # noqa: PLW0108
+        self._sleep = sleep or (lambda seconds: asyncio.sleep(seconds))  # noqa: PLW0108
         self._lock = asyncio.Lock()
         self._history: deque[float] = deque()
         self._last_request: float | None = None

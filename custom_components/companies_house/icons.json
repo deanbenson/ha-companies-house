@@ -1,0 +1,482 @@
+{
+  "entity": {
+    "sensor": {
+      "next_deadline": {
+        "default": "mdi:calendar-star"
+      },
+      "next_deadline_type": {
+        "default": "mdi:calendar-question",
+        "state": {
+          "accounts": "mdi:file-chart",
+          "confirmation_statement": "mdi:file-check"
+        }
+      },
+      "days_to_next_deadline": {
+        "default": "mdi:calendar-clock",
+        "range": {
+          "-100000": "mdi:calendar-alert",
+          "0": "mdi:calendar-clock",
+          "31": "mdi:calendar-check"
+        }
+      },
+      "accounts_next_due": {
+        "default": "mdi:file-chart"
+      },
+      "confirmation_statement_next_due": {
+        "default": "mdi:file-check"
+      },
+      "company_status": {
+        "default": "mdi:office-building",
+        "state": {
+          "active": "mdi:office-building",
+          "dissolved": "mdi:office-building-remove",
+          "liquidation": "mdi:office-building-minus",
+          "administration": "mdi:office-building-cog",
+          "receivership": "mdi:office-building-cog",
+          "voluntary-arrangement": "mdi:office-building-cog",
+          "insolvency-proceedings": "mdi:office-building-minus",
+          "removed": "mdi:office-building-remove",
+          "converted-closed": "mdi:office-building-remove",
+          "closed": "mdi:office-building-remove"
+        }
+      },
+      "last_filing_date": {
+        "default": "mdi:file-clock"
+      },
+      "last_filing_description": {
+        "default": "mdi:file-document"
+      },
+      "officers_active": {
+        "default": "mdi:account-tie"
+      },
+      "psc_active": {
+        "default": "mdi:account-key"
+      },
+      "charges_outstanding": {
+        "default": "mdi:bank"
+      },
+      "company_name": {
+        "default": "mdi:office-building"
+      },
+      "company_status_detail": {
+        "default": "mdi:information",
+        "state": {
+          "active-proposal-to-strike-off": "mdi:alert"
+        }
+      },
+      "company_type": {
+        "default": "mdi:domain"
+      },
+      "company_subtype": {
+        "default": "mdi:domain"
+      },
+      "jurisdiction": {
+        "default": "mdi:map-marker"
+      },
+      "date_of_creation": {
+        "default": "mdi:calendar-plus"
+      },
+      "date_of_cessation": {
+        "default": "mdi:calendar-remove"
+      },
+      "registered_office_address": {
+        "default": "mdi:map-marker"
+      },
+      "polling_tier": {
+        "default": "mdi:radar",
+        "state": {
+          "close_watch": "mdi:eye",
+          "deadline": "mdi:timer-alert",
+          "normal": "mdi:radar",
+          "quiet": "mdi:sleep",
+          "dissolved": "mdi:sleep-off"
+        }
+      },
+      "company_age": {
+        "default": "mdi:cake-variant"
+      },
+      "accounts_next_made_up_to": {
+        "default": "mdi:calendar-end"
+      },
+      "accounts_last_made_up_to": {
+        "default": "mdi:calendar-check"
+      },
+      "accounts_next_period_start": {
+        "default": "mdi:calendar-start"
+      },
+      "accounting_reference_date": {
+        "default": "mdi:calendar-refresh"
+      },
+      "last_accounts_type": {
+        "default": "mdi:file-chart-outline"
+      },
+      "confirmation_statement_next_made_up_to": {
+        "default": "mdi:calendar-end"
+      },
+      "confirmation_statement_last_made_up_to": {
+        "default": "mdi:calendar-check"
+      },
+      "days_to_accounts_due": {
+        "default": "mdi:calendar-clock",
+        "range": {
+          "-100000": "mdi:calendar-alert",
+          "0": "mdi:calendar-clock",
+          "31": "mdi:calendar-check"
+        }
+      },
+      "days_to_confirmation_statement_due": {
+        "default": "mdi:calendar-clock",
+        "range": {
+          "-100000": "mdi:calendar-alert",
+          "0": "mdi:calendar-clock",
+          "31": "mdi:calendar-check"
+        }
+      },
+      "sic_codes": {
+        "default": "mdi:tag-multiple"
+      },
+      "primary_sic_description": {
+        "default": "mdi:tag"
+      },
+      "officers_total": {
+        "default": "mdi:account-group"
+      },
+      "officers_resigned": {
+        "default": "mdi:account-off"
+      },
+      "directors_active": {
+        "default": "mdi:account-tie"
+      },
+      "secretaries_active": {
+        "default": "mdi:account-edit"
+      },
+      "llp_members_active": {
+        "default": "mdi:account-multiple"
+      },
+      "psc_total": {
+        "default": "mdi:account-key"
+      },
+      "psc_statements": {
+        "default": "mdi:text-box"
+      },
+      "charges_total": {
+        "default": "mdi:bank"
+      },
+      "charges_part_satisfied": {
+        "default": "mdi:bank-minus"
+      },
+      "charges_satisfied": {
+        "default": "mdi:bank-check"
+      },
+      "filings_total": {
+        "default": "mdi:file-multiple"
+      },
+      "filings_last_12_months": {
+        "default": "mdi:file-clock"
+      },
+      "days_since_last_filing": {
+        "default": "mdi:timer-sand"
+      },
+      "last_filing_category": {
+        "default": "mdi:shape"
+      },
+      "previous_names_count": {
+        "default": "mdi:rename-box"
+      },
+      "uk_establishments_count": {
+        "default": "mdi:store"
+      },
+      "insolvency_cases_count": {
+        "default": "mdi:gavel"
+      },
+      "registers_held": {
+        "default": "mdi:book-open-variant"
+      },
+      "appointments_active": {
+        "default": "mdi:briefcase"
+      },
+      "appointments_total": {
+        "default": "mdi:briefcase-variant"
+      },
+      "most_recent_company": {
+        "default": "mdi:office-building"
+      },
+      "last_appointment_date": {
+        "default": "mdi:calendar-account"
+      },
+      "appointments_resigned": {
+        "default": "mdi:briefcase-off"
+      },
+      "first_appointment_date": {
+        "default": "mdi:calendar-start"
+      },
+      "nationality": {
+        "default": "mdi:flag"
+      },
+      "country_of_residence": {
+        "default": "mdi:home-map-marker"
+      },
+      "occupation": {
+        "default": "mdi:hammer-wrench"
+      },
+      "date_of_birth": {
+        "default": "mdi:cake"
+      },
+      "officer_role": {
+        "default": "mdi:badge-account"
+      },
+      "requests_used": {
+        "default": "mdi:counter"
+      },
+      "requests_remaining": {
+        "default": "mdi:battery-70",
+        "range": {
+          "0": "mdi:battery-outline",
+          "60": "mdi:battery-10",
+          "150": "mdi:battery-30",
+          "300": "mdi:battery-50",
+          "450": "mdi:battery-80"
+        }
+      },
+      "budget_used": {
+        "default": "mdi:gauge",
+        "range": {
+          "0": "mdi:gauge-empty",
+          "40": "mdi:gauge-low",
+          "70": "mdi:gauge",
+          "80": "mdi:gauge-full"
+        }
+      },
+      "window_resets_at": {
+        "default": "mdi:timer-refresh"
+      },
+      "last_successful_update": {
+        "default": "mdi:cloud-check"
+      },
+      "last_error": {
+        "default": "mdi:cloud-alert"
+      },
+      "companies_monitored": {
+        "default": "mdi:office-building-marker"
+      },
+      "officers_monitored": {
+        "default": "mdi:account-search"
+      },
+      "next_scheduled_probe": {
+        "default": "mdi:radar"
+      }
+    },
+    "binary_sensor": {
+      "accounts_overdue": {
+        "default": "mdi:file-chart",
+        "state": {
+          "on": "mdi:file-alert"
+        }
+      },
+      "confirmation_statement_overdue": {
+        "default": "mdi:file-check",
+        "state": {
+          "on": "mdi:file-alert"
+        }
+      },
+      "accounts_due_soon": {
+        "default": "mdi:calendar-check",
+        "state": {
+          "on": "mdi:calendar-alert"
+        }
+      },
+      "confirmation_statement_due_soon": {
+        "default": "mdi:calendar-check",
+        "state": {
+          "on": "mdi:calendar-alert"
+        }
+      },
+      "proposed_strike_off": {
+        "default": "mdi:shield-check",
+        "state": {
+          "on": "mdi:shield-alert"
+        }
+      },
+      "insolvent": {
+        "default": "mdi:cash-check",
+        "state": {
+          "on": "mdi:cash-remove"
+        }
+      },
+      "registered_office_in_dispute": {
+        "default": "mdi:map-marker-check",
+        "state": {
+          "on": "mdi:map-marker-alert"
+        }
+      },
+      "undeliverable_registered_office": {
+        "default": "mdi:mailbox",
+        "state": {
+          "on": "mdi:mailbox-up"
+        }
+      },
+      "is_active": {
+        "default": "mdi:office-building-remove",
+        "state": {
+          "on": "mdi:office-building"
+        }
+      },
+      "can_file": {
+        "default": "mdi:file-cancel",
+        "state": {
+          "on": "mdi:file-send"
+        }
+      },
+      "has_outstanding_charges": {
+        "default": "mdi:bank-off",
+        "state": {
+          "on": "mdi:bank"
+        }
+      },
+      "has_insolvency_history": {
+        "default": "mdi:history",
+        "state": {
+          "on": "mdi:gavel"
+        }
+      },
+      "has_super_secure_officers": {
+        "default": "mdi:shield-account-outline",
+        "state": {
+          "on": "mdi:shield-account"
+        }
+      },
+      "has_exemptions": {
+        "default": "mdi:certificate-outline",
+        "state": {
+          "on": "mdi:certificate"
+        }
+      },
+      "disqualified": {
+        "default": "mdi:account-check",
+        "state": {
+          "on": "mdi:account-cancel"
+        }
+      },
+      "has_active_appointments": {
+        "default": "mdi:briefcase-off",
+        "state": {
+          "on": "mdi:briefcase-check"
+        }
+      }
+    },
+    "event": {
+      "filing": {
+        "default": "mdi:file-document-plus"
+      },
+      "officer_change": {
+        "default": "mdi:account-switch"
+      },
+      "psc_change": {
+        "default": "mdi:account-key"
+      },
+      "charge_change": {
+        "default": "mdi:bank-transfer"
+      },
+      "status_change": {
+        "default": "mdi:office-building-cog"
+      },
+      "profile_change": {
+        "default": "mdi:pencil"
+      },
+      "appointment": {
+        "default": "mdi:briefcase-plus"
+      }
+    },
+    "calendar": {
+      "deadlines": {
+        "default": "mdi:calendar-star"
+      },
+      "all_deadlines": {
+        "default": "mdi:calendar-multiple"
+      }
+    }
+  },
+  "services": {
+    "search_companies": {
+      "service": "mdi:office-building-marker"
+    },
+    "advanced_search": {
+      "service": "mdi:magnify-expand"
+    },
+    "alphabetical_search": {
+      "service": "mdi:sort-alphabetical-variant"
+    },
+    "dissolved_search": {
+      "service": "mdi:office-building-remove"
+    },
+    "search_officers": {
+      "service": "mdi:account-search"
+    },
+    "search_disqualified_officers": {
+      "service": "mdi:account-cancel"
+    },
+    "search_all": {
+      "service": "mdi:magnify"
+    },
+    "get_company": {
+      "service": "mdi:office-building"
+    },
+    "get_registered_office": {
+      "service": "mdi:map-marker"
+    },
+    "get_officers": {
+      "service": "mdi:account-group"
+    },
+    "get_officer_appointment": {
+      "service": "mdi:account-tie"
+    },
+    "get_officer_appointments": {
+      "service": "mdi:briefcase"
+    },
+    "get_disqualification": {
+      "service": "mdi:gavel"
+    },
+    "get_filing_history": {
+      "service": "mdi:file-multiple"
+    },
+    "get_filing": {
+      "service": "mdi:file-document"
+    },
+    "get_charges": {
+      "service": "mdi:bank"
+    },
+    "get_charge": {
+      "service": "mdi:bank"
+    },
+    "get_psc": {
+      "service": "mdi:account-key"
+    },
+    "get_psc_detail": {
+      "service": "mdi:account-key"
+    },
+    "get_psc_statements": {
+      "service": "mdi:text-box"
+    },
+    "get_insolvency": {
+      "service": "mdi:gavel"
+    },
+    "get_exemptions": {
+      "service": "mdi:certificate"
+    },
+    "get_registers": {
+      "service": "mdi:book-open-variant"
+    },
+    "get_uk_establishments": {
+      "service": "mdi:store"
+    },
+    "get_document_metadata": {
+      "service": "mdi:file-search"
+    },
+    "download_document": {
+      "service": "mdi:download"
+    },
+    "refresh": {
+      "service": "mdi:refresh"
+    }
+  }
+}

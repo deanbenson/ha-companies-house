@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable, Generator
 import json
 from pathlib import Path
+import random
 from typing import Any
 from unittest.mock import patch
 
@@ -12,9 +13,11 @@ from homeassistant.config_entries import ConfigSubentryData, ConfigSubentryDataW
 from homeassistant.core import HomeAssistant
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
+from syrupy.assertion import SnapshotAssertion
 
 from custom_components.companies_house.const import (
     API_BASE,
@@ -94,6 +97,16 @@ def fake_clock() -> FakeClock:
 def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
     """Enable custom integrations for every test."""
     return
+
+
+@pytest.fixture(autouse=True)
+def deterministic_jitter() -> Generator[None]:
+    """Seed the jitter so scheduled times are reproducible in snapshots."""
+    with patch(
+        "custom_components.companies_house.scheduler.random.SystemRandom",
+        lambda: random.Random(0),
+    ):
+        yield
 
 
 @pytest.fixture(autouse=True)
@@ -291,6 +304,7 @@ def setup_entry(
                 f"{API_BASE}/search/companies?q=test&items_per_page=1",
                 json=load_fixture("search/validate"),
             )
+        await hass.config.async_set_time_zone("Europe/London")
         entry = make_entry(subentries, options)
         entry.add_to_hass(hass)
         assert await hass.config_entries.async_setup(entry.entry_id)
@@ -298,3 +312,19 @@ def setup_entry(
         return entry
 
     return _setup
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Use the Home Assistant snapshot serialiser and the tests/snapshots folder."""
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
+
+
+@pytest.fixture
+def entity_registry_enabled_by_default() -> Generator[None]:
+    """Enable every entity, including those disabled by default, for snapshots."""
+    with patch(
+        "homeassistant.helpers.entity.Entity.entity_registry_enabled_default",
+        return_value=True,
+    ):
+        yield
