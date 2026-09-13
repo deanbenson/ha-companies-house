@@ -359,6 +359,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.dormant_holdings_limited_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_45678901_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.dormant_holdings_limited_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -403,56 +453,6 @@
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.dormant_holdings_limited_has_outstanding_charges',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.dormant_holdings_limited_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_45678901_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.dormant_holdings_limited_has_super_secure_officers',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -1077,6 +1077,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.example_trading_limited_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.example_trading_limited_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_12345678_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.example_trading_limited_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.example_trading_limited_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.example_trading_limited_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -1125,56 +1175,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': 'on',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.example_trading_limited_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.example_trading_limited_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_12345678_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.example_trading_limited_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.example_trading_limited_has_super_secure_officers',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
   })
 # ---
 # name: test_entities[binary_sensor][binary_sensor.example_trading_limited_insolvent-entry]
@@ -1794,6 +1794,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.historic_partners_llp_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_OC123456_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.historic_partners_llp_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -1838,56 +1888,6 @@
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.historic_partners_llp_has_outstanding_charges',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.historic_partners_llp_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_OC123456_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.historic_partners_llp_has_super_secure_officers',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -2151,6 +2151,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.jane_elizabeth_smith_currently_holds_appointments-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.jane_elizabeth_smith_currently_holds_appointments',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Currently holds appointments',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Currently holds appointments',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_active_appointments',
+    'unique_id': 'companies_house_officer_officer-jane_has_active_appointments',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.jane_elizabeth_smith_currently_holds_appointments-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Currently holds appointments',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.jane_elizabeth_smith_currently_holds_appointments',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.jane_elizabeth_smith_disqualified-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -2210,56 +2260,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.jane_elizabeth_smith_has_active_appointments-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.jane_elizabeth_smith_has_active_appointments',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has active appointments',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has active appointments',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_active_appointments',
-    'unique_id': 'companies_house_officer_officer-jane_has_active_appointments',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.jane_elizabeth_smith_has_active_appointments-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Has active appointments',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.jane_elizabeth_smith_has_active_appointments',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'on',
   })
 # ---
 # name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_accounts_due_soon-entry]
@@ -2622,6 +2622,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.old_ventures_limited_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_23456789_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.old_ventures_limited_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -2666,56 +2716,6 @@
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.old_ventures_limited_has_outstanding_charges',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.old_ventures_limited_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_23456789_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.old_ventures_limited_has_super_secure_officers',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -3339,6 +3339,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.subsidiary_services_limited_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_56789012_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.subsidiary_services_limited_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -3383,56 +3433,6 @@
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.subsidiary_services_limited_has_outstanding_charges',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.subsidiary_services_limited_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_56789012_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.subsidiary_services_limited_has_super_secure_officers',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -4056,6 +4056,56 @@
     'state': 'on',
   })
 # ---
+# name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_has_officers_with_protected_details-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'binary_sensor',
+    'entity_category': None,
+    'entity_id': 'binary_sensor.sunset_retail_limited_has_officers_with_protected_details',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Has officers with protected details',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Has officers with protected details',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'has_super_secure_officers',
+    'unique_id': 'companies_house_34567890_has_super_secure_officers',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_has_officers_with_protected_details-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Has officers with protected details',
+    }),
+    'context': <ANY>,
+    'entity_id': 'binary_sensor.sunset_retail_limited_has_officers_with_protected_details',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_has_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -4100,56 +4150,6 @@
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.sunset_retail_limited_has_outstanding_charges',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_has_super_secure_officers-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'binary_sensor',
-    'entity_category': None,
-    'entity_id': 'binary_sensor.sunset_retail_limited_has_super_secure_officers',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Has super secure officers',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Has super secure officers',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'has_super_secure_officers',
-    'unique_id': 'companies_house_34567890_has_super_secure_officers',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_has_super_secure_officers-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Has super secure officers',
-    }),
-    'context': <ANY>,
-    'entity_id': 'binary_sensor.sunset_retail_limited_has_super_secure_officers',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -7293,7 +7293,58 @@
     'state': 'unknown',
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_budget_used-entry]
+# name: test_entities[sensor][sensor.companies_house_api_allowance_resets_at-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.companies_house_api_allowance_resets_at',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'API allowance resets at',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
+    'original_icon': None,
+    'original_name': 'API allowance resets at',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'window_resets_at',
+    'unique_id': 'companies_house_entry1_window_resets_at',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_allowance_resets_at-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House API allowance resets at',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.companies_house_api_allowance_resets_at',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2026-09-15T09:05:00+00:00',
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_allowance_used-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
@@ -7309,7 +7360,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_budget_used',
+    'entity_id': 'sensor.companies_house_api_allowance_used',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -7317,7 +7368,7 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Budget used',
+    'object_id_base': 'API allowance used',
     'options': dict({
       'sensor': dict({
         'suggested_display_precision': 1,
@@ -7325,7 +7376,7 @@
     }),
     'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Budget used',
+    'original_name': 'API allowance used',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
@@ -7335,21 +7386,130 @@
     'unit_of_measurement': '%',
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_budget_used-state]
+# name: test_entities[sensor][sensor.companies_house_api_allowance_used-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'blocked_until': None,
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Budget used',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House API allowance used',
       <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
       'throttled_since': None,
       <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: '%',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.companies_house_budget_used',
+    'entity_id': 'sensor.companies_house_api_allowance_used',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '10.3',
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_requests_remaining-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.companies_house_api_requests_remaining',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'API requests remaining',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'API requests remaining',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'requests_remaining',
+    'unique_id': 'companies_house_entry1_requests_remaining',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_requests_remaining-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House API requests remaining',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.companies_house_api_requests_remaining',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '538',
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_requests_used_in_the_last_5_minutes-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.companies_house_api_requests_used_in_the_last_5_minutes',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'API requests used in the last 5 minutes',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'API requests used in the last 5 minutes',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'requests_used',
+    'unique_id': 'companies_house_entry1_requests_used',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_api_requests_used_in_the_last_5_minutes-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House API requests used in the last 5 minutes',
+      'from_headers': False,
+      'limit': 600,
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'window_seconds': 300,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.companies_house_api_requests_used_in_the_last_5_minutes',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '62',
   })
 # ---
 # name: test_entities[sensor][sensor.companies_house_companies_monitored-entry]
@@ -7455,7 +7615,7 @@
     'state': 'unknown',
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_last_successful_update-entry]
+# name: test_entities[sensor][sensor.companies_house_last_successful_check-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
@@ -7469,7 +7629,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_last_successful_update',
+    'entity_id': 'sensor.companies_house_last_successful_check',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -7477,12 +7637,12 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Last successful update',
+    'object_id_base': 'Last successful check',
     'options': dict({
     }),
     'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
     'original_icon': None,
-    'original_name': 'Last successful update',
+    'original_name': 'Last successful check',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
@@ -7492,21 +7652,21 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_last_successful_update-state]
+# name: test_entities[sensor][sensor.companies_house_last_successful_check-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Last successful update',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Last successful check',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.companies_house_last_successful_update',
+    'entity_id': 'sensor.companies_house_last_successful_check',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2026-09-15T09:00:00+00:00',
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_next_scheduled_probe-entry]
+# name: test_entities[sensor][sensor.companies_house_next_check-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
@@ -7520,7 +7680,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_next_scheduled_probe',
+    'entity_id': 'sensor.companies_house_next_check',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -7528,12 +7688,12 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Next scheduled probe',
+    'object_id_base': 'Next check',
     'options': dict({
     }),
     'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
     'original_icon': None,
-    'original_name': 'Next scheduled probe',
+    'original_name': 'Next check',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
@@ -7543,15 +7703,15 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.companies_house_next_scheduled_probe-state]
+# name: test_entities[sensor][sensor.companies_house_next_check-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'company': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Next scheduled probe',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Next check',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.companies_house_next_scheduled_probe',
+    'entity_id': 'sensor.companies_house_next_check',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -7609,166 +7769,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_requests_remaining-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_requests_remaining',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Requests remaining',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Requests remaining',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'requests_remaining',
-    'unique_id': 'companies_house_entry1_requests_remaining',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_requests_remaining-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Requests remaining',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.companies_house_requests_remaining',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '538',
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_requests_used_this_window-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_requests_used_this_window',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Requests used this window',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Requests used this window',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'requests_used',
-    'unique_id': 'companies_house_entry1_requests_used',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_requests_used_this_window-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Requests used this window',
-      'from_headers': False,
-      'limit': 600,
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-      'window_seconds': 300,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.companies_house_requests_used_this_window',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '62',
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_window_resets_at-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.companies_house_window_resets_at',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Window resets at',
-    'options': dict({
-    }),
-    'original_device_class': <SensorDeviceClass.TIMESTAMP: 'timestamp'>,
-    'original_icon': None,
-    'original_name': 'Window resets at',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'window_resets_at',
-    'unique_id': 'companies_house_entry1_window_resets_at',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.companies_house_window_resets_at-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'timestamp',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Window resets at',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.companies_house_window_resets_at',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '2026-09-15T09:05:00+00:00',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_accounting_reference_date-entry]
@@ -8023,61 +8023,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2024-06-01',
-  })
-# ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.dormant_holdings_limited_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_45678901_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.dormant_holdings_limited_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_charges_part_satisfied-entry]
@@ -9311,6 +9256,78 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.dormant_holdings_limited_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_45678901_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': False,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-09-15T11:12:23.951199+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 120,
+      'reason': 'active company',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'normal',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -9966,20 +9983,14 @@
     'state': '1',
   })
 # ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_polling_tier-entry]
+# name: test_entities[sensor][sensor.dormant_holdings_limited_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -9987,8 +9998,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.dormant_holdings_limited_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -9996,46 +10007,140 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_45678901_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_45678901_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_polling_tier-state]
+# name: test_entities[sensor][sensor.dormant_holdings_limited_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': False,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T11:12:23.951199+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 120,
-      'reason': 'active company',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.dormant_holdings_limited_polling_tier',
+    'entity_id': 'sensor.dormant_holdings_limited_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'normal',
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_45678901_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED People with significant control',
+      'persons': list([
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_45678901_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_previous_names-entry]
@@ -10140,61 +10245,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.dormant_holdings_limited_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_45678901_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED PSC active',
-      'persons': list([
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.dormant_holdings_limited_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
-  })
-# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -10246,56 +10296,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
-  })
-# ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.dormant_holdings_limited_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_45678901_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.dormant_holdings_limited_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.dormant_holdings_limited_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_registered_office_address-entry]
@@ -10812,69 +10812,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-04-01',
-  })
-# ---
-# name: test_entities[sensor][sensor.example_trading_limited_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.example_trading_limited_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_12345678_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.example_trading_limited_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-        dict({
-          'charge_code': '123456780001',
-          'created_on': '2022-05-06',
-          'persons_entitled': list([
-            'HSBC UK Bank Plc',
-          ]),
-          'status': 'outstanding',
-        }),
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.example_trading_limited_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_charges_part_satisfied-entry]
@@ -12108,6 +12045,78 @@
     'state': '6',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.example_trading_limited_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_12345678_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': True,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-09-15T09:16:32.993900+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 15,
+      'reason': 'close watch enabled',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'close_watch',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -12773,20 +12782,14 @@
     'state': '4',
   })
 # ---
-# name: test_entities[sensor][sensor.example_trading_limited_polling_tier-entry]
+# name: test_entities[sensor][sensor.example_trading_limited_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -12794,8 +12797,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.example_trading_limited_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -12803,46 +12806,156 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_12345678_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_12345678_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.example_trading_limited_polling_tier-state]
+# name: test_entities[sensor][sensor.example_trading_limited_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': True,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T09:16:32.993900+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
+        dict({
+          'charge_code': '123456780001',
+          'created_on': '2022-05-06',
+          'persons_entitled': list([
+            'HSBC UK Bank Plc',
+          ]),
+          'status': 'outstanding',
+        }),
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 15,
-      'reason': 'close watch enabled',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.example_trading_limited_polling_tier',
+    'entity_id': 'sensor.example_trading_limited_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'close_watch',
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_12345678_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED People with significant control',
+      'persons': list([
+        dict({
+          'kind': 'individual-person-with-significant-control',
+          'name': 'Ms Jane Elizabeth Smith',
+          'natures_of_control': list([
+            'ownership-of-shares-75-to-100-percent',
+            'voting-rights-75-to-100-percent',
+          ]),
+        }),
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_12345678_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_previous_names-entry]
@@ -12952,69 +13065,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.example_trading_limited_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.example_trading_limited_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_12345678_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.example_trading_limited_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED PSC active',
-      'persons': list([
-        dict({
-          'kind': 'individual-person-with-significant-control',
-          'name': 'Ms Jane Elizabeth Smith',
-          'natures_of_control': list([
-            'ownership-of-shares-75-to-100-percent',
-            'voting-rights-75-to-100-percent',
-          ]),
-        }),
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.example_trading_limited_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
-  })
-# ---
 # name: test_entities[sensor][sensor.example_trading_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -13065,56 +13115,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
-  })
-# ---
-# name: test_entities[sensor][sensor.example_trading_limited_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.example_trading_limited_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_12345678_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.example_trading_limited_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.example_trading_limited_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_registered_office_address-entry]
@@ -13633,61 +13633,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-10-01',
-  })
-# ---
-# name: test_entities[sensor][sensor.historic_partners_llp_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.historic_partners_llp_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_OC123456_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.historic_partners_llp_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.historic_partners_llp_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_charges_part_satisfied-entry]
@@ -14921,6 +14866,78 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.historic_partners_llp_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.historic_partners_llp_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_OC123456_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': False,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-09-15T11:12:23.951199+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 120,
+      'reason': 'active company',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'normal',
+  })
+# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -15581,20 +15598,14 @@
     'state': '2',
   })
 # ---
-# name: test_entities[sensor][sensor.historic_partners_llp_polling_tier-entry]
+# name: test_entities[sensor][sensor.historic_partners_llp_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -15602,8 +15613,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.historic_partners_llp_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -15611,46 +15622,147 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_OC123456_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_OC123456_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.historic_partners_llp_polling_tier-state]
+# name: test_entities[sensor][sensor.historic_partners_llp_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': False,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T11:12:23.951199+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 120,
-      'reason': 'active company',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.historic_partners_llp_polling_tier',
+    'entity_id': 'sensor.historic_partners_llp_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'normal',
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_OC123456_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP People with significant control',
+      'persons': list([
+        dict({
+          'kind': 'individual-person-with-significant-control',
+          'name': 'Mr Robert Taylor',
+          'natures_of_control': list([
+            'significant-influence-or-control-limited-liability-partnership',
+          ]),
+        }),
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_OC123456_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_previous_names-entry]
@@ -15755,68 +15867,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.historic_partners_llp_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.historic_partners_llp_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_OC123456_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.historic_partners_llp_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP PSC active',
-      'persons': list([
-        dict({
-          'kind': 'individual-person-with-significant-control',
-          'name': 'Mr Robert Taylor',
-          'natures_of_control': list([
-            'significant-influence-or-control-limited-liability-partnership',
-          ]),
-        }),
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.historic_partners_llp_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
-  })
-# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -15867,56 +15917,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
-  })
-# ---
-# name: test_entities[sensor][sensor.historic_partners_llp_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.historic_partners_llp_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_OC123456_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.historic_partners_llp_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.historic_partners_llp_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_registered_office_address-entry]
@@ -17184,61 +17184,6 @@
     'state': 'unknown',
   })
 # ---
-# name: test_entities[sensor][sensor.old_ventures_limited_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.old_ventures_limited_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_23456789_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.old_ventures_limited_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.old_ventures_limited_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
-  })
-# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_charges_part_satisfied-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -18470,6 +18415,78 @@
     'state': '3',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.old_ventures_limited_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_23456789_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': False,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-10-18T11:23:42.431746+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 43200,
+      'reason': 'status dissolved',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'dissolved',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -19125,20 +19142,14 @@
     'state': '1',
   })
 # ---
-# name: test_entities[sensor][sensor.old_ventures_limited_polling_tier-entry]
+# name: test_entities[sensor][sensor.old_ventures_limited_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -19146,8 +19157,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.old_ventures_limited_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -19155,46 +19166,148 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_23456789_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_23456789_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.old_ventures_limited_polling_tier-state]
+# name: test_entities[sensor][sensor.old_ventures_limited_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': False,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-10-18T11:23:42.431746+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 43200,
-      'reason': 'status dissolved',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.old_ventures_limited_polling_tier',
+    'entity_id': 'sensor.old_ventures_limited_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'dissolved',
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_23456789_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED People with significant control',
+      'persons': list([
+        dict({
+          'kind': 'individual-person-with-significant-control',
+          'name': 'Mr David Jones',
+          'natures_of_control': list([
+            'ownership-of-shares-75-to-100-percent',
+            'voting-rights-75-to-100-percent',
+          ]),
+        }),
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_23456789_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.old_ventures_limited_previous_names-entry]
@@ -19299,69 +19412,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.old_ventures_limited_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.old_ventures_limited_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_23456789_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.old_ventures_limited_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED PSC active',
-      'persons': list([
-        dict({
-          'kind': 'individual-person-with-significant-control',
-          'name': 'Mr David Jones',
-          'natures_of_control': list([
-            'ownership-of-shares-75-to-100-percent',
-            'voting-rights-75-to-100-percent',
-          ]),
-        }),
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.old_ventures_limited_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
-  })
-# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -19412,56 +19462,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
-  })
-# ---
-# name: test_entities[sensor][sensor.old_ventures_limited_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.old_ventures_limited_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_23456789_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.old_ventures_limited_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.old_ventures_limited_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.old_ventures_limited_registered_office_address-entry]
@@ -19978,61 +19978,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-04-01',
-  })
-# ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.subsidiary_services_limited_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_56789012_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.subsidiary_services_limited_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_charges_part_satisfied-entry]
@@ -21266,6 +21211,78 @@
     'state': '1',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.subsidiary_services_limited_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_56789012_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': False,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-09-15T15:37:11.853598+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 360,
+      'reason': 'no filing in 6 months and no deadline within 90 days',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'quiet',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -21921,20 +21938,14 @@
     'state': '1',
   })
 # ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_polling_tier-entry]
+# name: test_entities[sensor][sensor.subsidiary_services_limited_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -21942,8 +21953,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.subsidiary_services_limited_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -21951,46 +21962,149 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_56789012_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_56789012_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_polling_tier-state]
+# name: test_entities[sensor][sensor.subsidiary_services_limited_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': False,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T15:37:11.853598+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 360,
-      'reason': 'no filing in 6 months and no deadline within 90 days',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.subsidiary_services_limited_polling_tier',
+    'entity_id': 'sensor.subsidiary_services_limited_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'quiet',
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_56789012_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED People with significant control',
+      'persons': list([
+        dict({
+          'kind': 'corporate-entity-person-with-significant-control',
+          'name': 'Parent Holdings Limited',
+          'natures_of_control': list([
+            'ownership-of-shares-75-to-100-percent',
+            'voting-rights-75-to-100-percent',
+            'right-to-appoint-and-remove-directors',
+          ]),
+        }),
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_56789012_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_previous_names-entry]
@@ -22095,70 +22209,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.subsidiary_services_limited_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_56789012_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED PSC active',
-      'persons': list([
-        dict({
-          'kind': 'corporate-entity-person-with-significant-control',
-          'name': 'Parent Holdings Limited',
-          'natures_of_control': list([
-            'ownership-of-shares-75-to-100-percent',
-            'voting-rights-75-to-100-percent',
-            'right-to-appoint-and-remove-directors',
-          ]),
-        }),
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.subsidiary_services_limited_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
-  })
-# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -22209,56 +22259,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
-  })
-# ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.subsidiary_services_limited_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_56789012_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.subsidiary_services_limited_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.subsidiary_services_limited_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_registered_office_address-entry]
@@ -22775,61 +22775,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': 'unknown',
-  })
-# ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_charges_outstanding-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.sunset_retail_limited_charges_outstanding',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'Charges outstanding',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'Charges outstanding',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'charges_outstanding',
-    'unique_id': 'companies_house_34567890_charges_outstanding',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_charges_outstanding-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'charges': list([
-      ]),
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Charges outstanding',
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.sunset_retail_limited_charges_outstanding',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '0',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_charges_part_satisfied-entry]
@@ -24063,6 +24008,78 @@
     'state': '3',
   })
 # ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_how_often_it_is_checked-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.sunset_retail_limited_how_often_it_is_checked',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'How often it is checked',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'How often it is checked',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'polling_tier',
+    'unique_id': 'companies_house_34567890_polling_tier',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_how_often_it_is_checked-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'close_watch': False,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED How often it is checked',
+      'last_probe': '2026-09-15T09:00:00+00:00',
+      'next_probe': '2026-09-15T09:33:05.987800+00:00',
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'close_watch',
+        'deadline',
+        'normal',
+        'quiet',
+        'dissolved',
+      ]),
+      'period': 'business hours',
+      'probe_interval_minutes': 30,
+      'reason': 'accounts due in 15 days',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_how_often_it_is_checked',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'deadline',
+  })
+# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_insolvency_cases-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -24729,20 +24746,14 @@
     'state': '1',
   })
 # ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_polling_tier-entry]
+# name: test_entities[sensor][sensor.sunset_retail_limited_outstanding_charges-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
       None,
     ]),
     'area_id': None,
     'capabilities': dict({
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
-      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'config_entry_id': <ANY>,
     'config_subentry_id': <ANY>,
@@ -24750,8 +24761,8 @@
     'device_id': <ANY>,
     'disabled_by': None,
     'domain': 'sensor',
-    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.sunset_retail_limited_polling_tier',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_outstanding_charges',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -24759,46 +24770,148 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Polling tier',
+    'object_id_base': 'Outstanding charges',
     'options': dict({
     }),
-    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Polling tier',
+    'original_name': 'Outstanding charges',
     'platform': 'companies_house',
     'previous_unique_id': None,
     'suggested_object_id': None,
     'supported_features': 0,
-    'translation_key': 'polling_tier',
-    'unique_id': 'companies_house_34567890_polling_tier',
+    'translation_key': 'charges_outstanding',
+    'unique_id': 'companies_house_34567890_charges_outstanding',
     'unit_of_measurement': None,
   })
 # ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_polling_tier-state]
+# name: test_entities[sensor][sensor.sunset_retail_limited_outstanding_charges-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'close_watch': False,
-      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Polling tier',
-      'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T09:33:05.987800+00:00',
-      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
-        'close_watch',
-        'deadline',
-        'normal',
-        'quiet',
-        'dissolved',
+      'charges': list([
       ]),
-      'period': 'business hours',
-      'probe_interval_minutes': 30,
-      'reason': 'accounts due in 15 days',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Outstanding charges',
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.sunset_retail_limited_polling_tier',
+    'entity_id': 'sensor.sunset_retail_limited_outstanding_charges',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'deadline',
+    'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_people_with_significant_control-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_people_with_significant_control',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_active',
+    'unique_id': 'companies_house_34567890_psc_active',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_people_with_significant_control-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED People with significant control',
+      'persons': list([
+        dict({
+          'kind': 'individual-person-with-significant-control',
+          'name': 'Mrs Sarah White',
+          'natures_of_control': list([
+            'ownership-of-shares-75-to-100-percent',
+            'voting-rights-75-to-100-percent',
+          ]),
+        }),
+      ]),
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_people_with_significant_control',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_people_with_significant_control_ever-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_people_with_significant_control_ever',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'People with significant control, ever',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'People with significant control, ever',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'psc_total',
+    'unique_id': 'companies_house_34567890_psc_total',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_people_with_significant_control_ever-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED People with significant control, ever',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_people_with_significant_control_ever',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_previous_names-entry]
@@ -24903,69 +25016,6 @@
     'state': 'Business and domestic software development',
   })
 # ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_psc_active-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': dict({
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.sunset_retail_limited_psc_active',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC active',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC active',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_active',
-    'unique_id': 'companies_house_34567890_psc_active',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_psc_active-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED PSC active',
-      'persons': list([
-        dict({
-          'kind': 'individual-person-with-significant-control',
-          'name': 'Mrs Sarah White',
-          'natures_of_control': list([
-            'ownership-of-shares-75-to-100-percent',
-            'voting-rights-75-to-100-percent',
-          ]),
-        }),
-      ]),
-      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.sunset_retail_limited_psc_active',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
-  })
-# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -25016,56 +25066,6 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
-  })
-# ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_psc_total-entry]
-  EntityRegistryEntrySnapshot({
-    'aliases': list([
-      None,
-    ]),
-    'area_id': None,
-    'capabilities': None,
-    'config_entry_id': <ANY>,
-    'config_subentry_id': <ANY>,
-    'device_class': None,
-    'device_id': <ANY>,
-    'disabled_by': None,
-    'domain': 'sensor',
-    'entity_category': None,
-    'entity_id': 'sensor.sunset_retail_limited_psc_total',
-    'has_entity_name': True,
-    'hidden_by': None,
-    'icon': None,
-    'id': <ANY>,
-    'labels': set({
-    }),
-    'name': None,
-    'object_id_base': 'PSC total',
-    'options': dict({
-    }),
-    'original_device_class': None,
-    'original_icon': None,
-    'original_name': 'PSC total',
-    'platform': 'companies_house',
-    'previous_unique_id': None,
-    'suggested_object_id': None,
-    'supported_features': 0,
-    'translation_key': 'psc_total',
-    'unique_id': 'companies_house_34567890_psc_total',
-    'unit_of_measurement': None,
-  })
-# ---
-# name: test_entities[sensor][sensor.sunset_retail_limited_psc_total-state]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED PSC total',
-    }),
-    'context': <ANY>,
-    'entity_id': 'sensor.sunset_retail_limited_psc_total',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': '1',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_registered_office_address-entry]

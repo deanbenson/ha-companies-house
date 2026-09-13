@@ -57,11 +57,11 @@ JURISDICTION = {
     "noneu": "Foreign (non EU)",
 }
 TIERS = {
-    "close_watch": "Close watch",
-    "deadline": "Deadline within 30 days",
-    "normal": "Normal",
-    "quiet": "Quiet",
-    "dissolved": "Dissolved",
+    "close_watch": "Every 15 minutes in office hours (close watch)",
+    "deadline": "Every 30 minutes in office hours (deadline near)",
+    "normal": "Every 2 hours in office hours",
+    "quiet": "Every 6 hours (nothing due, nothing filed lately)",
+    "dissolved": "Monthly (dissolved)",
 }
 
 COMPANY_SENSORS = {
@@ -74,8 +74,8 @@ COMPANY_SENSORS = {
     "last_filing_date": "Last filing date",
     "last_filing_description": "Last filing",
     "officers_active": "Officers active",
-    "psc_active": "PSC active",
-    "charges_outstanding": "Charges outstanding",
+    "psc_active": "People with significant control",
+    "charges_outstanding": "Outstanding charges",
     "company_name": "Company name",
     "company_status_detail": "Company status detail",
     "company_type": "Company type",
@@ -84,7 +84,7 @@ COMPANY_SENSORS = {
     "date_of_creation": "Date of creation",
     "date_of_cessation": "Date of cessation",
     "registered_office_address": "Registered office address",
-    "polling_tier": "Polling tier",
+    "polling_tier": "How often it is checked",
     "company_age": "Company age",
     "accounts_next_made_up_to": "Accounts next made up to",
     "accounts_last_made_up_to": "Accounts last made up to",
@@ -102,7 +102,7 @@ COMPANY_SENSORS = {
     "directors_active": "Directors active",
     "secretaries_active": "Secretaries active",
     "llp_members_active": "LLP members active",
-    "psc_total": "PSC total",
+    "psc_total": "People with significant control, ever",
     "psc_statements": "PSC statements",
     "charges_total": "Charges total",
     "charges_part_satisfied": "Charges part satisfied",
@@ -130,15 +130,15 @@ OFFICER_SENSORS = {
     "officer_role": "Officer role",
 }
 SERVICE_SENSORS = {
-    "requests_used": "Requests used this window",
-    "requests_remaining": "Requests remaining",
-    "budget_used": "Budget used",
-    "window_resets_at": "Window resets at",
-    "last_successful_update": "Last successful update",
+    "requests_used": "API requests used in the last 5 minutes",
+    "requests_remaining": "API requests remaining",
+    "budget_used": "API allowance used",
+    "window_resets_at": "API allowance resets at",
+    "last_successful_update": "Last successful check",
     "last_error": "Last error",
     "companies_monitored": "Companies monitored",
     "officers_monitored": "Officers monitored",
-    "next_scheduled_probe": "Next scheduled probe",
+    "next_scheduled_probe": "Next check",
 }
 COMPANY_BINARY = {
     "accounts_overdue": "Accounts overdue",
@@ -153,12 +153,12 @@ COMPANY_BINARY = {
     "can_file": "Can file",
     "has_outstanding_charges": "Has outstanding charges",
     "has_insolvency_history": "Has insolvency history",
-    "has_super_secure_officers": "Has super secure officers",
+    "has_super_secure_officers": "Has officers with protected details",
     "has_exemptions": "Has exemptions",
 }
 OFFICER_BINARY = {
     "disqualified": "Disqualified",
-    "has_active_appointments": "Has active appointments",
+    "has_active_appointments": "Currently holds appointments",
 }
 EVENTS = {
     "filing": (
@@ -279,56 +279,56 @@ def build() -> dict:
             "step": {
                 "user": {
                     "title": "Connect to Companies House",
-                    "description": "Enter the API key of an application registered on the Companies House developer hub ({developer_hub}). One key is one budget: 600 requests per 5 minutes.",
+                    "description": "Paste the API key from your Companies House developer hub application ({developer_hub}). Each key may make 600 requests every 5 minutes. This integration uses a small fraction of that.",
                     "data": {"api_key": "API key"},
                     "data_description": {"api_key": api_key_desc},
                 },
                 "reauth_confirm": {
                     "title": "Reauthenticate Companies House",
-                    "description": "The API key was rejected. Enter a working key.",
+                    "description": "Companies House rejected your saved API key. Paste a new one. Everything you are watching carries on where it left off.",
                     "data": {"api_key": "API key"},
                     "data_description": {"api_key": api_key_desc},
                 },
                 "reconfigure": {
                     "title": "Replace the API key",
-                    "description": "Enter a new key. Monitored companies and officers are kept.",
+                    "description": "Paste a new key. Everything you are watching is kept.",
                     "data": {"api_key": "API key"},
                     "data_description": {"api_key": api_key_desc},
                 },
             },
             "abort": {
-                "already_configured": "This API key is already configured.",
-                "reauth_successful": "Reauthentication was successful.",
+                "already_configured": "That API key is already set up.",
+                "reauth_successful": "The new key works. Monitoring has resumed.",
                 "reconfigure_successful": "The API key was replaced.",
             },
             "error": {
-                "invalid_auth": "The API key was rejected.",
-                "rate_limited": "The API is rate limiting this key. Try again in a few minutes.",
-                "cannot_connect": "Could not connect to Companies House.",
-                "unknown": "Unexpected error.",
+                "invalid_auth": "Companies House rejected that key. Check you copied all of it, and that it is a live REST key, not a test one.",
+                "rate_limited": "Companies House is asking this key to slow down. Try again in a few minutes.",
+                "cannot_connect": "Could not reach Companies House. Check your connection and try again.",
+                "unknown": "Something unexpected went wrong.",
             },
         },
         "options": {
             "step": {
                 "init": {
                     "title": "Companies House options",
-                    "description": "Projected scheduled requests per 5 minute window with these settings: {projected} (the flow refuses more than {limit}).",
+                    "description": "Companies House allows 600 requests every 5 minutes. With these settings, checks will use about {projected} of them. You cannot save settings that would need more than {limit}.",
                     "data": {
-                        "due_soon_days": "Due soon threshold",
-                        "document_directory": "Document directory",
-                        "max_pages": "Maximum pages per list",
-                        "cadence_multiplier": "Cadence multiplier",
+                        "due_soon_days": "Warn this many days before a deadline",
+                        "document_directory": "Folder for downloaded documents",
+                        "max_pages": "Pages to fetch for very long lists",
+                        "cadence_multiplier": "Check less often",
                     },
                     "data_description": {
-                        "due_soon_days": "Days before a deadline at which the due soon sensors turn on.",
-                        "document_directory": "Where download_document writes files. A folder per company is created inside it.",
-                        "max_pages": "Cap on pages fetched for long officer, PSC and charge lists (100 items per page).",
-                        "cadence_multiplier": "Multiply every polling interval, for people who want everything slower.",
+                        "due_soon_days": 'The "due soon" warnings switch on this many days before a deadline.',
+                        "document_directory": "Where downloaded documents are saved. Each company gets its own folder.",
+                        "max_pages": "Only matters for companies with hundreds of officers, owners or charges. Each page holds 100. 10 is plenty for almost everyone.",
+                        "cadence_multiplier": "1 is normal. 2 checks half as often. 3 checks a third as often.",
                     },
                 }
             },
             "error": {
-                "budget_exceeded": "This configuration would exceed the request budget. Increase the cadence multiplier or monitor fewer companies.",
+                "budget_exceeded": "These settings would check more often than Companies House allows. Slow things down, or take some companies off close watch.",
             },
         },
         "config_subentries": {
@@ -336,16 +336,16 @@ def build() -> dict:
                 "entry_type": "Company",
                 "initiate_flow": {
                     "user": "Add company",
-                    "reconfigure": "Reconfigure company",
+                    "reconfigure": "Change company settings",
                 },
                 "step": {
                     "user": {
                         "title": "Find a company",
-                        "description": "Search the register by name, or by postcode for the company at an address.",
+                        "description": "Type part of the company name. Or enter a postcode to find the company registered at an address.",
                         "data": {"query": "Company name", "postcode": "Postcode"},
                         "data_description": {
-                            "query": "Part of the company name.",
-                            "postcode": "Optional. Narrows the search to companies registered at this postcode.",
+                            "query": "Part of the company name is enough.",
+                            "postcode": "Optional. Only show companies registered at this postcode.",
                         },
                     },
                     "select": {
@@ -353,100 +353,100 @@ def build() -> dict:
                         "data": {"selection": "Company"},
                     },
                     "confirm": {
-                        "title": "Monitor {company}",
-                        "description": "Company number {number}. Choose what to monitor.",
+                        "title": "Watch {company}",
+                        "description": "Company number {number}. Choose what to keep an eye on.",
                         "data": {
-                            "datasets": "Datasets",
+                            "datasets": "Also keep an eye on",
                             "close_watch": "Close watch",
-                            "label": "Label",
+                            "label": "Note",
                         },
                         "data_description": {
-                            "datasets": "Profile and filing history are always monitored. Untick datasets you do not need.",
-                            "close_watch": "Probe every 15 minutes in business hours instead of the adaptive cadence.",
-                            "label": "Optional note shown in the subentry title, such as the address or your relationship to the company.",
+                            "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
+                            "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
+                            "label": 'Optional. Shown next to the company name, for example "Our landlord" or "Contractor, 47 High Street".',
                         },
                     },
                     "reconfigure": {
-                        "title": "Reconfigure company",
+                        "title": "Change company settings",
                         "menu_options": {
-                            "settings": "Change settings",
-                            "track_officer": "Track an officer of this company",
+                            "settings": "Change what is watched",
+                            "track_officer": "Follow one of this company's officers",
                         },
                     },
                     "settings": {
                         "title": "Settings for {company}",
                         "description": "Company number {number}.",
                         "data": {
-                            "datasets": "Datasets",
+                            "datasets": "Also keep an eye on",
                             "close_watch": "Close watch",
-                            "label": "Label",
+                            "label": "Note",
                         },
                         "data_description": {
-                            "datasets": "Profile and filing history are always monitored. Untick datasets you do not need.",
-                            "close_watch": "Probe every 15 minutes in business hours instead of the adaptive cadence.",
-                            "label": "Optional note shown in the subentry title.",
+                            "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
+                            "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
+                            "label": "Optional, shown next to the company name.",
                         },
                     },
                     "track_officer": {
-                        "title": "Track an officer of {company}",
-                        "description": "Pick a current officer to create an officer subentry in one step.",
+                        "title": "Follow an officer of {company}",
+                        "description": "Pick a current officer. You will then see every company they are involved with, not just this one.",
                         "data": {"selection": "Officer"},
                     },
                 },
                 "error": {
-                    "cannot_connect": "Could not connect to Companies House.",
-                    "no_results": "No companies matched. Try a different name or postcode.",
+                    "cannot_connect": "Could not reach Companies House. Check your connection and try again.",
+                    "no_results": "Nothing matched. Try a different name or postcode.",
                 },
                 "abort": {
-                    "already_configured": "This company is already monitored.",
-                    "invalid_auth": "The API key was rejected. Reauthenticate the integration first.",
-                    "officer_added": "{name} is now tracked as an officer.",
-                    "officer_already_configured": "That officer is already tracked.",
+                    "already_configured": "You are already watching this company.",
+                    "invalid_auth": "Companies House rejected your API key. Fix that from the repair notice first.",
+                    "officer_added": "Now following {name}.",
+                    "officer_already_configured": "You are already following that person.",
                     "no_officers": "This company has no current officers on the register.",
-                    "reconfigure_successful": "The company settings were updated.",
+                    "reconfigure_successful": "Saved.",
                 },
             },
             "officer": {
                 "entry_type": "Officer",
                 "initiate_flow": {
-                    "user": "Add officer",
-                    "reconfigure": "Reconfigure officer",
+                    "user": "Follow an officer",
+                    "reconfigure": "Change officer settings",
                 },
                 "step": {
                     "user": {
-                        "title": "Find an officer",
-                        "description": "Names collide constantly; the month and year of birth in the results is what tells people apart.",
-                        "data": {"query": "Officer name"},
+                        "title": "Find a person",
+                        "description": "Search by name for a director, secretary or other officer. Many people share a name. Use the month and year of birth in the results to pick the right one.",
+                        "data": {"query": "Name"},
                     },
                     "select": {
-                        "title": "Choose the officer",
-                        "data": {"selection": "Officer"},
+                        "title": "Choose the person",
+                        "data": {"selection": "Person"},
                     },
                     "reconfigure": {
-                        "title": "Reconfigure officer",
-                        "description": "Officer id {officer_id}. The register name is used once appointments load; this is the fallback.",
-                        "data": {"officer_name": "Display name"},
+                        "title": "Change officer settings",
+                        "description": "The name to show for this person (Companies House reference {officer_id}). Once their appointments load, the register's spelling is used instead.",
+                        "data": {"officer_name": "Name to show"},
                     },
                 },
                 "error": {
-                    "cannot_connect": "Could not connect to Companies House.",
-                    "no_results": "No officers matched.",
+                    "cannot_connect": "Could not reach Companies House. Check your connection and try again.",
+                    "no_results": "Nobody matched that name.",
                 },
                 "abort": {
-                    "already_configured": "This officer is already tracked.",
-                    "invalid_auth": "The API key was rejected. Reauthenticate the integration first.",
-                    "reconfigure_successful": "The officer was updated.",
+                    "already_configured": "You are already following this person.",
+                    "invalid_auth": "Companies House rejected your API key. Fix that from the repair notice first.",
+                    "reconfigure_successful": "Saved.",
                 },
             },
         },
         "selector": {
             "datasets": {
                 "options": {
-                    "officers": "Officers",
-                    "psc": "Persons with significant control",
-                    "charges": "Charges",
-                    "insolvency": "Insolvency",
-                    "structure": "Registers, exemptions and UK establishments",
+                    "officers": "Officers (directors and secretaries)",
+                    "psc": "People with significant control (the owners)",
+                    "charges": "Charges (loans secured on the company)",
+                    "insolvency": "Insolvency history",
+                    "structure": "Registers, exemptions and UK establishments (rarely change)",
                 }
             }
         },
@@ -464,22 +464,28 @@ def build() -> dict:
         "exceptions": {
             "invalid_auth": {"message": "The Companies House API key was rejected."},
             "cannot_connect": {"message": "Could not reach Companies House: {error}"},
-            "rate_limited": {"message": "Companies House is rate limiting requests."},
-            "budget_exhausted": {
-                "message": "The scheduled request budget for this window is spent."
+            "rate_limited": {
+                "message": "Companies House is asking us to slow down. Try again in a few minutes."
             },
-            "not_found": {"message": "The resource no longer exists on the register."},
+            "budget_exhausted": {
+                "message": "Checks have used their share of the Companies House allowance for now. They will carry on shortly."
+            },
+            "not_found": {
+                "message": "Companies House no longer has this on the register."
+            },
             "resource_not_found": {"message": "Not found on the register: {resource}"},
-            "no_entry": {"message": "Companies House is not set up."},
+            "no_entry": {
+                "message": "Companies House is not set up yet. Add it under Settings, Devices and services."
+            },
             "entry_not_loaded": {
-                "message": "The Companies House integration is not loaded."
+                "message": "Companies House is not running at the moment."
             },
             "invalid_company_number": {
                 "message": "{company_number} is not a valid company number."
             },
             "invalid_kind": {"message": "{kind} is not a valid kind."},
             "invalid_target": {
-                "message": "The target is not a Companies House device or config entry."
+                "message": "Pick a Companies House company or officer, or the Companies House account itself."
             },
             "invalid_date": {
                 "message": "{value} is not a valid date (use YYYY-MM-DD)."
@@ -489,7 +495,7 @@ def build() -> dict:
                 "message": "Could not write the document: {error}"
             },
             "path_not_allowed": {
-                "message": "{path} is not an allowed directory. Add it to allowlist_external_dirs or use a media directory."
+                "message": "Home Assistant is not allowed to save files in {path}. Use a media folder, or add this folder to allowlist_external_dirs."
             },
         },
         "services": SERVICES_STRINGS,
@@ -506,12 +512,12 @@ def build() -> dict:
                 },
             },
             "rate_limited": {
-                "title": "Companies House is throttling requests",
+                "title": "Companies House is asking us to slow down",
                 "fix_flow": {
                     "step": {
                         "confirm": {
-                            "title": "Persistent rate limiting",
-                            "description": "The API has returned 429 for more than three windows. Something else is using this key, or the configuration is too busy. Confirm to raise the cadence multiplier by one.",
+                            "title": "Slow the checks down?",
+                            "description": "Companies House has refused requests for over 15 minutes. Either something else is using your API key, or too many companies are on close watch. Confirm to check less often. You can change this back later in the options.",
                         }
                     }
                 },
@@ -521,30 +527,30 @@ def build() -> dict:
                 "fix_flow": {
                     "step": {
                         "confirm": {
-                            "title": "Company dissolved",
-                            "description": "{company} ({number}) is dissolved or removed from the register. It is polled monthly now; confirm to stop monitoring it and remove its device.",
+                            "title": "Stop watching {company}?",
+                            "description": "{company} ({number}) has been dissolved or removed from the register. From now on it is only checked once a month. Confirm to stop watching it and remove it from Home Assistant. Or ignore this notice to keep its history.",
                         }
                     }
                 },
             },
             "company_not_found": {
-                "title": "{number} is not on the register",
+                "title": "Company {number} is no longer on the register",
                 "fix_flow": {
                     "step": {
                         "confirm": {
-                            "title": "Company not found",
-                            "description": "Companies House returns not found for company {number}. Confirm to stop monitoring it and remove its device.",
+                            "title": "Stop watching company {number}?",
+                            "description": "Companies House has no record of company {number} any more. Confirm to stop watching it and remove it from Home Assistant.",
                         }
                     }
                 },
             },
             "officer_not_found": {
-                "title": "Officer {name} no longer resolves",
+                "title": "{name} is no longer on the register",
                 "fix_flow": {
                     "step": {
                         "confirm": {
-                            "title": "Officer not found",
-                            "description": "The appointments for officer id {officer_id} ({name}) no longer exist. Confirm to stop tracking and remove the device.",
+                            "title": "Stop following {name}?",
+                            "description": "Companies House has no record of {name} (reference {officer_id}) any more. Confirm to stop following them and remove them from Home Assistant.",
                         }
                     }
                 },

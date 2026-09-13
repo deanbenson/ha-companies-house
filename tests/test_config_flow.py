@@ -301,7 +301,7 @@ async def test_company_subentry_search_and_add(
     assert company.psc is None
     assert company.officers is not None
     assert hass.states.get("sensor.example_trading_limited_officers_active") is not None
-    assert hass.states.get("sensor.example_trading_limited_psc_active") is None
+    assert hass.states.get("sensor.example_trading_limited_people_with_significant_control") is None
 
 
 async def test_company_subentry_postcode_search_and_errors(

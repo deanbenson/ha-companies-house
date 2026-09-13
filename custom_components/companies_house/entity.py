@@ -63,7 +63,7 @@ def service_device_info(entry: ConfigEntry) -> DeviceInfo:
         identifiers={(DOMAIN, entry.entry_id)},
         name=entry.title or MANUFACTURER,
         manufacturer=MANUFACTURER,
-        model="Public Data API",
+        model="Account",
         entry_type=DeviceEntryType.SERVICE,
         configuration_url=DEVELOPER_HUB_URL,
     )

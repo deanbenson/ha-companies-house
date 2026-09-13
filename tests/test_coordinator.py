@@ -275,7 +275,7 @@ async def test_officer_and_charge_changes_fire_events(
         hass.states.get("sensor.example_trading_limited_officers_active").state == "3"
     )
     assert (
-        hass.states.get("sensor.example_trading_limited_charges_outstanding").state
+        hass.states.get("sensor.example_trading_limited_outstanding_charges").state
         == "1"
     )
 
@@ -328,7 +328,7 @@ async def test_status_and_profile_changes(
     assert company.tier is Tier.DISSOLVED
     assert not company.strike_off_proposed
     assert (
-        hass.states.get("sensor.example_trading_limited_polling_tier").state
+        hass.states.get("sensor.example_trading_limited_how_often_it_is_checked").state
         == "dissolved"
     )
 
@@ -625,10 +625,10 @@ async def test_close_watch_and_dissolved_cadence(
     )
     assert timedelta(days=25) <= dissolved.probe.next_run - now <= timedelta(days=35)
     assert (
-        hass.states.get("sensor.example_trading_limited_polling_tier").state
+        hass.states.get("sensor.example_trading_limited_how_often_it_is_checked").state
         == "close_watch"
     )
-    attrs = hass.states.get("sensor.example_trading_limited_polling_tier").attributes
+    attrs = hass.states.get("sensor.example_trading_limited_how_often_it_is_checked").attributes
     assert attrs["probe_interval_minutes"] == 15
     assert attrs["period"] == "business hours"
 
@@ -700,7 +700,7 @@ async def test_officer_appointments_and_events(
     )
     assert (
         hass.states.get(
-            "binary_sensor.jane_elizabeth_smith_has_active_appointments"
+            "binary_sensor.jane_elizabeth_smith_currently_holds_appointments"
         ).state
         == "on"
     )

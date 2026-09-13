@@ -21,8 +21,8 @@ START = {"number": {"min": 0, "max": 10000, "mode": "box"}}
 DATE = {"date": {}}
 BOOL = {"boolean": {}}
 ENTRY = (
-    "Config entry",
-    "Optional. Which Companies House account to use when more than one is configured.",
+    "Companies House account",
+    "Only needed if you have set up more than one API key.",
     {"config_entry": {"integration": "companies_house"}},
 )
 COMPANY = (
@@ -171,7 +171,7 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
     ),
     "search_disqualified_officers": (
         "Search disqualified officers",
-        "Search the disqualified directors register by name. Names collide; check the date of birth.",
+        "Search the disqualified directors register by name. Many people share a name, so check the date of birth.",
         {
             "config_entry_id": ENTRY,
             "query": (*QUERY, True, "Jane Smith"),
@@ -232,12 +232,12 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
     ),
     "get_officer_appointments": (
         "Get officer appointments",
-        "List every appointment an officer holds across every company.",
+        "List every company a person is or was an officer of.",
         {
             "config_entry_id": ENTRY,
             "officer_id": (
                 "Officer id",
-                "From the officer's appointments link, not the appointment id.",
+                "The person's Companies House reference, as shown on their device.",
                 TEXT,
                 True,
             ),
@@ -263,7 +263,7 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
     ),
     "get_filing_history": (
         "Get filing history",
-        "List a company's filings, newest first, with rendered descriptions.",
+        "List a company's filings, newest first, with readable descriptions.",
         {
             "config_entry_id": ENTRY,
             "company_number": (*COMPANY, True, "12345678"),
@@ -382,7 +382,7 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
     ),
     "download_document": (
         "Download document",
-        "Download a filed document into the document directory, named by filing date and description. Never overwrites.",
+        "Save a filed document to the documents folder, named by its filing date and description. Never overwrites an existing file.",
         {
             "config_entry_id": ENTRY,
             "document_id": (
@@ -424,17 +424,17 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
     ),
     "refresh": (
         "Refresh",
-        "Refresh monitored companies and officers now, using the on demand budget.",
+        "Check the companies and officers you are watching right now.",
         {
             "config_entry_id": ENTRY,
             "device_id": (
                 "Device",
-                "Company or officer devices to refresh. All when empty.",
+                "The companies or officers to check. Leave empty to check all of them.",
                 {"device": {"integration": "companies_house", "multiple": True}},
             ),
             "datasets": (
                 "Datasets",
-                "Which datasets to refresh. All when empty.",
+                "What to check. Leave empty to check everything.",
                 {
                     "select": {
                         "multiple": True,
