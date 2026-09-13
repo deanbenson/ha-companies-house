@@ -272,10 +272,55 @@
         }
       },
       "company_type": {
-        "name": "Company type"
+        "name": "Company type",
+        "state": {
+          "assurance-company": "Assurance company",
+          "charitable-incorporated-organisation": "Charitable incorporated organisation",
+          "converted-or-closed": "Converted / closed",
+          "eeig": "European Economic Interest Grouping (EEIG)",
+          "eeig-establishment": "European Economic Interest Grouping Establishment (EEIG)",
+          "european-public-limited-liability-company-se": "European public limited liability company (SE)",
+          "further-education-or-sixth-form-college-corporation": "Further education or sixth form college corporation",
+          "icvc-securities": "Investment company with variable capital",
+          "icvc-umbrella": "Investment company with variable capital",
+          "icvc-warrant": "Investment company with variable capital",
+          "industrial-and-provident-society": "Industrial and Provident society",
+          "investment-company-with-variable-capital": "Investment company with variable capital",
+          "limited-partnership": "Limited partnership",
+          "llp": "Limited liability partnership",
+          "ltd": "Private limited company",
+          "northern-ireland": "Northern Ireland company",
+          "northern-ireland-other": "Credit union (Northern Ireland)",
+          "old-public-company": "Old public company",
+          "other": "Other company type",
+          "oversea-company": "Overseas company",
+          "plc": "Public limited company",
+          "private-limited-guarant-nsc": "Private limited by guarantee without share capital",
+          "private-limited-guarant-nsc-limited-exemption": "Private Limited Company by guarantee without share capital, use of 'Limited' exemption",
+          "private-limited-shares-section-30-exemption": "Private Limited Company, use of 'Limited' exemption",
+          "private-unlimited": "Private unlimited company",
+          "private-unlimited-nsc": "Private unlimited company without share capital",
+          "protected-cell-company": "Protected cell company",
+          "registered-overseas-entity": "Overseas entity",
+          "registered-society-non-jurisdictional": "Registered society",
+          "royal-charter": "Royal charter company",
+          "scottish-charitable-incorporated-organisation": "Scottish charitable incorporated organisation",
+          "scottish-partnership": "Scottish qualifying partnership",
+          "uk-establishment": "UK establishment company",
+          "ukeig": "United Kingdom Economic Interest Grouping",
+          "united-kingdom-societas": "United Kingdom Societas",
+          "unregistered-company": "Unregistered company"
+        }
       },
       "company_subtype": {
-        "name": "Company subtype"
+        "name": "Company subtype",
+        "state": {
+          "community-interest-company": "Community Interest Company (CIC)",
+          "pflp": "Private Fund Limited Partnership (PFLP)",
+          "private-fund-limited-partnership": "Private Fund Limited Partnership (PFLP)",
+          "slp": "Scottish Limited Partnership (SLP)",
+          "spflp": "Scottish Private Fund Limited Partnership (SPFLP)"
+        }
       },
       "jurisdiction": {
         "name": "Jurisdiction",

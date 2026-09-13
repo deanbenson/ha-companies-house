@@ -13,7 +13,10 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from build_services import SERVICES_STRINGS
+
+from custom_components.companies_house.enumerations import COMPANY_SUBTYPE, COMPANY_TYPE
 
 ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "companies_house"
 
@@ -251,6 +254,11 @@ def build() -> dict:
     sensors["company_status"]["state"] = STATUS
     sensors["company_status_detail"]["state"] = STATUS_DETAIL
     sensors["jurisdiction"]["state"] = JURISDICTION
+    # Enum states must be translation-key safe; the API keys already are.
+    sensors["company_type"]["state"] = {k: v.strip() for k, v in COMPANY_TYPE.items()}
+    sensors["company_subtype"]["state"] = {
+        k: v.strip() for k, v in COMPANY_SUBTYPE.items()
+    }
     sensors["polling_tier"]["state"] = TIERS
     sensors["next_deadline_type"]["state"] = {
         "accounts": "Accounts",
