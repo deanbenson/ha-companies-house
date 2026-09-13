@@ -23,6 +23,7 @@ from custom_components.companies_house.scheduler import (
     compute_tier,
     computed_bank_holidays,
     days_until,
+    deadline_days,
     disqualification_next_run,
     easter_sunday,
     hash_offset,
@@ -194,6 +195,42 @@ def test_tier_deadline_normal_quiet() -> None:
         ).tier
         is Tier.NORMAL
     )
+    # Overdue within the grace period still counts as near; long abandoned does not.
+    overdue = _profile(confirmation_statement={"next_due": "2026-07-15"}, accounts={})
+    assert (
+        compute_tier(
+            overdue, close_watch=False, last_filing_date=TODAY, today=TODAY
+        ).tier
+        is Tier.DEADLINE
+    )
+    abandoned = _profile(confirmation_statement={"next_due": "2026-01-15"}, accounts={})
+    assert (
+        compute_tier(
+            abandoned, close_watch=False, last_filing_date=TODAY, today=TODAY
+        ).tier
+        is Tier.NORMAL
+    )
+    assert (
+        compute_tier(
+            abandoned, close_watch=False, last_filing_date=None, today=TODAY
+        ).tier
+        is Tier.QUIET
+    )
+    # An overdue confirmation statement does not hide accounts due next week.
+    masked = _profile(
+        confirmation_statement={"next_due": "2026-01-15"},
+        accounts={"next_accounts": {"due_on": "2026-09-22"}},
+    )
+    decision = compute_tier(
+        masked, close_watch=False, last_filing_date=TODAY, today=TODAY
+    )
+    assert decision.tier is Tier.DEADLINE
+    assert decision.reason == "accounts due in 7 days"
+    assert deadline_days(masked, TODAY) == [
+        (-243, "confirmation_statement"),
+        (7, "accounts"),
+    ]
+    assert deadline_days(None, TODAY) == []
     # No filings ever and no deadlines is quiet; no profile at all is normal.
     assert (
         compute_tier(
@@ -254,6 +291,13 @@ def test_profile_interval() -> None:
         profile_interval(near, Tier.DEADLINE, TODAY)[0]
         == PROFILE_INTERVAL_NEAR_DEADLINE
     )
+    overdue = _profile(confirmation_statement={"next_due": "2026-08-01"})
+    assert (
+        profile_interval(overdue, Tier.DEADLINE, TODAY)[0]
+        == PROFILE_INTERVAL_NEAR_DEADLINE
+    )
+    abandoned = _profile(confirmation_statement={"next_due": "2025-08-01"})
+    assert profile_interval(abandoned, Tier.NORMAL, TODAY)[0] == PROFILE_INTERVAL
     assert profile_interval(near, Tier.DISSOLVED, TODAY)[0] == timedelta(days=30)
     assert profile_interval(None, Tier.NORMAL, TODAY)[0] == PROFILE_INTERVAL
     assert profile_interval(_profile(), Tier.NORMAL, TODAY, 3.0)[0] == timedelta(days=3)

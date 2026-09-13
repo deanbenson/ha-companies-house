@@ -92,10 +92,15 @@ The probe interval adapts per company:
 | Company state | Business hours | Out of hours |
 |---|---|---|
 | Close watch (per company toggle) | 15 min | 1 h |
-| Deadline within 30 days (including overdue) | 30 min | 3 h |
+| Deadline within 30 days, or overdue by up to 90 | 30 min | 3 h |
 | Normal active | 2 h | 12 h |
 | Quiet: no filing in 6 months, no deadline within 90 days | 6 h | 24 h |
 | Dissolved or removed | 30 days | 30 days |
+
+Both deadlines are considered, so an overdue confirmation statement cannot
+hide accounts due next week. A deadline more than 90 days in the past no
+longer counts as near: that company has stopped filing, and polling it every
+half hour would not change that.
 
 Business hours are Monday to Friday 08:00 to 18:30 Europe/London, excluding
 England and Wales bank holidays (a table from GOV.UK for 2026 to 2028 with an

@@ -20,6 +20,7 @@ from .const import (
     DISQUALIFICATION_INTERVAL,
     FINISHED_STATUSES,
     JITTER_FRACTION,
+    OVERDUE_GRACE_DAYS,
     PROBE_INTERVALS,
     PROFILE_INTERVAL,
     PROFILE_INTERVAL_NEAR_DEADLINE,
@@ -165,6 +166,26 @@ class TierDecision:
     reason: str
 
 
+def deadline_days(profile: CompanyProfile | None, today: date) -> list[tuple[int, str]]:
+    """Return (days until, kind) for each known deadline, soonest first."""
+    if profile is None:
+        return []
+    result = [
+        (days, kind)
+        for due, kind in (
+            (profile.accounts.next_due, "accounts"),
+            (profile.confirmation_statement.next_due, "confirmation_statement"),
+        )
+        if (days := days_until(due, today)) is not None
+    ]
+    return sorted(result)
+
+
+def _near(days: int, within: int) -> bool:
+    """Return True within ``within`` days before a deadline, or up to the grace after."""
+    return -OVERDUE_GRACE_DAYS <= days <= within
+
+
 def compute_tier(
     profile: CompanyProfile | None,
     *,
@@ -172,20 +193,25 @@ def compute_tier(
     last_filing_date: date | None,
     today: date,
 ) -> TierDecision:
-    """Pick the adaptive tier for a company (spec 6.4)."""
+    """Pick the adaptive tier for a company (spec 6.4).
+
+    Both deadlines are considered, so an overdue confirmation statement
+    cannot hide accounts that are due next week. A deadline more than
+    OVERDUE_GRACE_DAYS in the past no longer counts as near: the company is
+    not about to file, it has stopped filing.
+    """
     if profile is not None and profile.company_status in FINISHED_STATUSES:
         return TierDecision(Tier.DISSOLVED, f"status {profile.company_status}")
     if close_watch:
         return TierDecision(Tier.CLOSE_WATCH, "close watch enabled")
-    deadline = profile.next_deadline if profile is not None else None
-    days = days_until(deadline[0], today) if deadline else None
-    if days is not None and days <= DEADLINE_TIER_DAYS:
-        return TierDecision(
-            Tier.DEADLINE, f"{deadline[1] if deadline else ''} due in {days} days"
-        )
+    deadlines = deadline_days(profile, today)
+    near = [(d, kind) for d, kind in deadlines if _near(d, DEADLINE_TIER_DAYS)]
+    if near:
+        days, kind = near[0]
+        return TierDecision(Tier.DEADLINE, f"{kind} due in {days} days")
     filing_gap = days_until(last_filing_date, today)
     no_recent_filing = filing_gap is None or -filing_gap >= QUIET_NO_FILING_DAYS
-    no_near_deadline = days is None or days > QUIET_NO_DEADLINE_DAYS
+    no_near_deadline = not any(_near(d, QUIET_NO_DEADLINE_DAYS) for d, _ in deadlines)
     if no_recent_filing and no_near_deadline and profile is not None:
         return TierDecision(
             Tier.QUIET, "no filing in 6 months and no deadline within 90 days"
@@ -209,14 +235,13 @@ def profile_interval(
     """Return the profile refresh interval (spec 6.3)."""
     if tier is Tier.DISSOLVED:
         return PROBE_INTERVALS[Tier.DISSOLVED][0] * multiplier, "dissolved"
-    deadline = profile.next_deadline if profile is not None else None
-    if deadline is not None:
-        days = days_until(deadline[0], today)
-        if days is not None and days <= PROFILE_NEAR_DEADLINE_DAYS:
-            return (
-                PROFILE_INTERVAL_NEAR_DEADLINE * multiplier,
-                "within 14 days of a deadline",
-            )
+    if any(
+        _near(d, PROFILE_NEAR_DEADLINE_DAYS) for d, _ in deadline_days(profile, today)
+    ):
+        return (
+            PROFILE_INTERVAL_NEAR_DEADLINE * multiplier,
+            "within 14 days of a deadline",
+        )
     return PROFILE_INTERVAL * multiplier, "daily"
 
 

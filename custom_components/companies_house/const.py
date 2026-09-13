@@ -121,6 +121,9 @@ PROBE_INTERVALS: Final[dict[Tier, tuple[timedelta, timedelta]]] = {
 }
 
 DEADLINE_TIER_DAYS: Final = 30
+# How long past a deadline a company still counts as "near" it. Beyond this an
+# unfiled company is treated as abandoned rather than about to file.
+OVERDUE_GRACE_DAYS: Final = 90
 QUIET_NO_FILING_DAYS: Final = 183
 QUIET_NO_DEADLINE_DAYS: Final = 90
 PROFILE_INTERVAL: Final = timedelta(days=1)

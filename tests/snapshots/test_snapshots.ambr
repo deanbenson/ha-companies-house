@@ -10018,7 +10018,7 @@
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Polling tier',
       'last_probe': '2026-09-15T09:00:00+00:00',
-      'next_probe': '2026-09-15T09:33:05.987800+00:00',
+      'next_probe': '2026-09-15T11:12:23.951199+00:00',
       <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
         'close_watch',
         'deadline',
@@ -10027,15 +10027,15 @@
         'dissolved',
       ]),
       'period': 'business hours',
-      'probe_interval_minutes': 30,
-      'reason': 'confirmation_statement due in -212 days',
+      'probe_interval_minutes': 120,
+      'reason': 'active company',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.dormant_holdings_limited_polling_tier',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'deadline',
+    'state': 'normal',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_previous_names-entry]
@@ -24791,7 +24791,7 @@
       ]),
       'period': 'business hours',
       'probe_interval_minutes': 30,
-      'reason': 'confirmation_statement due in -92 days',
+      'reason': 'accounts due in 15 days',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.sunset_retail_limited_polling_tier',

@@ -464,6 +464,10 @@ async def test_reconciliation_refreshes_everything_weekly(
     assert company.state.last_reconciled > dt_util.utcnow() - timedelta(minutes=1)
     assert company.officers is not None
     assert company.officers.last_reason == "fetched"
+    # Probe driven datasets never run their own timers; the probe is the scheduler.
+    assert company.officers.next_run is None
+    assert company.probe.next_run is not None
+    assert company.profile.next_run is not None
 
 
 async def test_budget_deferral_keeps_data(

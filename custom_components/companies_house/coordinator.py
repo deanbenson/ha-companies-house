@@ -179,6 +179,11 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
 
     model: type[DataT]
     snapshot_key: str
+    # Coordinators driven by the probe (officers, PSC, charges, insolvency,
+    # structure) never schedule themselves: the probe refreshes them on a
+    # filing hit and at the weekly and monthly slots. Only the probe and the
+    # profile keep their own timers.
+    driven_by_probe = False
     # The base class types ``data`` as never None; it is None until the first
     # successful fetch, and the entities rely on that.
     data: DataT | None  # type: ignore[assignment]
@@ -235,7 +240,9 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
     @callback
     def _schedule_refresh(self) -> None:
         """Schedule the next refresh with async_call_later instead of a fixed interval."""
-        if self.config_entry and self.config_entry.pref_disable_polling:
+        if self.driven_by_probe or (
+            self.config_entry and self.config_entry.pref_disable_polling
+        ):
             return
         self._async_unsub_refresh()
         now = dt_util.utcnow()
@@ -551,6 +558,12 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
     model = FilingHistory
     snapshot_key = Dataset.FILINGS.value
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialise with nothing pending."""
+        super().__init__(*args, **kwargs)
+        self._pending_refresh: set[Dataset] = set()
+        self._pending_reason = "filing"
+
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Adaptive probe interval from the company's tier."""
         interval, when = probe_interval(self.company.tier, now, self.multiplier)
@@ -625,7 +638,7 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
                 )
             if changed and not new_items:
                 refresh.add(Dataset.PROFILE)
-            self._pending_refresh = refresh
+            self._pending_refresh |= refresh
         if reconciliation_due(number, now, state.last_reconciled):
             self._pending_refresh |= set(Dataset) - {Dataset.FILINGS, Dataset.STRUCTURE}
             self._pending_reason = "weekly reconciliation"
@@ -634,9 +647,6 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
             self._pending_refresh.add(Dataset.STRUCTURE)
             state.last_structure = now
         return history
-
-    _pending_refresh: set[Dataset] = set()
-    _pending_reason = "filing"
 
     def _record_newest(
         self, history: FilingHistory, newest: FilingHistoryItem | None
@@ -886,6 +896,7 @@ class OfficersCoordinator(_CompanyCoordinator[OfficerList]):
 
     model = OfficerList
     snapshot_key = Dataset.OFFICERS.value
+    driven_by_probe = True
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Only the probe refreshes this; the nominal interval is the reconciliation."""
@@ -929,6 +940,7 @@ class PscCoordinator(_CompanyCoordinator[PscData]):
 
     model = PscData
     snapshot_key = Dataset.PSC.value
+    driven_by_probe = True
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Only the probe refreshes this; the nominal interval is the reconciliation."""
@@ -993,6 +1005,7 @@ class ChargesCoordinator(_CompanyCoordinator[ChargeList]):
 
     model = ChargeList
     snapshot_key = Dataset.CHARGES.value
+    driven_by_probe = True
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Only the probe refreshes this; the nominal interval is the reconciliation."""
@@ -1026,6 +1039,7 @@ class InsolvencyCoordinator(_CompanyCoordinator[Insolvency]):
 
     model = Insolvency
     snapshot_key = Dataset.INSOLVENCY.value
+    driven_by_probe = True
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Only the probe refreshes this; the nominal interval is the reconciliation."""
@@ -1040,6 +1054,7 @@ class StructureCoordinator(_CompanyCoordinator[Structure]):
 
     model = Structure
     snapshot_key = Dataset.STRUCTURE.value
+    driven_by_probe = True
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Monthly."""
