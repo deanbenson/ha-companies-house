@@ -301,7 +301,12 @@ async def test_company_subentry_search_and_add(
     assert company.psc is None
     assert company.officers is not None
     assert hass.states.get("sensor.example_trading_limited_officers_active") is not None
-    assert hass.states.get("sensor.example_trading_limited_people_with_significant_control") is None
+    assert (
+        hass.states.get(
+            "sensor.example_trading_limited_people_with_significant_control"
+        )
+        is None
+    )
 
 
 async def test_company_subentry_postcode_search_and_errors(
@@ -357,11 +362,11 @@ async def test_company_subentry_already_configured_and_auth_abort(
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {CONF_QUERY: "example", CONF_POSTCODE: ""}
     )
+    options = result["data_schema"].schema[CONF_SELECTION].config["options"]
+    assert options[0]["label"].endswith("incorporated 2015 (already watching)")
+    assert "(already" not in options[1]["label"]
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {CONF_SELECTION: "12345678"}
-    )
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {CONF_DATASETS: [], CONF_CLOSE_WATCH: False, CONF_LABEL: ""}
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
@@ -533,7 +538,7 @@ async def test_officer_subentry_search_and_add(
     assert (
         options[0]["label"] == "Jane Elizabeth SMITH - born 06/1978 - 23 appointments"
     )
-    assert options[1]["label"] == "Jane SMITH - born 02/1981 - 1 appointments"
+    assert options[1]["label"] == "Jane SMITH - born 02/1981 - 1 appointment"
     from .conftest import mock_officer
 
     mock_officer(aioclient_mock)
@@ -549,11 +554,14 @@ async def test_officer_subentry_search_and_add(
         hass.states.get("sensor.jane_elizabeth_smith_appointments_active") is not None
     )
 
-    # Adding the same officer again is refused.
+    # Someone already followed is marked as such, and picking them is refused.
     result = await _start_subentry(hass, entry, SUBENTRY_TYPE_OFFICER)
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {CONF_QUERY: "jane smith"}
     )
+    options = result["data_schema"].schema[CONF_SELECTION].config["options"]
+    assert options[0]["label"].endswith("23 appointments (already following)")
+    assert "(already" not in options[1]["label"]
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {CONF_SELECTION: "officer-jane"}
     )

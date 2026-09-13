@@ -297,6 +297,19 @@ class CompaniesHouseOptionsFlow(OptionsFlow):
 # ---------------------------------------------------------------- companies
 
 
+def _configured(entry: ConfigEntry, subentry_type: str) -> set[str]:
+    """Return the unique ids already configured for a subentry type."""
+    return {
+        s.unique_id or ""
+        for s in entry.subentries.values()
+        if s.subentry_type == subentry_type
+    }
+
+
+def _plural(count: Any, singular: str, plural: str) -> str:
+    return f"{count} {singular if count == 1 else plural}"
+
+
 def _company_label(item: JsonDict) -> str:
     """Render ``Name (12345678) - status - incorporated YYYY``."""
     name = item.get("title") or item.get("company_name") or "?"
@@ -386,12 +399,19 @@ class CompanySubentryFlow(ConfigSubentryFlow):
     async def async_step_select(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Pick a company from the results."""
+        """Pick a company from the results. Ones already watched are marked."""
+        watched = _configured(self._get_entry(), SUBENTRY_TYPE_COMPANY)
         if user_input is not None:
+            if user_input[CONF_SELECTION] in watched:
+                return self.async_abort(reason="already_configured")
             self._selected = self._results[user_input[CONF_SELECTION]]
             return await self.async_step_confirm()
         options = [
-            SelectOptionDict(value=number, label=_company_label(item))
+            SelectOptionDict(
+                value=number,
+                label=_company_label(item)
+                + (" (already watching)" if number in watched else ""),
+            )
             for number, item in self._results.items()
         ]
         return self.async_show_form(
@@ -547,11 +567,13 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 errors["base"] = "cannot_connect"
             if not errors and not self._results:
                 return self.async_abort(reason="no_officers")
+        followed = _configured(entry, SUBENTRY_TYPE_OFFICER)
         options = [
             SelectOptionDict(
                 value=key,
                 label=f"{item['name']} - {item.get('role') or ''}"
-                + (f" - born {item['dob_display']}" if item.get("dob_display") else ""),
+                + (f" - born {item['dob_display']}" if item.get("dob_display") else "")
+                + (" (already following)" if key in followed else ""),
             )
             for key, item in self._results.items()
         ]
@@ -686,16 +708,18 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 },
                 unique_id=officer_id,
             )
+        followed = _configured(self._get_entry(), SUBENTRY_TYPE_OFFICER)
         options = [
             SelectOptionDict(
                 value=key,
                 label=f"{item['name']}"
                 + (f" - born {item['dob_display']}" if item.get("dob_display") else "")
                 + (
-                    f" - {item['appointment_count']} appointments"
+                    f" - {_plural(item['appointment_count'], 'appointment', 'appointments')}"
                     if item.get("appointment_count") is not None
                     else ""
-                ),
+                )
+                + (" (already following)" if key in followed else ""),
             )
             for key, item in self._results.items()
         ]

@@ -628,7 +628,9 @@ async def test_close_watch_and_dissolved_cadence(
         hass.states.get("sensor.example_trading_limited_how_often_it_is_checked").state
         == "close_watch"
     )
-    attrs = hass.states.get("sensor.example_trading_limited_how_often_it_is_checked").attributes
+    attrs = hass.states.get(
+        "sensor.example_trading_limited_how_often_it_is_checked"
+    ).attributes
     assert attrs["probe_interval_minutes"] == 15
     assert attrs["period"] == "business hours"
 
