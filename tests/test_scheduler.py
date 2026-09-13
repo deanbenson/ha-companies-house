@@ -75,14 +75,30 @@ def test_easter_and_computed_bank_holidays_match_gov_uk() -> None:
     assert date(2022, 12, 27) in computed_bank_holidays(2022)
 
 
-def test_bank_holidays_against_gov_uk_file_if_present() -> None:
-    """If the GOV.UK file is on disk, the shipped table matches it exactly."""
-    path = Path("/private/tmp") / "bank-holidays.json"
-    if not path.exists():
-        pytest.skip("GOV.UK file not available")
+def test_bank_holidays_match_gov_uk_file() -> None:
+    """The shipped table matches the GOV.UK bank-holidays.json, recorded as a fixture."""
+    path = Path(__file__).parent / "fixtures" / "gov-uk-bank-holidays.json"
     events = json.loads(path.read_text())["england-and-wales"]["events"]
     gov = {date.fromisoformat(e["date"]) for e in events if e["date"] >= "2026"}
     assert gov == BANK_HOLIDAYS
+    # The algorithm also reproduces the regular holidays of every earlier year in the file,
+    # apart from one-off days (jubilees, funerals, coronations).
+    one_offs = {
+        date(2020, 5, 8),  # VE Day 75: early May holiday moved to the Friday
+        date(2022, 6, 2),
+        date(2022, 6, 3),  # Platinum Jubilee
+        date(2022, 9, 19),  # State funeral
+        date(2023, 5, 8),  # Coronation
+    }
+    moved = {date(2020, 5, 4), date(2022, 5, 30)}  # moved for VE Day 75 and the Jubilee
+    for year in range(2019, 2026):
+        gov_year = {
+            date.fromisoformat(e["date"])
+            for e in events
+            if e["date"].startswith(str(year))
+        }
+        assert computed_bank_holidays(year) - moved <= gov_year, year
+        assert gov_year - computed_bank_holidays(year) <= one_offs, year
 
 
 @pytest.mark.parametrize(

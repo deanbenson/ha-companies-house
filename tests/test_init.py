@@ -8,11 +8,12 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.companies_house.const import DOMAIN
+from custom_components.companies_house.const import API_BASE, DOMAIN
 
 
 async def test_setup_and_unload_without_subentries(
@@ -116,3 +117,103 @@ async def test_remove_subentry_removes_only_its_device(
     assert len(after) == before - len(removed_entities)
     assert all(e.config_subentry_id != "sub_23456789" for e in after)
     assert entry.state is ConfigEntryState.LOADED
+
+
+async def test_setup_without_subentries_key_errors(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """With nothing monitored the key is tested; failures map to auth or not ready."""
+    from .conftest import make_entry
+
+    aioclient_mock.get(f"{API_BASE}/search/companies", status=401)
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{API_BASE}/search/companies", status=500)
+    other = MockConfigEntry(
+        domain=DOMAIN, data={"api_key": "k2"}, unique_id="other", entry_id="entry2"
+    )
+    other.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(other.entry_id)
+    await hass.async_block_till_done()
+    assert other.state is ConfigEntryState.SETUP_RETRY
+
+
+async def test_officer_auth_failure_is_raised(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """A 401 on an officer coordinator also puts the entry into auth failure."""
+    from .conftest import make_entry, officer_subentry
+
+    aioclient_mock.get(f"{API_BASE}/officers/officer-jane/appointments", status=401)
+    aioclient_mock.get(f"{API_BASE}/search/disqualified-officers", status=401)
+    entry = make_entry([officer_subentry()])
+    entry.add_to_hass(hass)
+    assert not await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+
+
+async def test_store_pruned_and_removed(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    hass_storage: dict[str, Any],
+) -> None:
+    """State for removed subentries is pruned on reload; removal deletes the store."""
+    entry = await setup_entry(["12345678", "23456789"])
+    store = entry.runtime_data.store
+    assert set(store.companies) == {"12345678", "23456789"}
+    hass.config_entries.async_remove_subentry(entry, "sub_23456789")
+    await hass.async_block_till_done()
+    assert set(entry.runtime_data.store.companies) == {"12345678"}
+    await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+    assert f"{DOMAIN}.{entry.entry_id}" not in hass_storage
+
+
+async def test_remove_device_only_when_stale(
+    hass: HomeAssistant, setup_entry: Callable[..., Any]
+) -> None:
+    """Live devices cannot be removed; a stale device can."""
+    from custom_components.companies_house import async_remove_config_entry_device
+
+    entry = await setup_entry(["12345678"], officers=True)
+    registry = dr.async_get(hass)
+    company = registry.async_get_device_by_identifier(
+        (DOMAIN, "company_12345678"), entry.entry_id
+    )
+    officer = registry.async_get_device_by_identifier(
+        (DOMAIN, "officer_officer-jane"), entry.entry_id
+    )
+    service = registry.async_get_device_by_identifier(
+        (DOMAIN, entry.entry_id), entry.entry_id
+    )
+    assert company is not None
+    assert officer is not None
+    assert service is not None
+    assert not await async_remove_config_entry_device(hass, entry, company)
+    assert not await async_remove_config_entry_device(hass, entry, officer)
+    assert not await async_remove_config_entry_device(hass, entry, service)
+    stale = registry.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={(DOMAIN, "company_00000000")}
+    )
+    assert await async_remove_config_entry_device(hass, entry, stale)
+
+
+async def test_migrate_entry(hass: HomeAssistant) -> None:
+    """Version 1 entries need no migration; a future version is refused."""
+    from custom_components.companies_house import async_migrate_entry
+
+    from .conftest import make_entry
+
+    entry = make_entry()
+    entry.add_to_hass(hass)
+    assert await async_migrate_entry(hass, entry)
+    future = MockConfigEntry(
+        domain=DOMAIN, data={"api_key": "k"}, version=2, entry_id="e2"
+    )
+    future.add_to_hass(hass)
+    assert not await async_migrate_entry(hass, future)
