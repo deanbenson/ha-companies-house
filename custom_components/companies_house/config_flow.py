@@ -63,6 +63,7 @@ from .const import (
     DEFAULT_DOCUMENT_DIRECTORY,
     DEFAULT_DUE_SOON_DAYS,
     DEFAULT_MAX_PAGES,
+    DEVELOPER_HUB_URL,
     DOMAIN,
     MANUFACTURER,
     MAX_CADENCE_MULTIPLIER,
@@ -134,7 +135,10 @@ class CompaniesHouseConfigFlow(ConfigFlow, domain=DOMAIN):
                 )
             errors["base"] = error
         return self.async_show_form(
-            step_id="user", data_schema=API_KEY_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=API_KEY_SCHEMA,
+            errors=errors,
+            description_placeholders={"developer_hub": DEVELOPER_HUB_URL},
         )
 
     async def async_step_reauth(

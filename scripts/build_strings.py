@@ -271,7 +271,7 @@ def build() -> dict:
             "step": {
                 "user": {
                     "title": "Connect to Companies House",
-                    "description": "Enter the API key of an application registered at https://developer.company-information.service.gov.uk/. One key is one budget: 600 requests per 5 minutes.",
+                    "description": "Enter the API key of an application registered on the Companies House developer hub ({developer_hub}). One key is one budget: 600 requests per 5 minutes.",
                     "data": {"api_key": "API key"},
                     "data_description": {"api_key": api_key_desc},
                 },
