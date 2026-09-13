@@ -1,0 +1,21 @@
+{
+  "active_count": 1,
+  "ceased_count": 0,
+  "items": [
+    {
+      "etag": "st-1",
+      "kind": "persons-with-significant-control-statement",
+      "links": {
+        "self": "/company/45678901/persons-with-significant-control-statements/stmt-1"
+      },
+      "notified_on": "2016-04-06",
+      "statement": "no-individual-or-entity-with-signficant-control"
+    }
+  ],
+  "items_per_page": 100,
+  "links": {
+    "self": "/company/45678901/persons-with-significant-control-statements"
+  },
+  "start_index": 0,
+  "total_results": 1
+}

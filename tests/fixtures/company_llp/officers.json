@@ -1,0 +1,62 @@
+{
+  "active_count": 2,
+  "etag": "officers-etag",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_before": "1992-01-01",
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 4,
+        "year": 1950
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-ancient/appointments"
+        },
+        "self": "/company/OC123456/appointments/appt-llp1"
+      },
+      "name": "TAYLOR, Robert",
+      "nationality": "British",
+      "occupation": "Company Director",
+      "officer_role": "llp-designated-member"
+    },
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_on": "2001-04-09",
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 8,
+        "year": 1980
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-member/appointments"
+        },
+        "self": "/company/OC123456/appointments/appt-llp2"
+      },
+      "name": "TAYLOR, Emma",
+      "nationality": "British",
+      "occupation": "Company Director",
+      "officer_role": "llp-member"
+    }
+  ],
+  "items_per_page": 100,
+  "kind": "officer-list",
+  "links": {
+    "self": "/company/X/officers"
+  },
+  "resigned_count": 0,
+  "start_index": 0,
+  "total_results": 2
+}

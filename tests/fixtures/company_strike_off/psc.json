@@ -1,0 +1,11 @@
+{
+  "active_count": 0,
+  "ceased_count": 0,
+  "items": [],
+  "items_per_page": 100,
+  "links": {
+    "self": "/company/X/persons-with-significant-control"
+  },
+  "start_index": 0,
+  "total_results": 0
+}

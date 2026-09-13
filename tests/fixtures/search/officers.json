@@ -1,0 +1,65 @@
+{
+  "etag": "so-etag",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "address_snippet": "47 High Street, Reading, RG1 2AB",
+      "appointment_count": 23,
+      "date_of_birth": {
+        "month": 6,
+        "year": 1978
+      },
+      "description": "Total number of appointments 23 - Born June 1978",
+      "description_identifiers": [
+        "appointment-count",
+        "born-on"
+      ],
+      "kind": "searchresults#officer",
+      "links": {
+        "self": "/officers/officer-jane/appointments"
+      },
+      "matches": {
+        "title": [
+          1,
+          4
+        ]
+      },
+      "snippet": "",
+      "title": "Jane Elizabeth SMITH"
+    },
+    {
+      "address_snippet": "1 Other Street, Leeds, LS1 1AA",
+      "appointment_count": 1,
+      "date_of_birth": {
+        "month": 2,
+        "year": 1981
+      },
+      "description": "Total number of appointments 1 - Born February 1981",
+      "description_identifiers": [
+        "appointment-count",
+        "born-on"
+      ],
+      "kind": "searchresults#officer",
+      "links": {
+        "self": "/officers/officer-other-jane/appointments"
+      },
+      "matches": {
+        "title": [
+          1,
+          4
+        ]
+      },
+      "snippet": "",
+      "title": "Jane SMITH"
+    }
+  ],
+  "items_per_page": 20,
+  "kind": "search#officers",
+  "start_index": 0,
+  "total_results": 2
+}

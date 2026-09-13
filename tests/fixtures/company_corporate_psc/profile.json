@@ -1,0 +1,58 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "31",
+      "month": "03"
+    },
+    "last_accounts": {
+      "made_up_to": "2025-03-31",
+      "period_end_on": "2025-03-31",
+      "period_start_on": "2024-04-01",
+      "type": "micro-entity"
+    },
+    "next_accounts": {
+      "due_on": "2026-12-31",
+      "overdue": false,
+      "period_end_on": "2026-03-31",
+      "period_start_on": "2025-04-01"
+    },
+    "next_due": "2026-12-31",
+    "next_made_up_to": "2026-03-31",
+    "overdue": false
+  },
+  "can_file": true,
+  "company_name": "SUBSIDIARY SERVICES LIMITED",
+  "company_number": "56789012",
+  "company_status": "active",
+  "confirmation_statement": {
+    "last_made_up_to": "2026-03-11",
+    "next_due": "2027-03-25",
+    "next_made_up_to": "2027-03-11",
+    "overdue": false
+  },
+  "date_of_creation": "2015-03-12",
+  "etag": "etag-56789012-1",
+  "has_charges": false,
+  "has_insolvency_history": false,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/56789012/filing-history",
+    "officers": "/company/56789012/officers",
+    "persons_with_significant_control": "/company/56789012/persons-with-significant-control",
+    "registers": "/company/56789012/registers",
+    "self": "/company/56789012"
+  },
+  "registered_office_address": {
+    "address_line_1": "47 High Street",
+    "country": "England",
+    "locality": "Reading",
+    "postal_code": "RG1 2AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012",
+    "62020"
+  ],
+  "type": "ltd",
+  "undeliverable_registered_office_address": false
+}

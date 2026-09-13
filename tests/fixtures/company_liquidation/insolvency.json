@@ -1,0 +1,31 @@
+{
+  "cases": [
+    {
+      "dates": [
+        {
+          "date": "2026-07-01",
+          "type": "wound-up-on"
+        }
+      ],
+      "links": {},
+      "number": "1",
+      "practitioners": [
+        {
+          "address": {
+            "address_line_1": "1 Insolvency Row",
+            "locality": "Manchester",
+            "postal_code": "M1 1AA"
+          },
+          "appointed_on": "2026-07-01",
+          "name": "Alex Carter",
+          "role": "practitioner"
+        }
+      ],
+      "type": "members-voluntary-liquidation"
+    }
+  ],
+  "etag": "ins-etag",
+  "status": [
+    "liquidation"
+  ]
+}

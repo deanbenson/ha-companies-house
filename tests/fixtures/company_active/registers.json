@@ -1,0 +1,31 @@
+{
+  "company_number": "12345678",
+  "etag": "registers-etag",
+  "kind": "registers",
+  "links": {
+    "self": "/company/12345678/registers"
+  },
+  "registers": {
+    "directors": {
+      "items": [
+        {
+          "links": {
+            "filing": "/x"
+          },
+          "moved_on": "2015-03-12",
+          "register_moved_to": "public-register"
+        }
+      ],
+      "register_type": "directors"
+    },
+    "secretaries": {
+      "items": [
+        {
+          "moved_on": "2015-03-12",
+          "register_moved_to": "registered-office"
+        }
+      ],
+      "register_type": "secretaries"
+    }
+  }
+}

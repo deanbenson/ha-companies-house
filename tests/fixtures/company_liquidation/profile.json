@@ -1,0 +1,55 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "31",
+      "month": "12"
+    },
+    "last_accounts": {
+      "made_up_to": "2024-12-31",
+      "period_end_on": "2024-12-31",
+      "type": "small"
+    },
+    "next_accounts": {
+      "due_on": "2026-09-30",
+      "overdue": false,
+      "period_end_on": "2025-12-31"
+    },
+    "next_due": "2026-09-30",
+    "overdue": false
+  },
+  "can_file": true,
+  "company_name": "SUNSET RETAIL LIMITED",
+  "company_number": "34567890",
+  "company_status": "liquidation",
+  "confirmation_statement": {
+    "last_made_up_to": "2025-06-01",
+    "next_due": "2026-06-15",
+    "next_made_up_to": "2026-06-01",
+    "overdue": true
+  },
+  "date_of_creation": "2015-03-12",
+  "etag": "etag-34567890-1",
+  "has_charges": false,
+  "has_insolvency_history": true,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/34567890/filing-history",
+    "insolvency": "/company/34567890/insolvency",
+    "officers": "/company/34567890/officers",
+    "persons_with_significant_control": "/company/34567890/persons-with-significant-control",
+    "self": "/company/34567890"
+  },
+  "registered_office_address": {
+    "address_line_1": "47 High Street",
+    "country": "England",
+    "locality": "Reading",
+    "postal_code": "RG1 2AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012",
+    "62020"
+  ],
+  "type": "ltd",
+  "undeliverable_registered_office_address": false
+}

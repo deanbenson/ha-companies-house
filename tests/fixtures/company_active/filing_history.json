@@ -1,0 +1,114 @@
+{
+  "etag": "fh-12345678",
+  "filing_history_status": "filing-history-available",
+  "items": [
+    {
+      "barcode": "XMDAWMDAX",
+      "category": "confirmation-statement",
+      "date": "2026-03-14",
+      "description": "confirmation-statement-with-no-updates",
+      "description_values": {
+        "made_up_date": "2026-03-11"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDAx",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDAx"
+      },
+      "pages": 3,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDAx",
+      "type": "CS01"
+    },
+    {
+      "barcode": "XMDAWMDAY",
+      "category": "accounts",
+      "date": "2025-12-18",
+      "description": "accounts-with-accounts-type-micro-entity",
+      "description_values": {
+        "made_up_date": "2025-03-31"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDAy",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDAy"
+      },
+      "pages": 6,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDAy",
+      "type": "AA"
+    },
+    {
+      "barcode": "XMDAWMDAZ",
+      "category": "officers",
+      "date": "2025-09-02",
+      "description": "appoint-person-director-company-with-name-date",
+      "description_values": {
+        "appointment_date": "2025-09-01",
+        "officer_name": "Ms Priya Patel"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDAz",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDAz"
+      },
+      "pages": 2,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDAz",
+      "type": "AP01"
+    },
+    {
+      "barcode": "XMDAWMDA0",
+      "category": "address",
+      "date": "2024-02-20",
+      "description": "change-registered-office-address-company-with-date-old-address-new-address",
+      "description_values": {
+        "change_date": "2024-02-20",
+        "new_address": "47 High Street Reading RG1 2AB",
+        "old_address": "12 Old Road London SW1A 1AA"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDA0",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDA0"
+      },
+      "pages": 1,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDA0",
+      "type": "AD01"
+    },
+    {
+      "barcode": "XMDAWMDA1",
+      "category": "mortgage",
+      "date": "2022-05-10",
+      "description": "mortgage-create-with-deed-with-charge-number-charge-creation-date",
+      "description_values": {
+        "charge_creation_date": "2022-05-06",
+        "charge_number": "123456780001"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDA1",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDA1"
+      },
+      "pages": 12,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDA1",
+      "type": "MR01"
+    },
+    {
+      "barcode": "XMDAWMDA2",
+      "category": "incorporation",
+      "date": "2015-03-12",
+      "description": "incorporation-company",
+      "description_values": {},
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzQwMDAwMDAwMDAwMDAwMDA2",
+        "self": "/company/12345678/filing-history/MzQwMDAwMDAwMDAwMDAwMDA2"
+      },
+      "pages": 30,
+      "paper_filed": false,
+      "transaction_id": "MzQwMDAwMDAwMDAwMDAwMDA2",
+      "type": "NEWINC"
+    }
+  ],
+  "items_per_page": 6,
+  "kind": "filing-history",
+  "start_index": 0,
+  "total_count": 6
+}

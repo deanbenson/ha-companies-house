@@ -1,0 +1,108 @@
+{
+  "active_count": 3,
+  "etag": "officers-etag",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_on": "2015-03-12",
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 6,
+        "year": 1978
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-jane/appointments"
+        },
+        "self": "/company/12345678/appointments/appt-1"
+      },
+      "name": "SMITH, Jane Elizabeth",
+      "nationality": "British",
+      "occupation": "Company Director",
+      "officer_role": "director"
+    },
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_on": "2025-09-01",
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 11,
+        "year": 1985
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-priya/appointments"
+        },
+        "self": "/company/12345678/appointments/appt-2"
+      },
+      "name": "PATEL, Priya",
+      "nationality": "British",
+      "occupation": "Company Director",
+      "officer_role": "director"
+    },
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_on": "2015-03-12",
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 2,
+        "year": 1970
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-tom/appointments"
+        },
+        "self": "/company/12345678/appointments/appt-3"
+      },
+      "name": "BROWN, Thomas",
+      "nationality": "British",
+      "occupation": "Company Director",
+      "officer_role": "director",
+      "resigned_on": "2020-01-31"
+    },
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "appointed_on": "2015-03-12",
+      "identification": {
+        "identification_type": "uk-limited-company",
+        "registration_number": "11111111"
+      },
+      "links": {
+        "officer": {
+          "appointments": "/officers/officer-sec/appointments"
+        },
+        "self": "/company/12345678/appointments/appt-4"
+      },
+      "name": "ACME SECRETARIES LIMITED",
+      "officer_role": "corporate-secretary"
+    }
+  ],
+  "items_per_page": 100,
+  "kind": "officer-list",
+  "links": {
+    "self": "/company/X/officers"
+  },
+  "resigned_count": 1,
+  "start_index": 0,
+  "total_results": 4
+}

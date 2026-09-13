@@ -1,0 +1,60 @@
+{
+  "etag": "dq-etag",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "1 Other Street",
+        "locality": "Leeds",
+        "postal_code": "LS1 1AA"
+      },
+      "address_snippet": "1 Other Street, Leeds, LS1 1AA",
+      "date_of_birth": "1981-02-03",
+      "description": "Born on 3 February 1981",
+      "description_identifiers": [
+        "born-on"
+      ],
+      "kind": "searchresults#disqualified-officer",
+      "links": {
+        "self": "/disqualified-officers/natural/dq-other-jane"
+      },
+      "matches": {
+        "title": [
+          1,
+          4
+        ]
+      },
+      "snippet": "",
+      "title": "Jane SMITH"
+    },
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "address_snippet": "47 High Street, Reading, RG1 2AB",
+      "date_of_birth": "1978-06-20",
+      "description": "Born on 20 June 1978",
+      "description_identifiers": [
+        "born-on"
+      ],
+      "kind": "searchresults#disqualified-officer",
+      "links": {
+        "self": "/disqualified-officers/natural/dq-exact-jane"
+      },
+      "matches": {
+        "title": [
+          1,
+          4
+        ]
+      },
+      "snippet": "",
+      "title": "Jane Elizabeth SMITH"
+    }
+  ],
+  "items_per_page": 20,
+  "kind": "search#disqualified-officers",
+  "start_index": 0,
+  "total_results": 2
+}

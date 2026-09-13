@@ -1,0 +1,34 @@
+{
+  "etag": "dq-etag2",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "1 Other Street",
+        "locality": "Leeds",
+        "postal_code": "LS1 1AA"
+      },
+      "address_snippet": "1 Other Street, Leeds, LS1 1AA",
+      "date_of_birth": "1981-02-03",
+      "description": "Born on 3 February 1981",
+      "description_identifiers": [
+        "born-on"
+      ],
+      "kind": "searchresults#disqualified-officer",
+      "links": {
+        "self": "/disqualified-officers/natural/dq-other-jane"
+      },
+      "matches": {
+        "title": [
+          1,
+          4
+        ]
+      },
+      "snippet": "",
+      "title": "Jane Elizabeth SMITH"
+    }
+  ],
+  "items_per_page": 20,
+  "kind": "search#disqualified-officers",
+  "start_index": 0,
+  "total_results": 1
+}

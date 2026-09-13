@@ -1,0 +1,47 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "30",
+      "month": "06"
+    },
+    "last_accounts": {
+      "made_up_to": "2022-06-30",
+      "type": "dormant"
+    },
+    "overdue": false
+  },
+  "can_file": false,
+  "company_name": "OLD VENTURES LIMITED",
+  "company_number": "23456789",
+  "company_status": "dissolved",
+  "confirmation_statement": {
+    "last_made_up_to": "2023-01-15",
+    "overdue": false
+  },
+  "date_of_cessation": "2024-08-13",
+  "date_of_creation": "2015-03-12",
+  "etag": "etag-23456789-1",
+  "has_charges": false,
+  "has_insolvency_history": false,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/23456789/filing-history",
+    "officers": "/company/23456789/officers",
+    "persons_with_significant_control": "/company/23456789/persons-with-significant-control",
+    "registers": "/company/23456789/registers",
+    "self": "/company/23456789"
+  },
+  "registered_office_address": {
+    "address_line_1": "47 High Street",
+    "country": "England",
+    "locality": "Reading",
+    "postal_code": "RG1 2AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012",
+    "62020"
+  ],
+  "type": "ltd",
+  "undeliverable_registered_office_address": false
+}

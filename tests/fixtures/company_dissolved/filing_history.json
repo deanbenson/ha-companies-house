@@ -1,0 +1,55 @@
+{
+  "etag": "fh-23456789",
+  "filing_history_status": "filing-history-available",
+  "items": [
+    {
+      "barcode": "XMDAWMDAX",
+      "category": "gazette",
+      "date": "2024-08-13",
+      "description": "gazette-dissolved-compulsory",
+      "description_values": {},
+      "links": {
+        "self": "/company/23456789/filing-history/MzIwMDAwMDAwMDAwMDAwMDAx"
+      },
+      "pages": 1,
+      "paper_filed": false,
+      "transaction_id": "MzIwMDAwMDAwMDAwMDAwMDAx",
+      "type": "DISS40"
+    },
+    {
+      "barcode": "XMDAWMDAY",
+      "category": "gazette",
+      "date": "2024-05-28",
+      "description": "gazette-notice-compulsory",
+      "description_values": {},
+      "links": {
+        "self": "/company/23456789/filing-history/MzIwMDAwMDAwMDAwMDAwMDAy"
+      },
+      "pages": 1,
+      "paper_filed": false,
+      "transaction_id": "MzIwMDAwMDAwMDAwMDAwMDAy",
+      "type": "GAZ1"
+    },
+    {
+      "barcode": "XMDAWMDAZ",
+      "category": "confirmation-statement",
+      "date": "2023-01-20",
+      "description": "confirmation-statement-with-no-updates",
+      "description_values": {
+        "made_up_date": "2023-01-15"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzIwMDAwMDAwMDAwMDAwMDAz",
+        "self": "/company/23456789/filing-history/MzIwMDAwMDAwMDAwMDAwMDAz"
+      },
+      "pages": 1,
+      "paper_filed": false,
+      "transaction_id": "MzIwMDAwMDAwMDAwMDAwMDAz",
+      "type": "CS01"
+    }
+  ],
+  "items_per_page": 3,
+  "kind": "filing-history",
+  "start_index": 0,
+  "total_count": 3
+}

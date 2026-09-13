@@ -1,0 +1,41 @@
+{
+  "active_count": 1,
+  "ceased_count": 0,
+  "items": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "country_of_residence": "England",
+      "date_of_birth": {
+        "month": 6,
+        "year": 1978
+      },
+      "etag": "psc-psc-jane",
+      "kind": "individual-person-with-significant-control",
+      "links": {
+        "self": "/company/12345678/persons-with-significant-control/individual/psc-jane"
+      },
+      "name": "Ms Jane Elizabeth Smith",
+      "name_elements": {
+        "forename": "Jane",
+        "surname": "Smith"
+      },
+      "nationality": "British",
+      "natures_of_control": [
+        "ownership-of-shares-75-to-100-percent",
+        "voting-rights-75-to-100-percent"
+      ],
+      "notified_on": "2016-04-06"
+    }
+  ],
+  "items_per_page": 100,
+  "links": {
+    "self": "/company/X/persons-with-significant-control"
+  },
+  "start_index": 0,
+  "total_results": 1
+}

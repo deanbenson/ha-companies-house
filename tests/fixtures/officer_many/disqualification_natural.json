@@ -1,0 +1,37 @@
+{
+  "date_of_birth": "1978-06-20",
+  "disqualifications": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "case_identifier": "CASE-1",
+      "company_names": [
+        "FAILED WIDGETS LIMITED"
+      ],
+      "court_name": "Insolvency Service",
+      "disqualification_type": "undertaking",
+      "disqualified_from": "2025-01-10",
+      "disqualified_until": "2031-01-09",
+      "reason": {
+        "act": "company-directors-disqualification-act-1986",
+        "description_identifier": "order-or-undertaking-and-reporting-provisions",
+        "section": "7"
+      },
+      "undertaken_on": "2024-12-20"
+    }
+  ],
+  "etag": "dqn-etag",
+  "forename": "Jane",
+  "kind": "natural-disqualification",
+  "links": {
+    "self": "/disqualified-officers/natural/dq-exact-jane"
+  },
+  "nationality": "British",
+  "other_forenames": "Elizabeth",
+  "person_number": "123456789012",
+  "surname": "SMITH"
+}

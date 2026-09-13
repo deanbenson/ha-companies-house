@@ -1,0 +1,41 @@
+{
+  "etag": "fh-45678901",
+  "filing_history_status": "filing-history-available",
+  "items": [
+    {
+      "barcode": "XMDAWMDAX",
+      "category": "gazette",
+      "date": "2026-08-25",
+      "description": "gazette-notice-compulsory",
+      "description_values": {},
+      "links": {
+        "self": "/company/45678901/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx"
+      },
+      "pages": 1,
+      "paper_filed": false,
+      "transaction_id": "MzUwMDAwMDAwMDAwMDAwMDAx",
+      "type": "GAZ1"
+    },
+    {
+      "barcode": "XMDAWMDAY",
+      "category": "accounts",
+      "date": "2024-11-12",
+      "description": "accounts-with-accounts-type-dormant",
+      "description_values": {
+        "made_up_date": "2024-05-31"
+      },
+      "links": {
+        "document_metadata": "https://frontend-doc-api.company-information.service.gov.uk/document/doc-MzUwMDAwMDAwMDAwMDAwMDAy",
+        "self": "/company/45678901/filing-history/MzUwMDAwMDAwMDAwMDAwMDAy"
+      },
+      "pages": 2,
+      "paper_filed": false,
+      "transaction_id": "MzUwMDAwMDAwMDAwMDAwMDAy",
+      "type": "AA"
+    }
+  ],
+  "items_per_page": 2,
+  "kind": "filing-history",
+  "start_index": 0,
+  "total_count": 2
+}

@@ -1,0 +1,28 @@
+{
+  "etag": "v",
+  "items": [
+    {
+      "address_snippet": "1 Test Street",
+      "company_number": "00000001",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "1990-01-01",
+      "description": "00000001 - Incorporated on 1 January 1990",
+      "description_identifier": [
+        "incorporated-on"
+      ],
+      "kind": "searchresults#company",
+      "links": {
+        "self": "/company/00000001"
+      },
+      "matches": {},
+      "snippet": "",
+      "title": "TEST LIMITED"
+    }
+  ],
+  "items_per_page": 1,
+  "kind": "search#companies",
+  "page_number": 1,
+  "start_index": 0,
+  "total_results": 12345
+}

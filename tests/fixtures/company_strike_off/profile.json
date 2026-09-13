@@ -1,0 +1,57 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "31",
+      "month": "05"
+    },
+    "last_accounts": {
+      "made_up_to": "2024-05-31",
+      "period_end_on": "2024-05-31",
+      "type": "dormant"
+    },
+    "next_accounts": {
+      "due_on": "2026-02-28",
+      "overdue": true,
+      "period_end_on": "2025-05-31",
+      "period_start_on": "2024-06-01"
+    },
+    "next_due": "2026-02-28",
+    "overdue": true
+  },
+  "can_file": true,
+  "company_name": "DORMANT HOLDINGS LIMITED",
+  "company_number": "45678901",
+  "company_status": "active",
+  "company_status_detail": "active-proposal-to-strike-off",
+  "confirmation_statement": {
+    "last_made_up_to": "2025-02-01",
+    "next_due": "2026-02-15",
+    "next_made_up_to": "2026-02-01",
+    "overdue": true
+  },
+  "date_of_creation": "2015-03-12",
+  "etag": "etag-45678901-1",
+  "has_charges": false,
+  "has_insolvency_history": false,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/45678901/filing-history",
+    "officers": "/company/45678901/officers",
+    "persons_with_significant_control": "/company/45678901/persons-with-significant-control",
+    "registers": "/company/45678901/registers",
+    "self": "/company/45678901"
+  },
+  "registered_office_address": {
+    "address_line_1": "47 High Street",
+    "country": "England",
+    "locality": "Reading",
+    "postal_code": "RG1 2AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012",
+    "62020"
+  ],
+  "type": "ltd",
+  "undeliverable_registered_office_address": false
+}

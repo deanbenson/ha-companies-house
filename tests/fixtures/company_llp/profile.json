@@ -1,0 +1,56 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "30",
+      "month": "09"
+    },
+    "last_accounts": {
+      "made_up_to": "2025-09-30",
+      "period_end_on": "2025-09-30",
+      "type": "total-exemption-full"
+    },
+    "next_accounts": {
+      "due_on": "2027-06-30",
+      "overdue": false,
+      "period_end_on": "2026-09-30",
+      "period_start_on": "2025-10-01"
+    },
+    "next_due": "2027-06-30",
+    "overdue": false
+  },
+  "can_file": true,
+  "company_name": "HISTORIC PARTNERS LLP",
+  "company_number": "OC123456",
+  "company_status": "active",
+  "confirmation_statement": {
+    "last_made_up_to": "2026-04-09",
+    "next_due": "2027-04-23",
+    "next_made_up_to": "2027-04-09",
+    "overdue": false
+  },
+  "date_of_creation": "2001-04-09",
+  "etag": "etag-OC123456-1",
+  "has_charges": false,
+  "has_insolvency_history": false,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/OC123456/filing-history",
+    "officers": "/company/OC123456/officers",
+    "persons_with_significant_control": "/company/OC123456/persons-with-significant-control",
+    "registers": "/company/OC123456/registers",
+    "self": "/company/OC123456"
+  },
+  "registered_office_address": {
+    "address_line_1": "47 High Street",
+    "country": "England",
+    "locality": "Reading",
+    "postal_code": "RG1 2AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012",
+    "62020"
+  ],
+  "type": "llp",
+  "undeliverable_registered_office_address": false
+}

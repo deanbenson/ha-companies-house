@@ -1,0 +1,78 @@
+{
+  "etag": "charges-etag",
+  "items": [
+    {
+      "charge_code": "123456780001",
+      "charge_number": 1,
+      "classification": {
+        "description": "A registered charge",
+        "type": "charge-description"
+      },
+      "created_on": "2022-05-06",
+      "delivered_on": "2022-05-10",
+      "etag": "charge-chg-1",
+      "links": {
+        "self": "/company/12345678/charges/chg-1"
+      },
+      "particulars": {
+        "contains_fixed_charge": true,
+        "contains_floating_charge": true,
+        "contains_negative_pledge": true
+      },
+      "persons_entitled": [
+        {
+          "name": "HSBC UK Bank Plc"
+        }
+      ],
+      "status": "outstanding",
+      "transactions": [
+        {
+          "delivered_on": "2022-05-10",
+          "filing_type": "create-charge-with-deed",
+          "links": {
+            "filing": "/company/12345678/filing-history/MzAwMDAwMDAwMGFkaXF6a2N4"
+          }
+        }
+      ]
+    },
+    {
+      "charge_code": "123456780002",
+      "charge_number": 2,
+      "classification": {
+        "description": "A registered charge",
+        "type": "charge-description"
+      },
+      "created_on": "2016-01-04",
+      "delivered_on": "2016-01-08",
+      "etag": "charge-chg-2",
+      "links": {
+        "self": "/company/12345678/charges/chg-2"
+      },
+      "particulars": {
+        "contains_fixed_charge": true,
+        "contains_floating_charge": true,
+        "contains_negative_pledge": true
+      },
+      "persons_entitled": [
+        {
+          "name": "Lloyds Bank Plc"
+        }
+      ],
+      "satisfied_on": "2021-11-30",
+      "status": "fully-satisfied",
+      "transactions": [
+        {
+          "delivered_on": "2016-01-08",
+          "filing_type": "create-charge-with-deed",
+          "links": {
+            "filing": "/company/12345678/filing-history/MzAwMDAwMDAwMGFkaXF6a2N4"
+          }
+        }
+      ]
+    }
+  ],
+  "part_satisfied_count": 0,
+  "satisfied_count": 1,
+  "total_count": 2,
+  "unfiltered_count": 2
+}

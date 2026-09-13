@@ -1,0 +1,81 @@
+{
+  "etag": "s-etag",
+  "items": [
+    {
+      "address": {
+        "address_line_1": "47 High Street",
+        "country": "England",
+        "locality": "Reading",
+        "postal_code": "RG1 2AB"
+      },
+      "address_snippet": "47 High Street, Reading, RG1 2AB",
+      "company_number": "12345678",
+      "company_status": "active",
+      "company_type": "ltd",
+      "date_of_creation": "2015-03-12",
+      "description": "12345678 - Incorporated on 12 March 2015",
+      "description_identifier": [
+        "incorporated-on"
+      ],
+      "kind": "searchresults#company",
+      "links": {
+        "self": "/company/12345678"
+      },
+      "matches": {
+        "title": [
+          1,
+          7
+        ]
+      },
+      "snippet": "",
+      "title": "EXAMPLE TRADING LIMITED"
+    },
+    {
+      "address_snippet": "9 Mill Lane, Leeds, LS1 4AB",
+      "company_number": "87654321",
+      "company_status": "dissolved",
+      "company_type": "ltd",
+      "date_of_cessation": "2019-02-05",
+      "date_of_creation": "2009-07-01",
+      "description": "87654321 - Dissolved on  5 February 2019",
+      "description_identifier": [
+        "dissolved-on"
+      ],
+      "kind": "searchresults#company",
+      "links": {
+        "self": "/company/87654321"
+      },
+      "matches": {
+        "title": [
+          1,
+          7
+        ]
+      },
+      "snippet": "",
+      "title": "EXAMPLE TRADING (NORTH) LIMITED"
+    },
+    {
+      "address_snippet": "47 High Street, Reading, RG1 2AB",
+      "company_number": "OC123456",
+      "company_status": "active",
+      "company_type": "llp",
+      "date_of_creation": "2001-04-09",
+      "description": "OC123456 - Incorporated on  9 April 2001",
+      "description_identifier": [
+        "incorporated-on"
+      ],
+      "kind": "searchresults#company",
+      "links": {
+        "self": "/company/OC123456"
+      },
+      "matches": {},
+      "snippet": "",
+      "title": "HISTORIC PARTNERS LLP"
+    }
+  ],
+  "items_per_page": 20,
+  "kind": "search#companies",
+  "page_number": 1,
+  "start_index": 0,
+  "total_results": 3
+}

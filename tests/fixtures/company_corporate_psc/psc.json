@@ -1,0 +1,39 @@
+{
+  "active_count": 1,
+  "ceased_count": 0,
+  "items": [
+    {
+      "address": {
+        "address_line_1": "1 Parent Way",
+        "country": "England",
+        "locality": "London",
+        "postal_code": "EC1A 1AA"
+      },
+      "etag": "psc-psc-parent",
+      "identification": {
+        "country_registered": "England",
+        "legal_authority": "Companies Act 2006",
+        "legal_form": "Private Limited Company",
+        "place_registered": "England And Wales",
+        "registration_number": "09876543"
+      },
+      "kind": "corporate-entity-person-with-significant-control",
+      "links": {
+        "self": "/company/56789012/persons-with-significant-control/corporate-entity/psc-parent"
+      },
+      "name": "Parent Holdings Limited",
+      "natures_of_control": [
+        "ownership-of-shares-75-to-100-percent",
+        "voting-rights-75-to-100-percent",
+        "right-to-appoint-and-remove-directors"
+      ],
+      "notified_on": "2019-01-15"
+    }
+  ],
+  "items_per_page": 100,
+  "links": {
+    "self": "/company/X/persons-with-significant-control"
+  },
+  "start_index": 0,
+  "total_results": 1
+}
