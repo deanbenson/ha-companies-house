@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!--
+    Companies House for Home Assistant: brand mark.
+    An original, plain "record" glyph: a document sheet carrying a building
+    outline. Single accent colour, flat, no gradients, legible at 32 px.
+    Deliberately does not resemble the Companies House crown, GOV.UK or
+    Home Assistant branding.
+  -->
+  <rect x="0" y="0" width="256" height="256" rx="56" ry="56" fill="#1E5B7A"/>
+  <!-- document sheet with folded corner -->
+  <path d="M74 44 h72 l36 36 v132 a12 12 0 0 1 -12 12 h-96 a12 12 0 0 1 -12 -12 v-156 a12 12 0 0 1 12 -12 z" fill="#FFFFFF"/>
+  <path d="M146 44 v28 a8 8 0 0 0 8 8 h28 z" fill="#B9D3E1"/>
+  <!-- building: pediment, three columns, base -->
+  <path d="M128 96 l40 24 h-80 z" fill="#1E5B7A"/>
+  <rect x="92" y="126" width="14" height="52" fill="#1E5B7A"/>
+  <rect x="121" y="126" width="14" height="52" fill="#1E5B7A"/>
+  <rect x="150" y="126" width="14" height="52" fill="#1E5B7A"/>
+  <rect x="84" y="184" width="88" height="14" rx="3" fill="#1E5B7A"/>
+</svg>

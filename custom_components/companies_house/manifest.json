@@ -1,0 +1,15 @@
+{
+  "domain": "companies_house",
+  "name": "Companies House",
+  "codeowners": ["@deanbenson"],
+  "config_flow": true,
+  "dependencies": ["repairs"],
+  "documentation": "https://github.com/deanbenson/ha-companies-house",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/deanbenson/ha-companies-house/issues",
+  "loggers": [],
+  "quality_scale": "platinum",
+  "requirements": [],
+  "version": "0.1.0"
+}

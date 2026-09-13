@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.DS_Store
+# Never commit a real key or recorded raw payloads outside tests/fixtures
+*.env
+.env*
+scripts/out/

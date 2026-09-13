@@ -1,0 +1,72 @@
+[project]
+name = "ha-companies-house"
+version = "0.1.0"
+description = "Companies House integration for Home Assistant"
+requires-python = ">=3.14"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+src = ["custom_components", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "A", "ASYNC", "B", "BLE", "C4", "COM818", "D", "DTZ", "E", "ERA", "F", "FLY",
+  "FURB", "G", "I", "ICN", "INP", "ISC", "LOG", "N", "PERF", "PGH", "PIE", "PL",
+  "PT", "PYI", "Q", "RET", "RSE", "RUF", "S", "SIM", "SLF", "SLOT", "T20", "TID",
+  "TRY", "UP", "W",
+]
+ignore = [
+  "D203", "D213", "D406", "D407",
+  "E501",
+  "PLR0911", "PLR0912", "PLR0913", "PLR0915", "PLR2004",
+  "PLC0415",
+  "TRY003",
+  "S101",
+  "INP001",
+  "RUF012",
+  "ISC001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "SLF001", "PLR", "D", "DTZ", "T20"]
+"brand/**" = ["T20"]
+"custom_components/companies_house/enumerations.py" = ["RUF001", "E501"]
+"scripts/**" = ["T20", "S"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components.companies_house", "tests"]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+explicit_package_bases = true
+namespace_packages = true
+mypy_path = "."
+packages = ["custom_components.companies_house"]
+plugins = []
+
+[[tool.mypy.overrides]]
+module = ["aioresponses.*", "syrupy.*", "pytest_homeassistant_custom_component.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-p no:cacheprovider --cov=custom_components.companies_house --cov-report=term-missing --cov-branch"
+filterwarnings = ["error::DeprecationWarning:custom_components.*"]
+
+[tool.coverage.run]
+branch = true
+source = ["custom_components/companies_house"]
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]

@@ -1,0 +1,27 @@
+{
+  "title": "Companies House",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Companies House",
+        "description": "Enter the API key of an application registered on the Companies House developer hub.",
+        "data": {
+          "api_key": "API key"
+        },
+        "data_description": {
+          "api_key": "A REST API key from https://developer.company-information.service.gov.uk/"
+        }
+      }
+    },
+    "abort": {
+      "not_implemented": "Not implemented yet.",
+      "already_configured": "This API key is already configured."
+    },
+    "error": {
+      "invalid_auth": "The API key was rejected.",
+      "rate_limited": "The API is rate limiting this key. Try again in a few minutes.",
+      "cannot_connect": "Could not connect to Companies House.",
+      "unknown": "Unexpected error."
+    }
+  }
+}
