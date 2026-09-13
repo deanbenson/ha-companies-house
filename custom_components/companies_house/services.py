@@ -29,8 +29,14 @@ from homeassistant.helpers.service import async_extract_config_entry_ids
 from homeassistant.util.json import JsonObjectType
 import voluptuous as vol
 
-from .api import CompaniesHouseClient, CompaniesHouseError, Priority
+from .api import (
+    CompaniesHouseClient,
+    CompaniesHouseError,
+    CompaniesHouseNotFoundError,
+    Priority,
+)
 from .const import (
+    API_BASE,
     CONF_DOCUMENT_DIRECTORY,
     DEFAULT_DOCUMENT_DIRECTORY,
     DOCUMENT_FILENAME_MAX,
@@ -787,6 +793,17 @@ ACTIONS: tuple[ActionDef, ...] = (
 READ_ACTIONS = frozenset(
     a.name for a in ACTIONS if a.name not in ("refresh", "download_document")
 )
+SEARCH_ACTIONS = frozenset(
+    {
+        "search_companies",
+        "advanced_search",
+        "alphabetical_search",
+        "dissolved_search",
+        "search_officers",
+        "search_disqualified_officers",
+        "search_all",
+    }
+)
 
 
 def _resolve_entry(hass: HomeAssistant, call: ServiceCall) -> Any:
@@ -819,6 +836,15 @@ def _make_service(
         client: CompaniesHouseClient = entry.runtime_data.client
         try:
             result = await action.handler(call.hass, client, call)
+        except CompaniesHouseNotFoundError as err:
+            if action.name in SEARCH_ACTIONS:
+                # The API answers a search with no hits with a 404.
+                return {"items": [], "total_results": 0, "hits": 0}
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="resource_not_found",
+                translation_placeholders={"resource": str(err).removeprefix(API_BASE)},
+            ) from err
         except CompaniesHouseError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,

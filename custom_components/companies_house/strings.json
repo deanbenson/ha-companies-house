@@ -638,6 +638,9 @@
     "not_found": {
       "message": "The resource no longer exists on the register."
     },
+    "resource_not_found": {
+      "message": "Not found on the register: {resource}"
+    },
     "no_entry": {
       "message": "Companies House is not set up."
     },

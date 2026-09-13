@@ -461,6 +461,7 @@ def build() -> dict:
                 "message": "The scheduled request budget for this window is spent."
             },
             "not_found": {"message": "The resource no longer exists on the register."},
+            "resource_not_found": {"message": "Not found on the register: {resource}"},
             "no_entry": {"message": "Companies House is not set up."},
             "entry_not_loaded": {
                 "message": "The Companies House integration is not loaded."

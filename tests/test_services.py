@@ -500,3 +500,32 @@ async def test_llm_api_exposes_read_actions(
         context,
     )
     assert result == {"result": {"company_name": "X"}}
+
+
+async def test_search_404_returns_empty_and_get_404_is_clear(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A search with no hits (a 404 from the API) is empty; a missing resource says so."""
+    await setup_entry()
+    aioclient_mock.get(f"{API_BASE}/advanced-search/companies", status=404)
+    response = await hass.services.async_call(
+        DOMAIN,
+        "advanced_search",
+        {"location": "ZZ99 9ZZ"},
+        blocking=True,
+        return_response=True,
+    )
+    assert response == {"items": [], "total_results": 0, "hits": 0}
+    aioclient_mock.get(f"{API_BASE}/company/00000000", status=404)
+    with pytest.raises(HomeAssistantError) as excinfo:
+        await hass.services.async_call(
+            DOMAIN,
+            "get_company",
+            {"company_number": "00000000"},
+            blocking=True,
+            return_response=True,
+        )
+    assert excinfo.value.translation_key == "resource_not_found"
+    assert excinfo.value.translation_placeholders == {"resource": "/company/00000000"}

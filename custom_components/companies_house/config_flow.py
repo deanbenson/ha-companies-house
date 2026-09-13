@@ -38,6 +38,7 @@ from .api import (
     CompaniesHouseAuthError,
     CompaniesHouseClient,
     CompaniesHouseError,
+    CompaniesHouseNotFoundError,
     CompaniesHouseRateLimitError,
 )
 from .const import (
@@ -65,6 +66,7 @@ from .const import (
     DEFAULT_MAX_PAGES,
     DEVELOPER_HUB_URL,
     DOMAIN,
+    LOGGER,
     MANUFACTURER,
     MAX_CADENCE_MULTIPLIER,
     MIN_CADENCE_MULTIPLIER,
@@ -331,20 +333,27 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 self._results = await self._search(query, postcode)
             except CompaniesHouseAuthError:
                 return self.async_abort(reason="invalid_auth")
-            except CompaniesHouseError:
+            except CompaniesHouseNotFoundError:
+                # The API answers a search with no hits with a 404.
+                self._results = {}
+            except CompaniesHouseError as err:
+                LOGGER.debug("Company search failed: %s", err)
                 errors["base"] = "cannot_connect"
-            else:
-                if not self._results:
-                    errors["base"] = "no_results"
-                else:
-                    return await self.async_step_select()
+            if not errors and not self._results:
+                errors["base"] = "no_results"
+            elif not errors:
+                return await self.async_step_select()
         schema = vol.Schema(
             {
                 vol.Optional(CONF_QUERY, default=""): TextSelector(),
                 vol.Optional(CONF_POSTCODE, default=""): TextSelector(),
             }
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(schema, user_input),
+            errors=errors,
+        )
 
     async def _search(self, query: str, postcode: str) -> dict[str, JsonDict]:
         if not query and not postcode:
@@ -531,7 +540,10 @@ class CompanySubentryFlow(ConfigSubentryFlow):
         if not self._results:
             try:
                 self._results = await self._current_officers(entry, number)
-            except CompaniesHouseError:
+            except CompaniesHouseNotFoundError:
+                self._results = {}
+            except CompaniesHouseError as err:
+                LOGGER.debug("Officer list failed: %s", err)
                 errors["base"] = "cannot_connect"
             if not errors and not self._results:
                 return self.async_abort(reason="no_officers")
@@ -616,9 +628,12 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 )
             except CompaniesHouseAuthError:
                 return self.async_abort(reason="invalid_auth")
-            except CompaniesHouseError:
+            except CompaniesHouseNotFoundError:
+                raw = {"items": []}
+            except CompaniesHouseError as err:
+                LOGGER.debug("Officer search failed: %s", err)
                 errors["base"] = "cannot_connect"
-            else:
+            if not errors:
                 self._results = {}
                 for item in raw.get("items") or []:
                     if not isinstance(item, dict):
@@ -642,7 +657,9 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                     return await self.async_step_select()
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_QUERY): TextSelector()}),
+            data_schema=self.add_suggested_values_to_schema(
+                vol.Schema({vol.Required(CONF_QUERY): TextSelector()}), user_input
+            ),
             errors=errors,
         )
 

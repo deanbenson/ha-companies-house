@@ -626,3 +626,53 @@ async def test_officer_subentry_reconfigure(
         entry.subentries["sub_officer"].data[CONF_OFFICER_NAME]
         == "Jane Smith (our director)"
     )
+
+
+async def test_search_404_means_no_results_and_input_is_kept(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """The API answers a search with no hits with a 404; the form keeps what was typed."""
+    entry = await setup_entry()
+    aioclient_mock.get(f"{API_BASE}/advanced-search/companies", status=404)
+    aioclient_mock.get(f"{API_BASE}/search/officers", status=404)
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_COMPANY)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "nothing", CONF_POSTCODE: "ZZ99 9ZZ"}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "no_results"}
+    suggested = {
+        getattr(k, "schema", k): k.description["suggested_value"]
+        for k in result["data_schema"].schema
+    }
+    assert suggested == {CONF_QUERY: "nothing", CONF_POSTCODE: "ZZ99 9ZZ"}
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_OFFICER)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "nobody at all"}
+    )
+    assert result["errors"] == {"base": "no_results"}
+
+
+async def test_track_officer_404_means_none(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker
+) -> None:
+    """A 404 from the officer list means the company has no officers."""
+    from .conftest import company_subentry, make_entry
+
+    entry = make_entry([company_subentry("12345678", subentry_id="sub_12345678")])
+    entry.add_to_hass(hass)
+    aioclient_mock.get(f"{API_BASE}/company/12345678/officers", status=404)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_COMPANY),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": "sub_12345678",
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "track_officer"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "no_officers"
