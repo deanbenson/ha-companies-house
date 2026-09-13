@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import patch
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -86,10 +87,14 @@ async def test_system_health(
 ) -> None:
     """System health reports reachability and the remaining budget."""
     assert await async_setup_component(hass, "system_health", {})
-    info = await system_health_info(hass)
-    assert set(info) == {"can_reach_server"}
-    await setup_entry(["12345678"])
-    info = await system_health_info(hass)
+    with patch(
+        "custom_components.companies_house.system_health.system_health.async_check_can_reach_url",
+        return_value="ok",
+    ):
+        info = await system_health_info(hass)
+        assert info == {"can_reach_server": "ok"}
+        await setup_entry(["12345678"])
+        info = await system_health_info(hass)
     assert info["companies_monitored"] == 1
     assert info["officers_monitored"] == 0
     assert info["requests_remaining"] < 600
