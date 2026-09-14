@@ -46,7 +46,7 @@ DIGEST = {
             **CHANGE,
             "subject": "ACME LTD",
             "number": "12345678",
-            "logo": "https://logo.clearbit.com/acme.co.uk?size=96",
+            "logo": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://acme.co.uk&size=128",
             "initials": "AL",
             "subject_link": "https://example.invalid/company/12345678",
         },
@@ -115,7 +115,7 @@ DIGEST = {
             "status": "active",
             "label": "Ours",
             "website": "acme.co.uk",
-            "logo": "https://logo.clearbit.com/acme.co.uk?size=96",
+            "logo": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://acme.co.uk&size=128",
             "initials": "AL",
             "link": "https://example.invalid/company/12345678",
             "close_watch": True,
@@ -227,7 +227,7 @@ def test_render_html_covers_every_section() -> None:
         "and 3 more",
         "Still open",
         "OLD PIG LTD",
-        "logo.clearbit.com/acme.co.uk",
+        "url=https://acme.co.uk&amp;size=128",
         "and 2 more",  # Jane's companies beyond six
         "3 changes (1 charge, 1 ownership change, 1 role change)",
         "background:#fee2e2",  # new badge
@@ -278,7 +278,8 @@ def test_helpers() -> None:
     assert _pretty_date("2026-09-30") == "30 Sep 2026"
     assert _pretty_date("nonsense") == "nonsense"
     assert logo_for(" https://www.acme.co.uk/about ") == (
-        "https://logo.clearbit.com/www.acme.co.uk?size=96"
+        "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON"
+        "&fallback_opts=TYPE,SIZE,URL&url=https://acme.co.uk&size=128"
     )
     assert logo_for("") == ""
     assert _normalise_person("Mr Mark John TAYLOR") == _normalise_person(

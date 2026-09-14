@@ -889,7 +889,7 @@ async def test_track_officer_404_means_none(
 
 def test_display_name_reads_like_a_person() -> None:
     """Register spellings come out as Forenames Surname; companies stay as they are."""
-    from custom_components.companies_house.config_flow import _display_name
+    from custom_components.companies_house.models import display_name as _display_name
 
     assert _display_name("REED, Simon Peter") == "Simon Peter Reed"
     assert _display_name("Simon Peter REED") == "Simon Peter Reed"

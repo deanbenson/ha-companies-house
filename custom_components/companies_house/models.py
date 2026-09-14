@@ -84,6 +84,22 @@ _OFFICER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{27}$")
 _COMPANY_NUMBER_RE = re.compile(r"^[A-Z0-9]{8}$")
 
 
+def display_name(name: str) -> str:
+    """Show a register name as ``Forenames Surname``.
+
+    The register writes surnames in capitals: ``SURNAME, Forenames`` in a
+    company's officer list, ``Forenames SURNAME`` in search results. A name
+    that is all capitals (a corporate officer) is left as it is.
+    """
+    surname, sep, forenames = name.partition(", ")
+    if sep:
+        name = f"{forenames} {surname}".strip()
+    words = name.split()
+    if len(words) < 2 or all(w.isupper() for w in words):
+        return name
+    return " ".join(w.title() if w.isupper() and len(w) > 1 else w for w in words)
+
+
 def officer_id_from_text(text: str) -> str | None:
     """Return the officer id if the text is a Companies House link or a bare id.
 

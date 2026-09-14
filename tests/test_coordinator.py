@@ -332,7 +332,7 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
     assert data["event_type"] == "resigned"
     assert data["title"] == "EXAMPLE TRADING LIMITED: director resigned"
     assert data["message"].startswith(
-        "SMITH, Jane Elizabeth resigned as director on 2026-09-13"
+        "Jane Elizabeth Smith resigned as director on 13 Sep 2026"
     )
     assert data["link"].endswith(f"/company/{ACTIVE}/officers")
 

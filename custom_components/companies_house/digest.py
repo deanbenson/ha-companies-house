@@ -15,13 +15,18 @@ from homeassistant.util import dt as dt_util
 
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
 from .enumerations import COMPANY_STATUS
-from .models import JsonDict
+from .models import JsonDict, display_name
 from .scheduler import days_until
 
 if TYPE_CHECKING:
     from .coordinator import CompaniesHouseConfigEntry, CompanyRuntime, OfficerRuntime
 
-LOGO_URL = "https://logo.clearbit.com/{domain}?size=96"
+# Google's favicon service: a real image for any site, PNG or JPEG (email
+# clients show those), a plain globe when the site has none.
+LOGO_URL = (
+    "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON"
+    "&fallback_opts=TYPE,SIZE,URL&url=https://{domain}&size=128"
+)
 DEADLINE_HORIZON_DAYS = 30
 
 # ---------------------------------------------------------------- describing
@@ -35,6 +40,7 @@ def logo_for(website: str) -> str:
         .removeprefix("https://")
         .removeprefix("http://")
         .split("/")[0]
+        .removeprefix("www.")
     )
     return LOGO_URL.format(domain=domain) if domain else ""
 
@@ -54,6 +60,11 @@ def _document_link(number: str, transaction_id: str | None) -> str:
         f"{_company_link(number)}/filing-history/{transaction_id}"
         "/document?format=pdf&download=0"
     )
+
+
+def _on(value: Any) -> str:
+    """Return a date as people write it, or say it is unknown."""
+    return _pretty_date(value) if value else "an unknown date"
 
 
 def _status_word(status: str | None) -> str:
@@ -76,7 +87,7 @@ def describe_change(
     """
     p = payload
     link = _company_link(number) if number else ""
-    name = str(p.get("name") or "")
+    name = display_name(str(p.get("name") or ""))
     company = str(p.get("company_name") or "")
 
     if kind == "filing":
@@ -148,13 +159,13 @@ def describe_change(
         if event_type == "appointed":
             return (
                 f"{subject}: new {role}",
-                f"{name} was appointed {role} on {p.get('appointed_on') or 'an unknown date'}.",
+                f"{name} was appointed {role} on {_on(p.get('appointed_on'))}.",
                 link + "/officers",
             )
         if event_type == "resigned":
             return (
                 f"{subject}: {role} resigned",
-                f"{name} resigned as {role} on {p.get('resigned_on') or 'an unknown date'}.",
+                f"{name} resigned as {role} on {_on(p.get('resigned_on'))}.",
                 link + "/officers",
             )
         return (
@@ -199,7 +210,11 @@ def describe_change(
             return (
                 f"{subject}: new charge registered",
                 f"A charge in favour of {who} was registered"
-                + (f" on {p.get('created_on')}" if p.get("created_on") else "")
+                + (
+                    f" on {_pretty_date(p.get('created_on'))}"
+                    if p.get("created_on")
+                    else ""
+                )
                 + ".",
                 link + "/charges",
             )
@@ -233,13 +248,13 @@ def describe_change(
         if event_type == "appointed":
             return (
                 f"{subject}: new role",
-                f"Appointed {role} at {where} on {p.get('appointed_on') or 'an unknown date'}.",
+                f"Appointed {role} at {where} on {_on(p.get('appointed_on'))}.",
                 target,
             )
         if event_type == "resigned":
             return (
                 f"{subject}: stepped down",
-                f"Resigned as {role} at {where} on {p.get('resigned_on') or 'an unknown date'}.",
+                f"Resigned as {role} at {where} on {_on(p.get('resigned_on'))}.",
                 target,
             )
         if event_type == "company-status-changed":
@@ -254,7 +269,7 @@ def describe_change(
         if event_type == "disqualified":
             return (
                 f"{subject}: disqualified as a director",
-                f"Disqualified until {p.get('disqualified_until') or 'an unknown date'}"
+                f"Disqualified until {_on(p.get('disqualified_until'))}"
                 + (f": {p.get('reason')}" if p.get("reason") else "")
                 + ".",
                 "",
@@ -912,7 +927,7 @@ def _section(title: str, body: str, *, icon: str = "", intro: str = "") -> str:
     return (
         '<tr><td style="padding:24px 24px 0 24px">'
         f'<h2 style="margin:0 0 10px 0;font-size:17px;{_FONT}color:#111827">'
-        f"{icon} {_e(title)}</h2>{lead}{body}</td></tr>"
+        f"{icon}&nbsp; {_e(title)}</h2>{lead}{body}</td></tr>"
     )
 
 

@@ -241,7 +241,8 @@ a field in its settings dialog:
   action. On by default.
 - **Watch their companies** (people only) — see above.
 
-Companies also take a **website**, used for a logo and a link in reports.
+Companies also take a **website**, used for a logo (the site's icon, via
+Google's favicon service) and a link in reports and alerts.
 
 The **`companies_house.digest`** action gathers everything that changed at the
 opted-in companies and people over the last `days` (default 7) — every change

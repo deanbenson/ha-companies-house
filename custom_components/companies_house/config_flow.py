@@ -87,6 +87,7 @@ from .models import (
     DateOfBirth,
     JsonDict,
     company_number_from_text,
+    display_name,
     officer_id_from_link,
     officer_id_from_text,
 )
@@ -321,22 +322,6 @@ def _configured(entry: ConfigEntry, subentry_type: str) -> set[str]:
 
 def _plural(count: Any, singular: str, plural: str) -> str:
     return f"{count} {singular if count == 1 else plural}"
-
-
-def _display_name(name: str) -> str:
-    """Show a register name as ``Forenames Surname``.
-
-    The register writes surnames in capitals: ``SURNAME, Forenames`` in a
-    company's officer list, ``Forenames SURNAME`` in search results. A name
-    that is all capitals (a corporate officer) is left as it is.
-    """
-    surname, sep, forenames = name.partition(", ")
-    if sep:
-        name = f"{forenames} {surname}".strip()
-    words = name.split()
-    if len(words) < 2 or all(w.isupper() for w in words):
-        return name
-    return " ".join(w.title() if w.isupper() and len(w) > 1 else w for w in words)
 
 
 def _company_label(item: JsonDict) -> str:
@@ -604,20 +589,20 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                         {
                             CONF_OFFICER_ID: officer_id,
                             CONF_OFFICER_IDS: [officer_id],
-                            CONF_OFFICER_NAME: _display_name(str(chosen["name"])),
+                            CONF_OFFICER_NAME: display_name(str(chosen["name"])),
                             CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
                             CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
                             CONF_WATCH_COMPANIES: True,
                         }
                     ),
                     subentry_type=SUBENTRY_TYPE_OFFICER,
-                    title=_display_name(str(chosen["name"])),
+                    title=display_name(str(chosen["name"])),
                     unique_id=officer_id,
                 ),
             )
             return self.async_abort(
                 reason="officer_added",
-                description_placeholders={"name": _display_name(str(chosen["name"]))},
+                description_placeholders={"name": display_name(str(chosen["name"]))},
             )
         if not self._results:
             try:
@@ -815,11 +800,11 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 return self.async_abort(reason="already_configured")
             dob = chosen.get("date_of_birth") or {}
             return self.async_create_entry(
-                title=_display_name(str(chosen["name"])),
+                title=display_name(str(chosen["name"])),
                 data={
                     CONF_OFFICER_ID: officer_id,
                     CONF_OFFICER_IDS: [officer_id],
-                    CONF_OFFICER_NAME: _display_name(str(chosen["name"])),
+                    CONF_OFFICER_NAME: display_name(str(chosen["name"])),
                     CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
                     CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
                     CONF_WATCH_COMPANIES: bool(user_input[CONF_WATCH_COMPANIES]),
