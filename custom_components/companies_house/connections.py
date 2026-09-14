@@ -53,7 +53,7 @@ from .digest import (
     _officer_link,
     _pretty_date,
     _role,
-    _status_word,
+    _status_phrase,
     logo_for,
 )
 from .enumerations import OFFICER_ROLE
@@ -88,14 +88,6 @@ _UK_PLACE_RE = re.compile(
     r"\b(?:england|scotland|northern ireland|united kingdom|great britain"
     r"|companies house|uk)\b|(?<!south )\bwales\b"
 )
-# What is wrong with a company, in the words the risk line uses.
-_TROUBLE_PHRASES = {
-    "liquidation": "in liquidation",
-    "administration": "in administration",
-    "receivership": "in receivership",
-    "voluntary-arrangement": "in a voluntary arrangement",
-    "insolvency-proceedings": "in insolvency proceedings",
-}
 # Letters whose names start with a vowel sound, for "an LLP member".
 _AN_LETTERS = "AEFHILMNORSX"
 _COMPANY_NUMBER_RE = re.compile(r"^([A-Z]{0,2})(\d{5,8})$")
@@ -487,12 +479,11 @@ class _Graph:
         )
 
 
-def _status_phrase(node: JsonDict) -> str:
+def _trouble_phrase(node: JsonDict) -> str:
     """Say what is wrong with a company: "in liquidation", "facing strike-off"."""
     if "strike_off" in node["flags"]:
         return "facing strike-off"
-    status = node.get("company_status")
-    return _TROUBLE_PHRASES.get(status or "", f"in {_status_word(status)}")
+    return _status_phrase(node.get("company_status"))
 
 
 # ---------------------------------------------------------------- building
@@ -878,7 +869,7 @@ def _rule_risk_next_door(graph: _Graph, watched: list[str]) -> list[_Line]:
                     "high",
                     f"{node['label']}, {_a_role(roles[company])} of "
                     f"{graph.label(company)}, also runs {graph.label(trouble)}, "
-                    f"which is {_status_phrase(graph.nodes[trouble])}",
+                    f"which is {_trouble_phrase(graph.nodes[trouble])}",
                     [company, trouble, node["id"]],
                     [roles[company]["id"], roles[trouble]["id"]],
                 )

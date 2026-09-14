@@ -544,6 +544,47 @@ address and the lines worth knowing (up to twenty; kept out of the recorder).
 If the `www` folder did not exist when Home Assistant started, `/local` is
 not served until the next restart.
 
+## Ask Assist
+
+Once one entity of the integration is exposed to Assist, any conversation
+agent with "Assist" selected under *Control Home Assistant* (the default for
+OpenAI, Google and Anthropic; tick it yourself for Ollama) gets seven tools
+that answer from what is already on hand: no request to the register, so ask
+as often as you like.
+
+1. Settings → Voice assistants → Expose, and expose one entity of the
+   integration to Assist, for example `sensor.example_trading_limited_risk_rating`
+   (nothing is exposed by default; one is enough, the tools cover every
+   watched company).
+2. Keep "Assist" ticked in the agent's *Control Home Assistant* setting. The
+   "Companies House" API is separate and only needed for register searches.
+
+The tools, all named `companies_house__…`:
+
+| Tool | Answers |
+| --- | --- |
+| `what_changed` (`days`, `company`) | What changed at the watched companies and followed people: filings, roles, ownership, charges, status, accounts read, rating moves. |
+| `company` (`name`) | Everything about one company: status, deadlines, rating and reasons, latest accounts figures with the change on the year before, officers, people with control, charges and lenders, strike-off countdown, recent changes, links. |
+| `deadlines` (`days`) | Accounts and confirmation statements due, anything overdue, and the last day to object to a strike-off. |
+| `filings` (`company`, `days`) | What one company filed recently, with a link to each document. |
+| `person` (`name`) | A followed person's roles, records, disqualification check and changes; for anyone else, their roles at the watched companies. |
+| `connections` (`name`) | Who sits with whom and who owns what, or one name's connections and what stands out. |
+| `risk` | The red and amber companies, worst first, with the reasons. |
+
+Names are matched forgivingly: "example trading", "Example Trading Ltd" and
+the company number all find EXAMPLE TRADING LIMITED, and when several match
+the assistant is told which so it can ask back. Answers carry plain-English
+text ready to be spoken (dates as "8 Sep 2026", money as "£1.2m") alongside
+the data. Questions that work:
+
+* "What changed at my companies this week?"
+* "Tell me about Example Trading" / "Is Example Trading in trouble?"
+* "What is due in the next fortnight?" / "Is anything overdue?"
+* "What did Dormant Holdings file recently?"
+* "Who is Jane Smith a director of?" / "Is Jane disqualified?"
+* "How is Example Trading connected to Sunset Retail?"
+* "Which of my companies are red?"
+
 ## Triggers
 
 Every change is delivered two ways.
@@ -605,9 +646,9 @@ path and filing metadata.
 ## Actions
 
 All read actions return the API resource as response data and are also
-exposed to Assist / the LLM API, so "when is the confirmation statement due for
-Example Trading" works from voice once the assistant has access to the
-Companies House API.
+exposed to the "Companies House" LLM API, so an assistant given that API can
+look anything up on the register. For questions about the companies already
+watched, the Assist tools (see *Ask Assist* above) answer from memory instead.
 
 `search_companies`, `advanced_search`, `alphabetical_search`,
 `dissolved_search`, `search_officers`, `search_disqualified_officers`,
