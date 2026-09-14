@@ -52,6 +52,7 @@ from .coordinator import (
     OfficerRuntime,
     signal_new_company,
     signal_new_officer,
+    signal_settings,
 )
 from .entity import service_device_info
 from .models import DateOfBirth
@@ -386,6 +387,8 @@ async def _async_apply_changes(
             company.website = str(data.get(CONF_WEBSITE, "") or "")
             company.close_watch = bool(data.get(CONF_CLOSE_WATCH, False))
             company.recompute_tier()
+        if live is not None:
+            async_dispatcher_send(hass, signal_settings(sid))
 
     for sid in known - current:
         if (company := runtime.companies.pop(sid, None)) is not None:

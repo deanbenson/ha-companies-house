@@ -55,6 +55,7 @@ from .coordinator import (
     signal_new_company,
     signal_new_officer,
     signal_risk,
+    signal_settings,
     signal_tier,
 )
 from .digest import _document_link
@@ -845,16 +846,22 @@ class AccountsSensor(CompanySensor):
 
 
 class PollingTierSensor(CompanySensor):
-    """The tier sensor also listens for schedule changes."""
+    """The tier sensor also listens for schedule and settings changes.
+
+    Settings matter because close watch is one of its attributes, and on a
+    dissolved company flipping it changes no tier (so no tier signal).
+    """
 
     async def async_added_to_hass(self) -> None:
-        """Subscribe to tier changes."""
+        """Subscribe to tier and settings changes."""
         await super().async_added_to_hass()
+        sid = self.company.subentry.subentry_id
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, signal_tier(sid), self._tier_changed)
+        )
         self.async_on_remove(
             async_dispatcher_connect(
-                self.hass,
-                signal_tier(self.company.subentry.subentry_id),
-                self._tier_changed,
+                self.hass, signal_settings(sid), self._tier_changed
             )
         )
 

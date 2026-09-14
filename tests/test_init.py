@@ -361,6 +361,22 @@ async def test_adding_a_subentry_does_not_reload_the_others(
         reload.assert_not_called()
     assert hass.states.get(tier).state == "close_watch"
     assert entry.runtime_data.companies["sub_12345678"].close_watch is True
+    # The switches showing the settings catch up at once, without waiting
+    # for the profile's next refresh.
+    assert hass.states.get("switch.example_trading_limited_close_watch").state == "on"
+    assert (
+        hass.states.get("switch.example_trading_limited_notify_instantly").state
+        == "off"
+    )
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_update_subentry(
+            entry, subentry, data={**subentry.data, "notify_instantly": True}
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert (
+        hass.states.get("switch.example_trading_limited_notify_instantly").state == "on"
+    )
 
     # Changing what is fetched for an existing company does reload.
     subentry = entry.subentries["sub_12345678"]

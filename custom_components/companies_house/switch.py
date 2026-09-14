@@ -11,6 +11,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import (
+    CONF_CLOSE_WATCH,
     CONF_IN_WEEKLY_REPORT,
     CONF_NOTIFY_INSTANTLY,
     CONF_WATCH_COMPANIES,
@@ -23,6 +24,7 @@ from .coordinator import (
     OfficerRuntime,
     signal_new_company,
     signal_new_officer,
+    signal_settings,
 )
 from .entity import CompanyEntity, OfficerEntity
 
@@ -30,6 +32,9 @@ PARALLEL_UPDATES = 0
 
 # Each switch is one setting saved on the company's or person's subentry, so it
 # survives restarts and can equally be changed from their settings dialog.
+CLOSE_WATCH = SwitchEntityDescription(
+    key=CONF_CLOSE_WATCH, entity_category=EntityCategory.CONFIG
+)
 NOTIFY_INSTANTLY = SwitchEntityDescription(
     key=CONF_NOTIFY_INSTANTLY, entity_category=EntityCategory.CONFIG
 )
@@ -42,10 +47,30 @@ WATCH_COMPANIES = SwitchEntityDescription(
 
 
 class _SettingSwitch(SwitchEntity):
-    """A switch backed by one boolean in a subentry's data."""
+    """A switch backed by one boolean in a subentry's data.
+
+    Writing the subentry is what applies the setting: the entry's update
+    listener reads it back onto the running company or person (and, for close
+    watch, re-evaluates the check rhythm), exactly as the settings dialog does.
+    """
 
     entity_description: SwitchEntityDescription
     runtime: CompanyRuntime | OfficerRuntime
+
+    async def async_added_to_hass(self) -> None:
+        """Follow the setting when it is changed from the settings dialog."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                signal_settings(self.runtime.subentry.subentry_id),
+                self._settings_changed,
+            )
+        )
+
+    @callback
+    def _settings_changed(self) -> None:
+        self.async_write_ha_state()
 
     @property
     def is_on(self) -> bool:
@@ -74,7 +99,7 @@ class _SettingSwitch(SwitchEntity):
 
 
 class CompanySettingSwitch(CompanyEntity[Any], _SettingSwitch):
-    """Notify instantly / in weekly report, on a company."""
+    """Close watch / notify instantly / in weekly report, on a company."""
 
     def __init__(
         self, company: CompanyRuntime, description: SwitchEntityDescription
@@ -109,6 +134,7 @@ async def async_setup_entry(
     def _add_company(company: CompanyRuntime) -> None:
         async_add_entities(
             [
+                CompanySettingSwitch(company, CLOSE_WATCH),
                 CompanySettingSwitch(company, NOTIFY_INSTANTLY),
                 CompanySettingSwitch(company, IN_WEEKLY_REPORT),
             ],

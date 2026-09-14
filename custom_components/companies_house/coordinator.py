@@ -157,6 +157,16 @@ def signal_tier(subentry_id: str) -> str:
     return f"{DOMAIN}_tier_{subentry_id}"
 
 
+def signal_settings(subentry_id: str) -> str:
+    """Dispatcher signal fired when a company's or person's settings change.
+
+    Sent after the settings dialog (or anything else that rewrites the
+    subentry) has been applied to the running company or person, so the
+    switches showing those settings can catch up straight away.
+    """
+    return f"{DOMAIN}_settings_{subentry_id}"
+
+
 def signal_risk(subentry_id: str) -> str:
     """Dispatcher signal fired when a company's risk rating has been recomputed."""
     return f"{DOMAIN}_risk_{subentry_id}"

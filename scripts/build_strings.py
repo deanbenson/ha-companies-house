@@ -528,6 +528,7 @@ def build() -> dict:
             },
             "event": events,
             "switch": {
+                "close_watch": {"name": "Close watch"},
                 "watch_companies": {"name": "Watch their companies"},
                 "notify_instantly": {"name": "Notify instantly"},
                 "in_weekly_report": {"name": "In weekly report"},

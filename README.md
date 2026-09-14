@@ -126,7 +126,7 @@ half hour would not change that.
 Business hours are Monday to Friday 08:00 to 18:30 Europe/London, excluding
 England and Wales bank holidays (a table from GOV.UK for 2026 to 2028 with an
 algorithmic fallback after that). Every interval is jittered by ±15 percent
-so companies never move in lockstep. The `Polling tier` diagnostic sensor
+so companies never move in lockstep. The `How often it is checked` diagnostic sensor
 shows the current tier, the reason, and the next probe.
 
 On top of the probe:
@@ -173,7 +173,7 @@ earliest strike-off date, days to object to strike-off (both unknown unless a
 strike-off is live; see below), last filing date, last filing (rendered
 description), officers active, PSC active, charges outstanding. Diagnostic: company name, status detail, type,
 subtype, jurisdiction, date of creation, date of cessation, registered office
-address (structured in attributes), polling tier.
+address (structured in attributes), how often it is checked.
 
 Also: company age, accounts and confirmation statement made-up-to and
 period dates, accounting reference date, last accounts type, days to each
@@ -415,9 +415,14 @@ recorded (the statistics tables hold the history instead).
 
 ## Reports and alerts
 
-Every company and person has three settings, each a switch on its device and
+Every company and person has a few settings, each a switch on its device and
 a field in its settings dialog:
 
+- **Close watch** (companies only) — check every 15 minutes in office hours
+  instead of letting the cadence slow down when nothing is due (see the table
+  above). Flipping it moves the company to the faster cadence at once; nothing
+  is rebuilt. A dissolved company stays on its monthly check whatever the
+  switch says. Off by default.
 - **Notify instantly** — the moment anything changes, a
   `companies_house_alert` event fires with a plain-English `title`, `message`
   and `link` (plus everything the ordinary event carries), so one automation
@@ -907,7 +912,7 @@ HACS if you no longer want the files.
   cadence multiplier by one; you can also reduce close watch companies.
 * **A company shows a "dissolved" repair**: it is polled monthly now. Confirm
   the repair to stop monitoring it, or ignore the issue to keep the entities.
-* **Nothing changes after a filing**: check the `Polling tier` sensor for the
+* **Nothing changes after a filing**: check the `How often it is checked` sensor for the
   next probe time, and `Last error` on the service device. Enable debug
   logging for `custom_components.companies_house` to see every scheduling
   decision as one line: company, tier, reason, next run.

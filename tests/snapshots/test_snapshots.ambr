@@ -29118,6 +29118,56 @@
     'state': '0',
   })
 # ---
+# name: test_entities[switch][switch.dormant_holdings_limited_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.dormant_holdings_limited_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_45678901_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.dormant_holdings_limited_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.dormant_holdings_limited_close_watch',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[switch][switch.dormant_holdings_limited_in_weekly_report-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -29218,6 +29268,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[switch][switch.example_trading_limited_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.example_trading_limited_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_12345678_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.example_trading_limited_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.example_trading_limited_close_watch',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'on',
+  })
+# ---
 # name: test_entities[switch][switch.example_trading_limited_in_weekly_report-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -29312,6 +29412,56 @@
     }),
     'context': <ANY>,
     'entity_id': 'switch.example_trading_limited_notify_instantly',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[switch][switch.historic_partners_llp_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.historic_partners_llp_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_OC123456_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.historic_partners_llp_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.historic_partners_llp_close_watch',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -29568,6 +29718,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[switch][switch.old_ventures_limited_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.old_ventures_limited_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_23456789_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.old_ventures_limited_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.old_ventures_limited_close_watch',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[switch][switch.old_ventures_limited_in_weekly_report-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -29668,6 +29868,56 @@
     'state': 'off',
   })
 # ---
+# name: test_entities[switch][switch.subsidiary_services_limited_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.subsidiary_services_limited_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_56789012_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.subsidiary_services_limited_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.subsidiary_services_limited_close_watch',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
 # name: test_entities[switch][switch.subsidiary_services_limited_in_weekly_report-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -29762,6 +30012,56 @@
     }),
     'context': <ANY>,
     'entity_id': 'switch.subsidiary_services_limited_notify_instantly',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
+  })
+# ---
+# name: test_entities[switch][switch.sunset_retail_limited_close_watch-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.sunset_retail_limited_close_watch',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Close watch',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Close watch',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'close_watch',
+    'unique_id': 'companies_house_34567890_close_watch',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.sunset_retail_limited_close_watch-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Close watch',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.sunset_retail_limited_close_watch',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,

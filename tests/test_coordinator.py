@@ -874,6 +874,80 @@ async def test_close_watch_and_dissolved_cadence(
     assert attrs["period"] == "business hours"
 
 
+async def test_close_watch_switch_moves_the_tier_at_once(
+    hass: HomeAssistant, setup_entry: Callable[..., Any], freezer: FrozenDateTimeFactory
+) -> None:
+    """The close watch switch changes the tier and probe cadence on the spot.
+
+    The switch writes the subentry; the entry's update listener applies it to
+    the running company straight away, the same path the settings dialog takes.
+    """
+    freezer.move_to("2026-09-15T09:00:00+00:00")  # 10:00 BST, Tuesday
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    tier = "sensor.example_trading_limited_how_often_it_is_checked"
+    switch = "switch.example_trading_limited_close_watch"
+    assert hass.states.get(switch).state == "off"
+    before = company.tier
+    assert before is not Tier.CLOSE_WATCH
+    assert hass.states.get(tier).state == before.value
+    interval_before = hass.states.get(tier).attributes["probe_interval_minutes"]
+
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": switch}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(switch).state == "on"
+    assert entry.subentries[f"sub_{ACTIVE}"].data["close_watch"] is True
+    assert company.tier is Tier.CLOSE_WATCH
+    assert hass.states.get(tier).state == "close_watch"
+    assert hass.states.get(tier).attributes["close_watch"] is True
+    assert hass.states.get(tier).attributes["probe_interval_minutes"] == 15
+    assert company.probe.next_run is not None
+    assert (
+        timedelta(minutes=12)
+        <= company.probe.next_run - dt_util.utcnow()
+        <= timedelta(minutes=18)
+    )
+    # Flipping a live setting never rebuilds the company: no flicker.
+    assert entry.state is ConfigEntryState.LOADED
+    assert entry.runtime_data.companies[f"sub_{ACTIVE}"] is company
+
+    await hass.services.async_call(
+        "switch", "turn_off", {"entity_id": switch}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(switch).state == "off"
+    assert entry.subentries[f"sub_{ACTIVE}"].data["close_watch"] is False
+    assert company.tier is before
+    assert hass.states.get(tier).state == before.value
+    assert hass.states.get(tier).attributes["close_watch"] is False
+    assert hass.states.get(tier).attributes["probe_interval_minutes"] == interval_before
+
+
+async def test_close_watch_on_a_dissolved_company_changes_nothing_but_says_so(
+    hass: HomeAssistant, setup_entry: Callable[..., Any], freezer: FrozenDateTimeFactory
+) -> None:
+    """A dissolved company stays on its monthly check; the sensor still reflects the switch."""
+    freezer.move_to("2026-09-15T09:00:00+00:00")
+    entry = await setup_entry(["23456789"])
+    company = _company(entry, "23456789")
+    assert company.tier is Tier.DISSOLVED
+    tier = "sensor.old_ventures_limited_how_often_it_is_checked"
+    switch = "switch.old_ventures_limited_close_watch"
+    assert hass.states.get(tier).attributes["close_watch"] is False
+
+    await hass.services.async_call(
+        "switch", "turn_on", {"entity_id": switch}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(switch).state == "on"
+    assert company.close_watch is True
+    assert company.tier is Tier.DISSOLVED
+    assert hass.states.get(tier).state == "dissolved"
+    assert hass.states.get(tier).attributes["close_watch"] is True
+
+
 async def test_timer_fires_probe(
     hass: HomeAssistant,
     setup_entry: Callable[..., Any],

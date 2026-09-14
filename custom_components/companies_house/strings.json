@@ -755,6 +755,9 @@
       }
     },
     "switch": {
+      "close_watch": {
+        "name": "Close watch"
+      },
       "watch_companies": {
         "name": "Watch their companies"
       },

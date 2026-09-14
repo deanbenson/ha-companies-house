@@ -434,6 +434,12 @@
       }
     },
     "switch": {
+      "close_watch": {
+        "default": "mdi:eye",
+        "state": {
+          "off": "mdi:eye-off-outline"
+        }
+      },
       "watch_companies": {
         "default": "mdi:eye-plus-outline",
         "state": {
