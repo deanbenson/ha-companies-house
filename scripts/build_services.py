@@ -422,6 +422,29 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
             "filename": ("Filename", "Overrides the whole filename.", TEXT),
         },
     ),
+    "digest": (
+        "Build a report",
+        "Gather everything that changed at the watched companies and people over the last few days. Returns the report as data, ready-made HTML for an email or a web page, and plain text.",
+        {
+            "config_entry_id": ENTRY,
+            "days": (
+                "Days to look back",
+                "How many days the report covers. 7 for a weekly report.",
+                {"number": {"min": 1, "max": 90, "mode": "box"}},
+            ),
+            "title": ("Title", "The heading at the top of the report.", TEXT),
+            "summary": (
+                "Summary",
+                "A short plain-English summary to show at the top, for example one written by an AI task from the report's data.",
+                {"text": {"multiline": True}},
+            ),
+            "save": (
+                "Save as a web page",
+                "Also save the HTML under www/companies_house so it has a link you can open on your phone.",
+                BOOL,
+            ),
+        },
+    ),
     "refresh": (
         "Refresh",
         "Check the companies and officers you are watching right now.",

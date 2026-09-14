@@ -46,6 +46,7 @@ from .const import (
     DEFAULT_CADENCE_MULTIPLIER,
     DOMAIN,
     EVENT_COMPANIES_HOUSE,
+    EVENT_COMPANIES_HOUSE_ALERT,
     FILING_CATEGORY_EVENT_TYPE,
     FILING_CATEGORY_REFRESH,
     FILING_EVENT_TYPES,
@@ -60,6 +61,7 @@ from .const import (
     OfficerDataset,
     Tier,
 )
+from .digest import describe_change
 from .models import (
     AppointmentList,
     ChargeList,
@@ -97,7 +99,13 @@ from .scheduler import (
     records_next_run,
     structure_due,
 )
-from .store import ChangeStore, CompanyState, DatasetSnapshot, OfficerState
+from .store import (
+    ChangeStore,
+    CompanyState,
+    DatasetSnapshot,
+    OfficerState,
+    remember_change,
+)
 
 if TYPE_CHECKING:
     from . import CompaniesHouseRuntimeData
@@ -158,37 +166,72 @@ class ChangeEvent:
 class _Runtime:
     """Shared dispatch and buffering for company and officer runtimes."""
 
-    def __init__(self, hass: HomeAssistant, subentry: ConfigSubentry) -> None:
+    # The store state this runtime writes its change log into.
+    state: CompanyState | OfficerState
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        subentry: ConfigSubentry,
+        *,
+        notify_instantly: bool = False,
+        in_weekly_report: bool = True,
+    ) -> None:
         self.hass = hass
         self.subentry = subentry
         self.ready = False
+        self.notify_instantly = notify_instantly
+        self.in_weekly_report = in_weekly_report
         self._buffer: list[ChangeEvent] = []
 
     def _bus_context(self) -> dict[str, Any]:
         raise NotImplementedError
 
+    def _describe(self, event: ChangeEvent) -> tuple[str, str, str]:
+        """Return (title, message, link) for an alert. Subclasses implement."""
+        raise NotImplementedError
+
+    def _log_change(self, event: ChangeEvent) -> None:
+        """Remember the change for reports."""
+        self.state.changes = remember_change(
+            self.state.changes,
+            {
+                "at": dt_util.utcnow().isoformat(),
+                "kind": event.kind,
+                "event_type": event.event_type,
+                "payload": event.payload,
+            },
+        )
+
     @callback
     def dispatch(self, event: ChangeEvent) -> None:
-        """Fan a change out to the event entities and the bus.
+        """Fan a change out to the event entities, the bus and the change log.
 
         Events raised before the platforms are loaded are buffered so a
-        change detected during setup still reaches its entity.
+        change detected during setup still reaches its entity. Companies and
+        people with "notify instantly" on also raise an alert event carrying
+        a plain-English title, message and link.
         """
         if not self.ready:
             self._buffer.append(event)
             return
+        self._log_change(event)
         async_dispatcher_send(
             self.hass, signal_changes(self.subentry.subentry_id), event
         )
-        self.hass.bus.async_fire(
-            EVENT_COMPANIES_HOUSE,
-            {
-                **self._bus_context(),
-                "kind": event.kind,
-                "event_type": event.event_type,
-                **event.payload,
-            },
-        )
+        context = {
+            **self._bus_context(),
+            "kind": event.kind,
+            "event_type": event.event_type,
+            **event.payload,
+        }
+        self.hass.bus.async_fire(EVENT_COMPANIES_HOUSE, context)
+        if self.notify_instantly:
+            title, message, link = self._describe(event)
+            self.hass.bus.async_fire(
+                EVENT_COMPANIES_HOUSE_ALERT,
+                {**context, "title": title, "message": message, "link": link},
+            )
 
     @callback
     def mark_ready(self) -> None:
@@ -414,13 +457,24 @@ class CompanyRuntime(_Runtime):
         company_number: str,
         close_watch: bool,
         datasets: set[Dataset],
+        label: str = "",
+        website: str = "",
+        notify_instantly: bool = False,
+        in_weekly_report: bool = True,
     ) -> None:
         """Create the coordinators for a company."""
-        super().__init__(hass, subentry)
+        super().__init__(
+            hass,
+            subentry,
+            notify_instantly=notify_instantly,
+            in_weekly_report=in_weekly_report,
+        )
         self.entry = entry
         self.company_number = company_number
         self.close_watch = close_watch
         self.datasets = datasets
+        self.label = label
+        self.website = website
         self.state: CompanyState = store.company(company_number)
         self.tier = Tier.NORMAL
         self.tier_reason = "not evaluated"
@@ -481,6 +535,15 @@ class CompanyRuntime(_Runtime):
             "company_number": self.company_number,
             "company_name": self.company_name,
         }
+
+    def _describe(self, event: ChangeEvent) -> tuple[str, str, str]:
+        return describe_change(
+            event.kind,
+            event.event_type,
+            event.payload,
+            subject=self.company_name,
+            number=self.company_number,
+        )
 
     async def async_first_refresh(self) -> None:
         """Refresh every coordinator once at setup, tolerating failures.
@@ -1108,9 +1171,16 @@ class OfficerRuntime(_Runtime):
         date_of_birth: DateOfBirth | None,
         officer_ids: list[str] | None = None,
         watch_companies: bool = False,
+        notify_instantly: bool = False,
+        in_weekly_report: bool = True,
     ) -> None:
         """Create the coordinators for an officer."""
-        super().__init__(hass, subentry)
+        super().__init__(
+            hass,
+            subentry,
+            notify_instantly=notify_instantly,
+            in_weekly_report=in_weekly_report,
+        )
         self.entry = entry
         self.officer_id = officer_id
         # The main record first, then any others followed as the same person.
@@ -1247,6 +1317,11 @@ class OfficerRuntime(_Runtime):
 
     def _bus_context(self) -> dict[str, Any]:
         return {"officer_id": self.officer_id, "officer_name": self.officer_name}
+
+    def _describe(self, event: ChangeEvent) -> tuple[str, str, str]:
+        return describe_change(
+            event.kind, event.event_type, event.payload, subject=self.officer_name
+        )
 
     async def async_first_refresh(self) -> None:
         """Refresh both coordinators once at setup."""

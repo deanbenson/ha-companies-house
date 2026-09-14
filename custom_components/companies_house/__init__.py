@@ -27,12 +27,15 @@ from .const import (
     CONF_DATASETS,
     CONF_DATE_OF_BIRTH_MONTH,
     CONF_DATE_OF_BIRTH_YEAR,
+    CONF_IN_WEEKLY_REPORT,
     CONF_LABEL,
     CONF_MAX_PAGES,
+    CONF_NOTIFY_INSTANTLY,
     CONF_OFFICER_ID,
     CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
     CONF_WATCH_COMPANIES,
+    CONF_WEBSITE,
     DEFAULT_MAX_PAGES,
     DOMAIN,
     LOGGER,
@@ -189,10 +192,16 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
 
 
 # Settings that only change what is shown, never what is fetched.
-COSMETIC_KEYS: frozenset[str] = frozenset({CONF_LABEL, CONF_OFFICER_NAME})
+COSMETIC_KEYS: frozenset[str] = frozenset({CONF_LABEL, CONF_OFFICER_NAME, CONF_WEBSITE})
 # Settings a running company or officer can take on board without a rebuild.
 LIVE_KEYS: frozenset[str] = frozenset(
-    {CONF_CLOSE_WATCH, CONF_WATCH_COMPANIES, CONF_OFFICER_IDS}
+    {
+        CONF_CLOSE_WATCH,
+        CONF_WATCH_COMPANIES,
+        CONF_OFFICER_IDS,
+        CONF_NOTIFY_INSTANTLY,
+        CONF_IN_WEEKLY_REPORT,
+    }
 )
 
 
@@ -240,6 +249,10 @@ async def _async_start_subentry(
             company_number=subentry.data[CONF_COMPANY_NUMBER],
             close_watch=bool(subentry.data.get(CONF_CLOSE_WATCH, False)),
             datasets=datasets,
+            label=str(subentry.data.get(CONF_LABEL, "") or ""),
+            website=str(subentry.data.get(CONF_WEBSITE, "") or ""),
+            notify_instantly=bool(subentry.data.get(CONF_NOTIFY_INSTANTLY, False)),
+            in_weekly_report=bool(subentry.data.get(CONF_IN_WEEKLY_REPORT, True)),
         )
         await company.async_first_refresh()
         runtime.companies[subentry.subentry_id] = company
@@ -260,6 +273,8 @@ async def _async_start_subentry(
             else None,
             officer_ids=list(subentry.data.get(CONF_OFFICER_IDS) or []),
             watch_companies=bool(subentry.data.get(CONF_WATCH_COMPANIES, False)),
+            notify_instantly=bool(subentry.data.get(CONF_NOTIFY_INSTANTLY, False)),
+            in_weekly_report=bool(subentry.data.get(CONF_IN_WEEKLY_REPORT, True)),
         )
         await officer.async_first_refresh()
         runtime.officers[subentry.subentry_id] = officer
@@ -303,6 +318,10 @@ async def _async_apply_changes(
         if before["subentries"][sid] == after["subentries"][sid]:
             continue
         data = after["subentries"][sid]
+        live = runtime.officers.get(sid) or runtime.companies.get(sid)
+        if live is not None:
+            live.notify_instantly = bool(data.get(CONF_NOTIFY_INSTANTLY, False))
+            live.in_weekly_report = bool(data.get(CONF_IN_WEEKLY_REPORT, True))
         if (officer := runtime.officers.get(sid)) is not None:
             _rename_officer(hass, officer, data.get(CONF_OFFICER_NAME, ""))
             watch = bool(data.get(CONF_WATCH_COMPANIES, False))
@@ -318,6 +337,8 @@ async def _async_apply_changes(
                 await officer.appointments.async_refresh_now()
                 officer.records.async_update_listeners()
         if (company := runtime.companies.get(sid)) is not None:
+            company.label = str(data.get(CONF_LABEL, "") or "")
+            company.website = str(data.get(CONF_WEBSITE, "") or "")
             company.close_watch = bool(data.get(CONF_CLOSE_WATCH, False))
             company.recompute_tier()
 

@@ -100,12 +100,18 @@
           "data": {
             "datasets": "Also keep an eye on",
             "close_watch": "Close watch",
-            "label": "Note"
+            "notify_instantly": "Notify instantly",
+            "in_weekly_report": "In weekly report",
+            "label": "Note",
+            "website": "Website"
           },
           "data_description": {
             "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
             "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
-            "label": "Optional. Shown next to the company name, for example \"Our landlord\" or \"Contractor, 47 High Street\"."
+            "notify_instantly": "Raise an alert the moment anything changes, so an automation can push it to your phone or email.",
+            "in_weekly_report": "Include this company in the report built by the digest action.",
+            "label": "Optional. Shown next to the company name, for example \"Our landlord\" or \"Contractor, 47 High Street\".",
+            "website": "Optional, for example example.co.uk. Used for the company's logo and a link in reports."
           }
         },
         "reconfigure": {
@@ -121,12 +127,18 @@
           "data": {
             "datasets": "Also keep an eye on",
             "close_watch": "Close watch",
-            "label": "Note"
+            "notify_instantly": "Notify instantly",
+            "in_weekly_report": "In weekly report",
+            "label": "Note",
+            "website": "Website"
           },
           "data_description": {
             "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
             "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
-            "label": "Optional, shown next to the company name."
+            "notify_instantly": "Raise an alert the moment anything changes, so an automation can push it to your phone or email.",
+            "in_weekly_report": "Include this company in the report built by the digest action.",
+            "label": "Optional, shown next to the company name.",
+            "website": "Optional, for example example.co.uk. Used for the company's logo and a link in reports."
           }
         },
         "track_officer": {
@@ -189,11 +201,15 @@
           "description": "Companies House reference {officer_id}. Followed as {records}.",
           "data": {
             "officer_name": "Name to show",
-            "watch_companies": "Watch their companies"
+            "watch_companies": "Watch their companies",
+            "notify_instantly": "Notify instantly",
+            "in_weekly_report": "In weekly report"
           },
           "data_description": {
             "officer_name": "Useful when the register holds more than one record for the same person.",
-            "watch_companies": "Add every company they currently hold a role at, and any they join later, as watched companies."
+            "watch_companies": "Add every company they currently hold a role at, and any they join later, as watched companies.",
+            "notify_instantly": "Raise an alert the moment this person takes or leaves a role, so an automation can push it to your phone or email.",
+            "in_weekly_report": "Include this person in the report built by the digest action."
           }
         },
         "add_record": {
@@ -704,6 +720,12 @@
     "switch": {
       "watch_companies": {
         "name": "Watch their companies"
+      },
+      "notify_instantly": {
+        "name": "Notify instantly"
+      },
+      "in_weekly_report": {
+        "name": "In weekly report"
       }
     },
     "calendar": {
@@ -1288,6 +1310,32 @@
         "filename": {
           "name": "Filename",
           "description": "Overrides the whole filename."
+        }
+      }
+    },
+    "digest": {
+      "name": "Build a report",
+      "description": "Gather everything that changed at the watched companies and people over the last few days. Returns the report as data, ready-made HTML for an email or a web page, and plain text.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Companies House account",
+          "description": "Only needed if you have set up more than one API key."
+        },
+        "days": {
+          "name": "Days to look back",
+          "description": "How many days the report covers. 7 for a weekly report."
+        },
+        "title": {
+          "name": "Title",
+          "description": "The heading at the top of the report."
+        },
+        "summary": {
+          "name": "Summary",
+          "description": "A short plain-English summary to show at the top, for example one written by an AI task from the report's data."
+        },
+        "save": {
+          "name": "Save as a web page",
+          "description": "Also save the HTML under www/companies_house so it has a link you can open on your phone."
         }
       }
     },

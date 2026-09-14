@@ -51,6 +51,12 @@ CONF_OFFICER_IDS: Final = "officer_ids"
 CONF_OFFICER_NAME: Final = "officer_name"
 # Add every company the person currently holds a role at, automatically.
 CONF_WATCH_COMPANIES: Final = "watch_companies"
+# Fire an alert event (for a push or an email) the moment something changes.
+CONF_NOTIFY_INSTANTLY: Final = "notify_instantly"
+# Include this company or person in the digest action's report.
+CONF_IN_WEEKLY_REPORT: Final = "in_weekly_report"
+# The company's own website, for a logo and a link in reports.
+CONF_WEBSITE: Final = "website"
 CONF_DATE_OF_BIRTH_MONTH: Final = "date_of_birth_month"
 CONF_DATE_OF_BIRTH_YEAR: Final = "date_of_birth_year"
 
@@ -242,6 +248,9 @@ APPOINTMENT_EVENT_TYPES: Final = [
 ]
 
 EVENT_COMPANIES_HOUSE: Final = "companies_house_event"
+# Fired only for companies and people with "notify instantly" on, with a
+# ready-made title, message and link so one automation can push it anywhere.
+EVENT_COMPANIES_HOUSE_ALERT: Final = "companies_house_alert"
 EVENT_DOCUMENT_DOWNLOADED: Final = "companies_house_document_downloaded"
 
 # Entity options
@@ -287,6 +296,8 @@ JURISDICTION_OPTIONS: Final = [
 ATTR_LIST_CAP: Final = 10
 ATTR_APPOINTMENTS_CAP: Final = 50
 STORE_TRANSACTION_CAP: Final = 500
+# Changes remembered per company or person, newest first, for the digest.
+CHANGE_LOG_CAP: Final = 200
 MAX_STATE_LENGTH: Final = 255
 
 # Storage

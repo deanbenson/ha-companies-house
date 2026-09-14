@@ -260,6 +260,13 @@ async def test_officer_and_charge_changes_fire_events(
         ("psc", "notified"),
         ("psc", "statement-added"),
     ]
+    # Every change is remembered, newest first, for the report.
+    logged = company.state.changes
+    assert len(logged) == 8
+    assert {(c["kind"], c["event_type"]) for c in logged} == set(kinds)
+    assert logged[0]["at"]
+    assert logged[0]["payload"]
+    assert len(entry.runtime_data.store.company(ACTIVE).changes) == 8
     resigned = next(e.data for e in events if e.data["event_type"] == "resigned")
     assert resigned["name"] == "PATEL, Priya"
     assert resigned["resigned_on"] == "2026-09-12"
@@ -278,6 +285,117 @@ async def test_officer_and_charge_changes_fire_events(
         hass.states.get("sensor.example_trading_limited_outstanding_charges").state
         == "1"
     )
+
+
+async def test_notify_instantly_raises_alerts_in_plain_english(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """With notify instantly on, each change also fires a ready-made alert."""
+    from custom_components.companies_house.const import EVENT_COMPANIES_HOUSE_ALERT
+
+    alerts = async_capture_events(hass, EVENT_COMPANIES_HOUSE_ALERT)
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    officers = load_fixture("company_active/officers")
+    officers["items"][1]["resigned_on"] = "2026-09-12"
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, ACTIVE, overrides={"officers": officers})
+    await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
+    await hass.async_block_till_done()
+    assert alerts == []  # off by default
+
+    await hass.services.async_call(
+        "switch",
+        "turn_on",
+        {"entity_id": "switch.example_trading_limited_notify_instantly"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    assert entry.subentries["sub_12345678"].data["notify_instantly"] is True
+    officers["items"][0]["resigned_on"] = "2026-09-13"
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, ACTIVE, overrides={"officers": officers})
+    await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
+    await hass.async_block_till_done()
+    assert len(alerts) == 1
+    data = alerts[0].data
+    assert data["company_number"] == ACTIVE
+    assert data["kind"] == "officer"
+    assert data["event_type"] == "resigned"
+    assert data["title"] == "EXAMPLE TRADING LIMITED: director resigned"
+    assert data["message"].startswith(
+        "SMITH, Jane Elizabeth resigned as director on 2026-09-13"
+    )
+    assert data["link"].endswith(f"/company/{ACTIVE}/officers")
+
+
+def test_describe_change_covers_every_kind() -> None:
+    """Every change kind has a plain-English title and a useful link."""
+    from custom_components.companies_house.const import (
+        APPOINTMENT_EVENT_TYPES,
+        CHARGE_CHANGE_EVENT_TYPES,
+        FILING_EVENT_TYPES,
+        OFFICER_CHANGE_EVENT_TYPES,
+        PROFILE_CHANGE_EVENT_TYPES,
+        PSC_CHANGE_EVENT_TYPES,
+        STATUS_CHANGE_EVENT_TYPES,
+    )
+    from custom_components.companies_house.digest import describe_change
+
+    payload = {
+        "name": "SMITH, Jane",
+        "role": "director",
+        "appointed_on": "2026-01-01",
+        "resigned_on": "2026-02-01",
+        "old_status": "active",
+        "new_status": "liquidation",
+        "company_status": "dissolved",
+        "old_value": "OLD LTD",
+        "new_value": "NEW LTD",
+        "natures_of_control": ["ownership-of-shares-75-to-100-percent"],
+        "persons_entitled": ["Big Bank plc"],
+        "charge_code": "0123",
+        "created_on": "2026-03-01",
+        "transaction_id": "tx1",
+        "rendered_description": "Confirmation statement made on 1 January 2026",
+        "company_name": "OTHER LTD",
+        "company_number": "99999999",
+        "officer_id": "abc",
+        "disqualified_until": "2031-01-01",
+        "reason": "Misconduct",
+    }
+    kinds = {
+        "filing": FILING_EVENT_TYPES,
+        "officer": OFFICER_CHANGE_EVENT_TYPES,
+        "psc": PSC_CHANGE_EVENT_TYPES,
+        "charge": CHARGE_CHANGE_EVENT_TYPES,
+        "status": STATUS_CHANGE_EVENT_TYPES,
+        "profile": PROFILE_CHANGE_EVENT_TYPES,
+        "insolvency": ["case-added"],
+        "appointment": APPOINTMENT_EVENT_TYPES,
+    }
+    for kind, types in kinds.items():
+        for event_type in types:
+            title, message, link = describe_change(
+                kind, event_type, payload, subject="ACME LTD", number="12345678"
+            )
+            assert title.startswith("ACME LTD: "), (kind, event_type)
+            assert isinstance(message, str)
+            assert isinstance(link, str)
+    title, message, link = describe_change(
+        "filing", "accounts", payload, subject="ACME LTD", number="12345678"
+    )
+    assert title == "ACME LTD: Accounts filed"
+    assert message == "Confirmation statement made on 1 January 2026"
+    assert link.endswith(
+        "/company/12345678/filing-history/tx1/document?format=pdf&download=0"
+    )
+    title, _, _ = describe_change("status", "strike-off-proposed", {}, subject="X")
+    assert title == "X: strike-off proposed"
+    title, message, _ = describe_change("weird", "thing-happened", {}, subject="X")
+    assert (title, message) == ("X: thing happened", "")
 
 
 async def test_status_and_profile_changes(

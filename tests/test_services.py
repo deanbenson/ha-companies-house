@@ -30,7 +30,7 @@ from custom_components.companies_house.services import (
     sanitise_filename,
 )
 
-from .conftest import load_fixture
+from .conftest import load_fixture, mock_company
 
 SERVICES_YAML = (
     Path(__file__).parents[1]
@@ -305,6 +305,7 @@ async def test_download_document(
         ["12345678"], options={"document_directory": str(tmp_path)}
     )
     hass.config.allowlist_external_dirs.add(str(tmp_path))
+    hass.config.media_dirs["local"] = str(tmp_path)
     metadata = load_fixture("document/metadata")
     aioclient_mock.get(f"{DOCUMENT_API_BASE}/document/doc-1", json=metadata)
     aioclient_mock.get(
@@ -337,6 +338,12 @@ async def test_download_document(
     )
     assert path.read_bytes() == b"%PDF-1.4 one"  # noqa: ASYNC240
     assert response["already_existed"] is False
+    # Under a media folder the file gets a media-source id, so an AI task or an
+    # email action can take it as an attachment.
+    assert response["media_content_id"] == (
+        "media-source://media_source/local/12345678 EXAMPLE TRADING LIMITED/"
+        + path.name
+    )
     assert len(events) == 1
     assert events[0].data["path"] == str(path)
 
@@ -436,6 +443,87 @@ async def test_download_document(
         )
     assert excinfo.value.translation_key == "path_not_allowed"
     assert entry.state.recoverable
+
+
+async def test_digest_action_reports_the_week(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    tmp_path: Path,
+) -> None:
+    """The report covers changes, deadlines and attention, as data, HTML and text."""
+    from custom_components.companies_house.const import Dataset
+
+    entry = await setup_entry(["12345678", "34567890"], officers=True)
+    company = entry.runtime_data.companies["sub_12345678"]
+    officers = load_fixture("company_active/officers")
+    officers["items"][1]["resigned_on"] = "2026-09-12"
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, "12345678", overrides={"officers": officers})
+    await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
+    await hass.async_block_till_done()
+
+    response = await hass.services.async_call(
+        DOMAIN,
+        "digest",
+        {"days": 7, "summary": "A quiet week, one resignation."},
+        blocking=True,
+        return_response=True,
+    )
+    assert response is not None
+    assert response["days"] == 7
+    assert response["summary"]["companies"] == 2
+    assert response["summary"]["people"] == 1
+    assert response["summary"]["changes"] == 1
+    assert response["summary"]["companies_with_changes"] == 1
+    (changed,) = response["companies"]
+    assert changed["name"] == "EXAMPLE TRADING LIMITED"
+    assert changed["initials"] == "ET"
+    assert changed["link"].endswith("/company/12345678")
+    (change,) = changed["changes"]
+    assert change["title"] == "EXAMPLE TRADING LIMITED: director resigned"
+    assert change["link"].endswith("/company/12345678/officers")
+    # The company in liquidation is flagged even though nothing changed.
+    assert response["needs_attention"] == [
+        {
+            "company": "SUNSET RETAIL LIMITED",
+            "number": "34567890",
+            "link": changed["link"].replace("12345678", "34567890"),
+            "issues": ["In liquidation", "Confirmation statement overdue"],
+        }
+    ]
+    assert "SUNSET RETAIL LIMITED" in response["quiet_companies"]
+    html = response["html"]
+    assert "A quiet week, one resignation." in html
+    assert "EXAMPLE TRADING LIMITED" in html
+    assert "director resigned" in html
+    assert "In liquidation" in html
+    assert "<script" not in html
+    text = response["text"]
+    assert "Needs attention:" in text
+    assert "director resigned" in text
+    assert "url" not in response
+
+    # A company opted out of the report is left out entirely.
+    await hass.services.async_call(
+        "switch",
+        "turn_off",
+        {"entity_id": "switch.example_trading_limited_in_weekly_report"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    response = await hass.services.async_call(
+        DOMAIN, "digest", {"days": 7, "save": True}, blocking=True, return_response=True
+    )
+    assert response is not None
+    assert response["summary"]["companies"] == 1
+    assert response["companies"] == []
+    assert "A quiet week" in response["html"]  # the no-change section
+    saved = Path(response["path"])
+    assert saved.parent == Path(hass.config.path("www", DOMAIN))
+    assert saved.name.startswith("report-")
+    assert saved.read_text(encoding="utf-8") == response["html"]  # noqa: ASYNC240
+    assert response["url"].endswith(f"/local/{DOMAIN}/{saved.name}")
 
 
 async def test_download_document_write_failure(

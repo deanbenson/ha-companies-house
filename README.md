@@ -228,6 +228,35 @@ recorder:
       - sensor.*_charges_outstanding
 ```
 
+## Reports and alerts
+
+Every company and person has three settings, each a switch on its device and
+a field in its settings dialog:
+
+- **Notify instantly** — the moment anything changes, a
+  `companies_house_alert` event fires with a plain-English `title`, `message`
+  and `link` (plus everything the ordinary event carries), so one automation
+  can push it to a phone or an email. Off by default.
+- **In weekly report** — include it in the report built by the `digest`
+  action. On by default.
+- **Watch their companies** (people only) — see above.
+
+Companies also take a **website**, used for a logo and a link in reports.
+
+The **`companies_house.digest`** action gathers everything that changed at the
+opted-in companies and people over the last `days` (default 7) — every change
+is remembered in the store, newest first — plus deadlines in the next 30 days
+and anything needing attention (strike-off, insolvency, overdue filings). It
+returns the report as data, as email-safe HTML (inline styles, logos, links to
+the register and to filed PDFs) and as plain text. Pass `summary` to put a
+paragraph at the top (an `ai_task.generate_data` call over the data works
+well), and `save: true` to also write it under `www/companies_house/` so it has
+a link. No API requests are made.
+
+Downloads return a `media_content_id` when the document lands under a media
+folder, so an automation can hand the PDF to `ai_task.generate_data` for a
+plain-English reading and attach it to `notify.send_message`.
+
 ## Triggers
 
 Every change is delivered two ways.

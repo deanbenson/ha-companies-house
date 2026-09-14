@@ -27,8 +27,10 @@ from custom_components.companies_house.const import (
     CONF_DATE_OF_BIRTH_YEAR,
     CONF_DOCUMENT_DIRECTORY,
     CONF_DUE_SOON_DAYS,
+    CONF_IN_WEEKLY_REPORT,
     CONF_LABEL,
     CONF_MAX_PAGES,
+    CONF_NOTIFY_INSTANTLY,
     CONF_OFFICER_ID,
     CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
@@ -36,6 +38,7 @@ from custom_components.companies_house.const import (
     CONF_QUERY,
     CONF_SELECTION,
     CONF_WATCH_COMPANIES,
+    CONF_WEBSITE,
     DOMAIN,
     SUBENTRY_TYPE_COMPANY,
     SUBENTRY_TYPE_OFFICER,
@@ -282,7 +285,10 @@ async def test_company_subentry_search_and_add(
         {
             CONF_DATASETS: ["officers", "charges"],
             CONF_CLOSE_WATCH: True,
+            CONF_NOTIFY_INSTANTLY: True,
+            CONF_IN_WEEKLY_REPORT: False,
             CONF_LABEL: "Contractor",
+            CONF_WEBSITE: "Example.co.uk ",
         },
     )
     await hass.async_block_till_done()
@@ -295,11 +301,24 @@ async def test_company_subentry_search_and_add(
         CONF_COMPANY_NAME: "EXAMPLE TRADING LIMITED",
         CONF_DATASETS: ["officers", "charges"],
         CONF_CLOSE_WATCH: True,
+        CONF_NOTIFY_INSTANTLY: True,
+        CONF_IN_WEEKLY_REPORT: False,
         CONF_LABEL: "Contractor",
+        CONF_WEBSITE: "example.co.uk",
     }
     # The entry reloaded and set the company up with only the chosen datasets.
     company = entry.runtime_data.companies[subentry.subentry_id]
     assert company.close_watch
+    assert company.notify_instantly
+    assert not company.in_weekly_report
+    assert company.website == "example.co.uk"
+    assert (
+        hass.states.get("switch.example_trading_limited_notify_instantly").state == "on"
+    )
+    assert (
+        hass.states.get("switch.example_trading_limited_in_weekly_report").state
+        == "off"
+    )
     assert company.psc is None
     assert company.officers is not None
     assert hass.states.get("sensor.example_trading_limited_officers_active") is not None

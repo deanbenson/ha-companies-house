@@ -365,12 +365,18 @@ def build() -> dict:
                         "data": {
                             "datasets": "Also keep an eye on",
                             "close_watch": "Close watch",
+                            "notify_instantly": "Notify instantly",
+                            "in_weekly_report": "In weekly report",
                             "label": "Note",
+                            "website": "Website",
                         },
                         "data_description": {
                             "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
                             "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
+                            "notify_instantly": "Raise an alert the moment anything changes, so an automation can push it to your phone or email.",
+                            "in_weekly_report": "Include this company in the report built by the digest action.",
                             "label": 'Optional. Shown next to the company name, for example "Our landlord" or "Contractor, 47 High Street".',
+                            "website": "Optional, for example example.co.uk. Used for the company's logo and a link in reports.",
                         },
                     },
                     "reconfigure": {
@@ -386,12 +392,18 @@ def build() -> dict:
                         "data": {
                             "datasets": "Also keep an eye on",
                             "close_watch": "Close watch",
+                            "notify_instantly": "Notify instantly",
+                            "in_weekly_report": "In weekly report",
                             "label": "Note",
+                            "website": "Website",
                         },
                         "data_description": {
                             "datasets": "The company's details and filings are always watched. Untick anything else you do not need.",
                             "close_watch": "Check this company every 15 minutes during office hours. Normally checks slow down when nothing is due. Turn this on if you need to hear about changes fast.",
+                            "notify_instantly": "Raise an alert the moment anything changes, so an automation can push it to your phone or email.",
+                            "in_weekly_report": "Include this company in the report built by the digest action.",
                             "label": "Optional, shown next to the company name.",
+                            "website": "Optional, for example example.co.uk. Used for the company's logo and a link in reports.",
                         },
                     },
                     "track_officer": {
@@ -451,10 +463,14 @@ def build() -> dict:
                         "data": {
                             "officer_name": "Name to show",
                             "watch_companies": "Watch their companies",
+                            "notify_instantly": "Notify instantly",
+                            "in_weekly_report": "In weekly report",
                         },
                         "data_description": {
                             "officer_name": "Useful when the register holds more than one record for the same person.",
                             "watch_companies": "Add every company they currently hold a role at, and any they join later, as watched companies.",
+                            "notify_instantly": "Raise an alert the moment this person takes or leaves a role, so an automation can push it to your phone or email.",
+                            "in_weekly_report": "Include this person in the report built by the digest action.",
                         },
                     },
                     "add_record": {
@@ -498,7 +514,11 @@ def build() -> dict:
                 k: {"name": v} for k, v in {**COMPANY_BINARY, **OFFICER_BINARY}.items()
             },
             "event": events,
-            "switch": {"watch_companies": {"name": "Watch their companies"}},
+            "switch": {
+                "watch_companies": {"name": "Watch their companies"},
+                "notify_instantly": {"name": "Notify instantly"},
+                "in_weekly_report": {"name": "In weekly report"},
+            },
             "calendar": {
                 "deadlines": {"name": "Deadlines"},
                 "all_deadlines": {"name": "All deadlines"},

@@ -26,6 +26,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv, llm
 from homeassistant.helpers.service import async_extract_config_entry_ids
+from homeassistant.util import dt as dt_util
 from homeassistant.util.json import JsonObjectType
 import voluptuous as vol
 
@@ -45,6 +46,7 @@ from .const import (
     LOGGER,
     Dataset,
 )
+from .digest import build_digest, render_html, render_text
 from .models import JsonDict, parse_date, render_filing_description
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
@@ -58,6 +60,10 @@ ATTR_FILENAME = "filename"
 ATTR_DESCRIPTION = "description"
 ATTR_FILING_DATE = "filing_date"
 ATTR_KIND = "kind"
+ATTR_DAYS = "days"
+ATTR_TITLE = "title"
+ATTR_SUMMARY = "summary"
+ATTR_SAVE = "save"
 
 PSC_KINDS = (
     "individual",
@@ -457,6 +463,7 @@ async def _download_document(
         ) from err
     result: JsonDict = {
         "path": str(path),
+        "media_content_id": _media_content_id(hass, path),
         "bytes": len(content),
         "already_existed": existed,
         "document_id": document_id,
@@ -470,6 +477,58 @@ async def _download_document(
     hass.bus.async_fire(EVENT_DOCUMENT_DOWNLOADED, result)
     LOGGER.debug("Downloaded document %s to %s", document_id, path)
     return result
+
+
+def _media_content_id(hass: HomeAssistant, path: Path) -> str | None:
+    """Return the media-source id for a file under a media folder, if any.
+
+    That is what the AI task and email actions take as an attachment.
+    """
+    for name, root in hass.config.media_dirs.items():
+        try:
+            relative = path.relative_to(root)
+        except ValueError:
+            continue
+        return f"media-source://media_source/{name}/{relative.as_posix()}"
+    return None
+
+
+# ---------------------------------------------------------------- digest
+
+
+async def _digest(
+    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+) -> JsonDict:
+    """Build the report for the last N days, as data, HTML and text."""
+    entry = _resolve_entry(hass, call)
+    days = int(call.data.get(ATTR_DAYS, 7))
+    title = str(call.data.get(ATTR_TITLE) or "Your Companies House week")
+    summary = call.data.get(ATTR_SUMMARY)
+    digest = build_digest(entry, days=days)
+    html = render_html(digest, title=title, summary=summary)
+    text = render_text(digest, title=title, summary=summary)
+    result: JsonDict = {**digest, "title": title, "html": html, "text": text}
+    if call.data.get(ATTR_SAVE):
+        folder = Path(hass.config.path("www", DOMAIN))
+        stamp = dt_util.now().strftime("%Y-%m-%d")
+        filename = f"report-{stamp}.html"
+        try:
+            await hass.async_add_executor_job(_write_report, folder / filename, html)
+        except OSError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="document_write_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        base = (hass.config.external_url or hass.config.internal_url or "").rstrip("/")
+        result["path"] = str(folder / filename)
+        result["url"] = f"{base}/local/{DOMAIN}/{filename}"
+    return result
+
+
+def _write_report(path: Path, html: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(html, encoding="utf-8")
 
 
 # ---------------------------------------------------------------- refresh
@@ -774,6 +833,24 @@ ACTIONS: tuple[ActionDef, ...] = (
             vol.Optional(ATTR_FILENAME): cv.string,
         },
         handler=_download_document,
+        llm=False,
+    ),
+    ActionDef(
+        name="digest",
+        description=(
+            "Build a report of everything that changed at the watched companies "
+            "and people over the last few days, as data, HTML and plain text."
+        ),
+        schema={
+            **ENTRY_FIELD,
+            vol.Optional(ATTR_DAYS, default=7): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=90)
+            ),
+            vol.Optional(ATTR_TITLE): cv.string,
+            vol.Optional(ATTR_SUMMARY): cv.string,
+            vol.Optional(ATTR_SAVE, default=False): cv.boolean,
+        },
+        handler=_digest,
         llm=False,
     ),
     ActionDef(

@@ -19,6 +19,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CHANGE_LOG_CAP,
     DOMAIN,
     LOGGER,
     STORAGE_KEY_TEMPLATE,
@@ -64,6 +65,17 @@ class DatasetSnapshot:
         )
 
 
+def remember_change(changes: list[JsonDict], change: JsonDict) -> list[JsonDict]:
+    """Return the change log with a new entry at the front, capped."""
+    return [change, *changes][:CHANGE_LOG_CAP]
+
+
+def _changes(data: JsonDict) -> list[JsonDict]:
+    return [c for c in data.get("changes") or [] if isinstance(c, dict)][
+        :CHANGE_LOG_CAP
+    ]
+
+
 @dataclass
 class CompanyState:
     """Everything remembered about one company between fetches."""
@@ -78,6 +90,8 @@ class CompanyState:
     last_structure: datetime | None = None
     strike_off_notice_on: date | None = None
     not_found: bool = False
+    # Every change detected, newest first, so a report can look back.
+    changes: list[JsonDict] = field(default_factory=list)
 
     def remember_filings(self, transaction_ids: list[str]) -> None:
         """Add transaction ids, newest first, keeping the most recent 500."""
@@ -98,6 +112,7 @@ class CompanyState:
             "last_reconciled": _iso(self.last_reconciled),
             "last_structure": _iso(self.last_structure),
             "strike_off_notice_on": _iso(self.strike_off_notice_on),
+            "changes": self.changes[:CHANGE_LOG_CAP],
         }
 
     @classmethod
@@ -125,6 +140,7 @@ class CompanyState:
             last_reconciled=_dt(data.get("last_reconciled")),
             last_structure=_dt(data.get("last_structure")),
             strike_off_notice_on=parse_date(data.get("strike_off_notice_on")),
+            changes=_changes(data),
         )
 
 
@@ -134,10 +150,14 @@ class OfficerState:
 
     snapshots: dict[str, DatasetSnapshot] = field(default_factory=dict)
     not_found: bool = False
+    changes: list[JsonDict] = field(default_factory=list)
 
     def to_dict(self) -> JsonDict:
         """Serialise."""
-        return {"snapshots": {k: v.to_dict() for k, v in self.snapshots.items()}}
+        return {
+            "snapshots": {k: v.to_dict() for k, v in self.snapshots.items()},
+            "changes": self.changes[:CHANGE_LOG_CAP],
+        }
 
     @classmethod
     def from_dict(cls, data: JsonDict) -> Self:
@@ -150,7 +170,8 @@ class OfficerState:
                 if isinstance(v, dict)
             }
             if isinstance(snapshots, dict)
-            else {}
+            else {},
+            changes=_changes(data),
         )
 
 

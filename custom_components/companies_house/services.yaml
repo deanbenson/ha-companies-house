@@ -164,7 +164,7 @@ get_officers:
       required: true
       example: '12345678'
     register_view:
-      selector:
+      selector: &id006
         boolean: {}
     order_by:
       selector:
@@ -356,6 +356,24 @@ download_document:
       selector: *id003
     filename:
       selector: *id002
+digest:
+  fields:
+    config_entry_id:
+      selector: *id001
+    days:
+      selector:
+        number:
+          min: 1
+          max: 90
+          mode: box
+    title:
+      selector: *id002
+    summary:
+      selector:
+        text:
+          multiline: true
+    save:
+      selector: *id006
 refresh:
   fields:
     config_entry_id:

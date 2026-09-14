@@ -399,6 +399,18 @@
         "state": {
           "off": "mdi:eye-off-outline"
         }
+      },
+      "notify_instantly": {
+        "default": "mdi:bell-ring-outline",
+        "state": {
+          "off": "mdi:bell-off-outline"
+        }
+      },
+      "in_weekly_report": {
+        "default": "mdi:newspaper-variant-outline",
+        "state": {
+          "off": "mdi:newspaper-remove"
+        }
       }
     },
     "calendar": {

@@ -54,8 +54,10 @@ from .const import (
     CONF_DATE_OF_BIRTH_YEAR,
     CONF_DOCUMENT_DIRECTORY,
     CONF_DUE_SOON_DAYS,
+    CONF_IN_WEEKLY_REPORT,
     CONF_LABEL,
     CONF_MAX_PAGES,
+    CONF_NOTIFY_INSTANTLY,
     CONF_OFFICER_ID,
     CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
@@ -63,6 +65,7 @@ from .const import (
     CONF_QUERY,
     CONF_SELECTION,
     CONF_WATCH_COMPANIES,
+    CONF_WEBSITE,
     DEFAULT_CADENCE_MULTIPLIER,
     DEFAULT_DOCUMENT_DIRECTORY,
     DEFAULT_DUE_SOON_DAYS,
@@ -477,11 +480,34 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 vol.Required(
                     CONF_CLOSE_WATCH, default=bool(data.get(CONF_CLOSE_WATCH, False))
                 ): BooleanSelector(),
+                vol.Required(
+                    CONF_NOTIFY_INSTANTLY,
+                    default=bool(data.get(CONF_NOTIFY_INSTANTLY, False)),
+                ): BooleanSelector(),
+                vol.Required(
+                    CONF_IN_WEEKLY_REPORT,
+                    default=bool(data.get(CONF_IN_WEEKLY_REPORT, True)),
+                ): BooleanSelector(),
                 vol.Optional(
                     CONF_LABEL, default=data.get(CONF_LABEL, "")
                 ): TextSelector(),
+                vol.Optional(
+                    CONF_WEBSITE, default=data.get(CONF_WEBSITE, "")
+                ): TextSelector(),
             }
         )
+
+    @staticmethod
+    def _settings_data(user_input: dict[str, Any]) -> dict[str, Any]:
+        """Return the settings fields of a submitted form, cleaned up."""
+        return {
+            CONF_DATASETS: user_input[CONF_DATASETS],
+            CONF_CLOSE_WATCH: bool(user_input[CONF_CLOSE_WATCH]),
+            CONF_NOTIFY_INSTANTLY: bool(user_input.get(CONF_NOTIFY_INSTANTLY, False)),
+            CONF_IN_WEEKLY_REPORT: bool(user_input.get(CONF_IN_WEEKLY_REPORT, True)),
+            CONF_LABEL: user_input.get(CONF_LABEL, "").strip(),
+            CONF_WEBSITE: user_input.get(CONF_WEBSITE, "").strip().lower(),
+        }
 
     async def async_step_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -496,15 +522,14 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 for s in entry.subentries.values()
             ):
                 return self.async_abort(reason="already_configured")
-            label = user_input.get(CONF_LABEL, "").strip()
+            settings = self._settings_data(user_input)
+            label = settings[CONF_LABEL]
             return self.async_create_entry(
                 title=f"{name} ({label})" if label else name,
                 data={
                     CONF_COMPANY_NUMBER: number,
                     CONF_COMPANY_NAME: name,
-                    CONF_DATASETS: user_input[CONF_DATASETS],
-                    CONF_CLOSE_WATCH: user_input[CONF_CLOSE_WATCH],
-                    CONF_LABEL: label,
+                    **settings,
                 },
                 unique_id=number,
             )
@@ -528,7 +553,8 @@ class CompanySubentryFlow(ConfigSubentryFlow):
         """Change datasets, close watch or the label."""
         subentry = self._get_reconfigure_subentry()
         if user_input is not None:
-            label = user_input.get(CONF_LABEL, "").strip()
+            settings = self._settings_data(user_input)
+            label = settings[CONF_LABEL]
             name = subentry.data.get(
                 CONF_COMPANY_NAME, subentry.data[CONF_COMPANY_NUMBER]
             )
@@ -536,11 +562,7 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 self._get_entry(),
                 subentry,
                 title=f"{name} ({label})" if label else name,
-                data_updates={
-                    CONF_DATASETS: user_input[CONF_DATASETS],
-                    CONF_CLOSE_WATCH: user_input[CONF_CLOSE_WATCH],
-                    CONF_LABEL: label,
-                },
+                data_updates=settings,
             )
         return self.async_show_form(
             step_id="settings",
@@ -830,6 +852,12 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 data_updates={
                     CONF_OFFICER_NAME: name,
                     CONF_WATCH_COMPANIES: bool(user_input[CONF_WATCH_COMPANIES]),
+                    CONF_NOTIFY_INSTANTLY: bool(
+                        user_input.get(CONF_NOTIFY_INSTANTLY, False)
+                    ),
+                    CONF_IN_WEEKLY_REPORT: bool(
+                        user_input.get(CONF_IN_WEEKLY_REPORT, True)
+                    ),
                 },
             )
         records = subentry.data.get(CONF_OFFICER_IDS) or [
@@ -846,6 +874,14 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                     vol.Required(
                         CONF_WATCH_COMPANIES,
                         default=bool(subentry.data.get(CONF_WATCH_COMPANIES, False)),
+                    ): BooleanSelector(),
+                    vol.Required(
+                        CONF_NOTIFY_INSTANTLY,
+                        default=bool(subentry.data.get(CONF_NOTIFY_INSTANTLY, False)),
+                    ): BooleanSelector(),
+                    vol.Required(
+                        CONF_IN_WEEKLY_REPORT,
+                        default=bool(subentry.data.get(CONF_IN_WEEKLY_REPORT, True)),
                     ): BooleanSelector(),
                 }
             ),
