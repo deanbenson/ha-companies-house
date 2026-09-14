@@ -9,12 +9,18 @@ from homeassistant.components.calendar import (
     CalendarEntityDescription,
     CalendarEvent,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import Dataset
-from .coordinator import CompaniesHouseConfigEntry, CompanyRuntime, ProfileCoordinator
+from .coordinator import (
+    CompaniesHouseConfigEntry,
+    CompanyRuntime,
+    ProfileCoordinator,
+    signal_new_company,
+)
 from .entity import CompanyEntity, ServiceEntity
 from .scheduler import to_london
 
@@ -147,11 +153,20 @@ async def async_setup_entry(
     entry: CompaniesHouseConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the calendars."""
+    """Set up the calendars, and add more as companies are added."""
     runtime = entry.runtime_data
     async_add_entities([AggregateCalendar(entry)])
-    for subentry_id, company in runtime.companies.items():
+
+    @callback
+    def _add_company(company: CompanyRuntime) -> None:
         if Dataset.PROFILE in company.coordinators:
             async_add_entities(
-                [CompanyCalendar(company)], config_subentry_id=subentry_id
+                [CompanyCalendar(company)],
+                config_subentry_id=company.subentry.subentry_id,
             )
+
+    for company in runtime.companies.values():
+        _add_company(company)
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_company(entry.entry_id), _add_company)
+    )

@@ -310,6 +310,12 @@ def _plural(count: Any, singular: str, plural: str) -> str:
     return f"{count} {singular if count == 1 else plural}"
 
 
+def _display_name(name: str) -> str:
+    """Turn the officer list's ``SURNAME, Forenames`` into ``Forenames SURNAME``."""
+    surname, sep, forenames = name.partition(", ")
+    return f"{forenames} {surname}".strip() if sep else name
+
+
 def _company_label(item: JsonDict) -> str:
     """Render ``Name (12345678) - status - incorporated YYYY``."""
     name = item.get("title") or item.get("company_name") or "?"
@@ -543,19 +549,19 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                     data=MappingProxyType(
                         {
                             CONF_OFFICER_ID: officer_id,
-                            CONF_OFFICER_NAME: chosen["name"],
+                            CONF_OFFICER_NAME: _display_name(str(chosen["name"])),
                             CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
                             CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
                         }
                     ),
                     subentry_type=SUBENTRY_TYPE_OFFICER,
-                    title=str(chosen["name"]),
+                    title=_display_name(str(chosen["name"])),
                     unique_id=officer_id,
                 ),
             )
             return self.async_abort(
                 reason="officer_added",
-                description_placeholders={"name": str(chosen["name"])},
+                description_placeholders={"name": _display_name(str(chosen["name"]))},
             )
         if not self._results:
             try:

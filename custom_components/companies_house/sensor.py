@@ -37,6 +37,8 @@ from .coordinator import (
     CompaniesHouseConfigEntry,
     CompanyRuntime,
     OfficerRuntime,
+    signal_new_company,
+    signal_new_officer,
     signal_tier,
 )
 from .entity import CompanyEntity, OfficerEntity, ServiceEntity
@@ -921,38 +923,56 @@ class ServiceSensor(ServiceEntity, SensorEntity):
 # ---------------------------------------------------------------- setup
 
 
+def _company_sensors(company: CompanyRuntime) -> list[CompanySensor]:
+    coordinators = company.coordinators
+    entities: list[CompanySensor] = []
+    for description in COMPANY_SENSORS:
+        coordinator = coordinators.get(description.dataset)
+        if coordinator is None:
+            continue
+        cls = PollingTierSensor if description.key == "polling_tier" else CompanySensor
+        entities.append(cls(company, coordinator, description))
+    return entities
+
+
+def _officer_sensors(officer: OfficerRuntime) -> list[OfficerSensor]:
+    return [
+        OfficerSensor(officer, officer.coordinators[description.dataset], description)
+        for description in OFFICER_SENSORS
+    ]
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: CompaniesHouseConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the sensors."""
+    """Set up the sensors, and add more as companies and officers are added."""
     runtime = entry.runtime_data
     async_add_entities(
         ServiceSensor(entry, runtime.account, description)
         for description in SERVICE_SENSORS
     )
-    for subentry_id, company in runtime.companies.items():
-        coordinators = company.coordinators
-        entities: list[CompanySensor] = []
-        for description in COMPANY_SENSORS:
-            coordinator = coordinators.get(description.dataset)
-            if coordinator is None:
-                continue
-            cls = (
-                PollingTierSensor
-                if description.key == "polling_tier"
-                else CompanySensor
-            )
-            entities.append(cls(company, coordinator, description))
-        async_add_entities(entities, config_subentry_id=subentry_id)
-    for subentry_id, officer in runtime.officers.items():
+
+    @callback
+    def _add_company(company: CompanyRuntime) -> None:
         async_add_entities(
-            (
-                OfficerSensor(
-                    officer, officer.coordinators[description.dataset], description
-                )
-                for description in OFFICER_SENSORS
-            ),
-            config_subentry_id=subentry_id,
+            _company_sensors(company), config_subentry_id=company.subentry.subentry_id
         )
+
+    @callback
+    def _add_officer(officer: OfficerRuntime) -> None:
+        async_add_entities(
+            _officer_sensors(officer), config_subentry_id=officer.subentry.subentry_id
+        )
+
+    for company in runtime.companies.values():
+        _add_company(company)
+    for officer in runtime.officers.values():
+        _add_officer(officer)
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_company(entry.entry_id), _add_company)
+    )
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_officer(entry.entry_id), _add_officer)
+    )

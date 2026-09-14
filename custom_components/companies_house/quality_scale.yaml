@@ -53,9 +53,7 @@ rules:
   docs-supported-functions: done
   docs-troubleshooting: done
   docs-use-cases: done
-  dynamic-devices:
-    status: exempt
-    comment: Devices are created from config subentries chosen by the user; the register cannot add devices on its own.
+  dynamic-devices: done
   entity-category: done
   entity-device-class: done
   entity-disabled-by-default: done

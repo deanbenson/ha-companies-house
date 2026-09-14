@@ -26,6 +26,8 @@ from .coordinator import (
     CompanyRuntime,
     OfficerRuntime,
     signal_changes,
+    signal_new_company,
+    signal_new_officer,
 )
 from .entity import CompanyEntity, OfficerEntity
 
@@ -153,18 +155,34 @@ async def async_setup_entry(
     entry: CompaniesHouseConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the event entities."""
+    """Set up the event entities, and add more as companies and officers are added."""
     runtime = entry.runtime_data
-    for subentry_id, company in runtime.companies.items():
+
+    @callback
+    def _add_company(company: CompanyRuntime) -> None:
         async_add_entities(
             (
                 CompanyEventEntity(company, description)
                 for description in COMPANY_EVENTS
                 if description.dataset in company.coordinators
             ),
-            config_subentry_id=subentry_id,
+            config_subentry_id=company.subentry.subentry_id,
         )
-    for subentry_id, officer in runtime.officers.items():
+
+    @callback
+    def _add_officer(officer: OfficerRuntime) -> None:
         async_add_entities(
-            [OfficerEventEntity(officer)], config_subentry_id=subentry_id
+            [OfficerEventEntity(officer)],
+            config_subentry_id=officer.subentry.subentry_id,
         )
+
+    for company in runtime.companies.values():
+        _add_company(company)
+    for officer in runtime.officers.values():
+        _add_officer(officer)
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_company(entry.entry_id), _add_company)
+    )
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_officer(entry.entry_id), _add_officer)
+    )

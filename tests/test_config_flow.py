@@ -451,9 +451,10 @@ async def test_track_officer_shortcut(
         s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_TYPE_OFFICER
     )
     assert officer.unique_id == "officer-jane"
+    assert officer.title == "Jane Elizabeth SMITH"
     assert officer.data == {
         CONF_OFFICER_ID: "officer-jane",
-        CONF_OFFICER_NAME: "SMITH, Jane Elizabeth",
+        CONF_OFFICER_NAME: "Jane Elizabeth SMITH",
         CONF_DATE_OF_BIRTH_MONTH: 6,
         CONF_DATE_OF_BIRTH_YEAR: 1978,
     }

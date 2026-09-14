@@ -11,7 +11,8 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
@@ -22,7 +23,13 @@ from .const import (
     Dataset,
     OfficerDataset,
 )
-from .coordinator import CompaniesHouseConfigEntry, CompanyRuntime, OfficerRuntime
+from .coordinator import (
+    CompaniesHouseConfigEntry,
+    CompanyRuntime,
+    OfficerRuntime,
+    signal_new_company,
+    signal_new_officer,
+)
 from .entity import CompanyEntity, OfficerEntity
 from .models import CompanyProfile
 from .scheduler import days_until
@@ -247,32 +254,53 @@ class OfficerBinarySensor(OfficerEntity[Any], BinarySensorEntity):
         return dict(self.entity_description.attrs_fn(self.officer))
 
 
+def _company_binary_sensors(company: CompanyRuntime) -> list[CompanyBinarySensor]:
+    coordinators = company.coordinators
+    return [
+        CompanyBinarySensor(company, coordinators[description.dataset], description)
+        for description in COMPANY_BINARY_SENSORS
+        if description.dataset in coordinators
+    ]
+
+
+def _officer_binary_sensors(officer: OfficerRuntime) -> list[OfficerBinarySensor]:
+    return [
+        OfficerBinarySensor(
+            officer, officer.coordinators[description.dataset], description
+        )
+        for description in OFFICER_BINARY_SENSORS
+    ]
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: CompaniesHouseConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
-    """Set up the binary sensors."""
+    """Set up the binary sensors, and add more as companies and officers are added."""
     runtime = entry.runtime_data
-    for subentry_id, company in runtime.companies.items():
-        coordinators = company.coordinators
+
+    @callback
+    def _add_company(company: CompanyRuntime) -> None:
         async_add_entities(
-            (
-                CompanyBinarySensor(
-                    company, coordinators[description.dataset], description
-                )
-                for description in COMPANY_BINARY_SENSORS
-                if description.dataset in coordinators
-            ),
-            config_subentry_id=subentry_id,
+            _company_binary_sensors(company),
+            config_subentry_id=company.subentry.subentry_id,
         )
-    for subentry_id, officer in runtime.officers.items():
+
+    @callback
+    def _add_officer(officer: OfficerRuntime) -> None:
         async_add_entities(
-            (
-                OfficerBinarySensor(
-                    officer, officer.coordinators[description.dataset], description
-                )
-                for description in OFFICER_BINARY_SENSORS
-            ),
-            config_subentry_id=subentry_id,
+            _officer_binary_sensors(officer),
+            config_subentry_id=officer.subentry.subentry_id,
         )
+
+    for company in runtime.companies.values():
+        _add_company(company)
+    for officer in runtime.officers.values():
+        _add_officer(officer)
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_company(entry.entry_id), _add_company)
+    )
+    entry.async_on_unload(
+        async_dispatcher_connect(hass, signal_new_officer(entry.entry_id), _add_officer)
+    )

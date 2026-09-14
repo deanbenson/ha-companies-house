@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -14,6 +15,7 @@ from homeassistant.helpers import (
     entity_registry as er,
 )
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .api import CompaniesHouseClient
@@ -34,7 +36,13 @@ from .const import (
     SUBENTRY_TYPE_OFFICER,
     Dataset,
 )
-from .coordinator import AccountCoordinator, CompanyRuntime, OfficerRuntime
+from .coordinator import (
+    AccountCoordinator,
+    CompanyRuntime,
+    OfficerRuntime,
+    signal_new_company,
+    signal_new_officer,
+)
 from .entity import service_device_info
 from .models import DateOfBirth
 from .services import async_setup_services
@@ -60,6 +68,7 @@ class CompaniesHouseRuntimeData:
     service_device_id: str = ""
     companies: dict[str, CompanyRuntime] = field(default_factory=dict)
     officers: dict[str, OfficerRuntime] = field(default_factory=dict)
+    snapshot: dict[str, Any] = field(default_factory=dict)
 
 
 type CompaniesHouseConfigEntry = ConfigEntry[CompaniesHouseRuntimeData]
@@ -104,41 +113,7 @@ async def async_setup_entry(
     runtime.service_device_id = service_device.id
 
     for subentry in entry.subentries.values():
-        if subentry.subentry_type == SUBENTRY_TYPE_COMPANY:
-            datasets = {Dataset.PROFILE, Dataset.FILINGS} | {
-                Dataset(d)
-                for d in subentry.data.get(CONF_DATASETS, [d.value for d in Dataset])
-                if d in Dataset.__members__.values()
-            }
-            company = CompanyRuntime(
-                hass,
-                entry,
-                subentry,
-                client,
-                store,
-                company_number=subentry.data[CONF_COMPANY_NUMBER],
-                close_watch=bool(subentry.data.get(CONF_CLOSE_WATCH, False)),
-                datasets=datasets,
-            )
-            await company.async_first_refresh()
-            runtime.companies[subentry.subentry_id] = company
-        elif subentry.subentry_type == SUBENTRY_TYPE_OFFICER:
-            month = subentry.data.get(CONF_DATE_OF_BIRTH_MONTH)
-            year = subentry.data.get(CONF_DATE_OF_BIRTH_YEAR)
-            officer = OfficerRuntime(
-                hass,
-                entry,
-                subentry,
-                client,
-                store,
-                officer_id=subentry.data[CONF_OFFICER_ID],
-                officer_name=subentry.data.get(CONF_OFFICER_NAME, ""),
-                date_of_birth=DateOfBirth(month=month, year=year)
-                if month is not None and year is not None
-                else None,
-            )
-            await officer.async_first_refresh()
-            runtime.officers[subentry.subentry_id] = officer
+        await _async_start_subentry(hass, entry, subentry)
 
     _raise_if_auth_failed(runtime)
     if not runtime.companies and not runtime.officers:
@@ -152,6 +127,7 @@ async def async_setup_entry(
         company.mark_ready()
     for officer in runtime.officers.values():
         officer.mark_ready()
+    runtime.snapshot = _subentry_snapshot(entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     LOGGER.debug(
         "Set up %s with %d companies and %d officers",
@@ -204,11 +180,101 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
             runtime.store.forget_officer(officer_id)
 
 
+def _subentry_snapshot(entry: ConfigEntry) -> dict[str, Any]:
+    """Return what the listener compares against to see what changed."""
+    return {
+        "options": dict(entry.options),
+        "subentries": {sid: dict(sub.data) for sid, sub in entry.subentries.items()},
+    }
+
+
+async def _async_start_subentry(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry, subentry: ConfigSubentry
+) -> CompanyRuntime | OfficerRuntime | None:
+    """Create the runtime for a subentry and fetch its data once."""
+    runtime = entry.runtime_data
+    if subentry.subentry_type == SUBENTRY_TYPE_COMPANY:
+        datasets = {Dataset.PROFILE, Dataset.FILINGS} | {
+            Dataset(d)
+            for d in subentry.data.get(CONF_DATASETS, [d.value for d in Dataset])
+            if d in Dataset.__members__.values()
+        }
+        company = CompanyRuntime(
+            hass,
+            entry,
+            subentry,
+            runtime.client,
+            runtime.store,
+            company_number=subentry.data[CONF_COMPANY_NUMBER],
+            close_watch=bool(subentry.data.get(CONF_CLOSE_WATCH, False)),
+            datasets=datasets,
+        )
+        await company.async_first_refresh()
+        runtime.companies[subentry.subentry_id] = company
+        return company
+    if subentry.subentry_type == SUBENTRY_TYPE_OFFICER:
+        month = subentry.data.get(CONF_DATE_OF_BIRTH_MONTH)
+        year = subentry.data.get(CONF_DATE_OF_BIRTH_YEAR)
+        officer = OfficerRuntime(
+            hass,
+            entry,
+            subentry,
+            runtime.client,
+            runtime.store,
+            officer_id=subentry.data[CONF_OFFICER_ID],
+            officer_name=subentry.data.get(CONF_OFFICER_NAME, ""),
+            date_of_birth=DateOfBirth(month=month, year=year)
+            if month is not None and year is not None
+            else None,
+        )
+        await officer.async_first_refresh()
+        runtime.officers[subentry.subentry_id] = officer
+        return officer
+    return None
+
+
 async def _async_update_listener(
     hass: HomeAssistant, entry: CompaniesHouseConfigEntry
 ) -> None:
-    """Reload after options or subentries change."""
-    await hass.config_entries.async_reload(entry.entry_id)
+    """React to the entry changing.
+
+    A company or officer being added or removed is handled in place, so the
+    ones already running are untouched (no flicker to unavailable). Changed
+    settings on an existing one, or changed options, reload the entry.
+    """
+    runtime = entry.runtime_data
+    before = runtime.snapshot
+    after = _subentry_snapshot(entry)
+    known = set(before["subentries"])
+    current = set(after["subentries"])
+    changed = {
+        sid
+        for sid in known & current
+        if before["subentries"][sid] != after["subentries"][sid]
+    }
+    if before["options"] != after["options"] or changed:
+        await hass.config_entries.async_reload(entry.entry_id)
+        return
+
+    for sid in known - current:
+        if (company := runtime.companies.pop(sid, None)) is not None:
+            await company.async_shutdown()
+            runtime.store.forget_company(company.company_number)
+        if (officer := runtime.officers.pop(sid, None)) is not None:
+            await officer.async_shutdown()
+            runtime.store.forget_officer(officer.officer_id)
+
+    for sid in current - known:
+        started = await _async_start_subentry(hass, entry, entry.subentries[sid])
+        if isinstance(started, CompanyRuntime):
+            async_dispatcher_send(hass, signal_new_company(entry.entry_id), started)
+        elif isinstance(started, OfficerRuntime):
+            async_dispatcher_send(hass, signal_new_officer(entry.entry_id), started)
+        if started is not None:
+            started.mark_ready()
+    _raise_if_auth_failed(runtime)
+    runtime.snapshot = after
+    await runtime.account.async_refresh()
 
 
 async def async_unload_entry(

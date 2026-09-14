@@ -172,7 +172,7 @@
         },
         "reconfigure": {
           "title": "Change officer settings",
-          "description": "The name to show for this person (Companies House reference {officer_id}). Once their appointments load, the register's spelling is used instead.",
+          "description": "The name to show for this person (Companies House reference {officer_id}). Useful when the register holds more than one record for the same person.",
           "data": {
             "officer_name": "Name to show"
           }

@@ -128,10 +128,10 @@ a window; the reserve is for your action calls and manual refreshes. A `429`
 honours `Retry-After`, otherwise backs off from 30 seconds, and throttling
 that persists past three windows raises a repair issue.
 
-Everything fetched is kept in a per entry store together with the change
-detection state, so a restart or a reload (every subentry add or remove reloads
-the entry) costs no requests while the snapshots are fresh, and never replays
-old filings as new events. On the very first look at a company the store is
+Adding or removing a company or person sets up or tears down just that one;
+nothing else is touched. Everything fetched is kept in a per entry store
+together with the change detection state, so a restart costs no requests while
+the snapshots are fresh, and never replays old filings as new events. On the very first look at a company the store is
 seeded silently and no events fire.
 
 ## Entities

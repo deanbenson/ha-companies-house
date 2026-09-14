@@ -217,3 +217,96 @@ async def test_migrate_entry(hass: HomeAssistant) -> None:
     )
     future.add_to_hass(hass)
     assert not await async_migrate_entry(hass, future)
+
+
+async def test_adding_a_subentry_does_not_reload_the_others(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A new company is set up in place; the running ones never go unavailable."""
+    from types import MappingProxyType
+    from unittest.mock import patch
+
+    from homeassistant.config_entries import ConfigSubentry
+
+    from .conftest import company_subentry, mock_company, mock_officer, officer_subentry
+
+    entry = await setup_entry(["12345678"])
+    before = hass.states.get("sensor.example_trading_limited_company_status")
+    assert before is not None
+    calls_before = aioclient_mock.call_count
+
+    mock_company(aioclient_mock, "34567890")
+    data = company_subentry("34567890", subentry_id="sub_34567890")
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data=MappingProxyType(dict(data["data"])),
+                subentry_type=data["subentry_type"],
+                title=data["title"],
+                unique_id=data["unique_id"],
+                subentry_id="sub_34567890",
+            ),
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+
+    after = hass.states.get("sensor.example_trading_limited_company_status")
+    assert after is not None
+    assert after.last_updated == before.last_updated  # untouched, never unavailable
+    assert (
+        hass.states.get("sensor.sunset_retail_limited_company_status").state
+        == "liquidation"
+    )
+    assert (
+        hass.states.get("binary_sensor.sunset_retail_limited_insolvent").state == "on"
+    )
+    assert hass.states.get("event.sunset_retail_limited_filing") is not None
+    assert hass.states.get("calendar.sunset_retail_limited_deadlines") is not None
+    assert "sub_34567890" in entry.runtime_data.companies
+    # Only the new company was fetched.
+    assert all(
+        "34567890" in c[1].path for c in aioclient_mock.mock_calls[calls_before:]
+    )
+    assert hass.states.get("sensor.companies_house_companies_monitored").state == "2"
+
+    # An officer arrives the same way.
+    mock_officer(aioclient_mock)
+    officer = officer_subentry()
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data=MappingProxyType(dict(officer["data"])),
+                subentry_type=officer["subentry_type"],
+                title=officer["title"],
+                unique_id=officer["unique_id"],
+                subentry_id="sub_officer",
+            ),
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert (
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_active") is not None
+    )
+
+    # Removing one takes down only its own runtime and state, again without a reload.
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_remove_subentry(entry, "sub_34567890")
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert "sub_34567890" not in entry.runtime_data.companies
+    assert "34567890" not in entry.runtime_data.store.companies
+    assert hass.states.get("sensor.sunset_retail_limited_company_status") is None
+    assert hass.states.get("sensor.example_trading_limited_company_status") is not None
+
+    # Changing an existing company's settings does reload.
+    subentry = entry.subentries["sub_12345678"]
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_update_subentry(
+            entry, subentry, data={**subentry.data, "close_watch": True}
+        )
+        await hass.async_block_till_done()
+        reload.assert_called_once_with(entry.entry_id)

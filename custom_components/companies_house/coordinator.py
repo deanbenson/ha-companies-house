@@ -121,6 +121,16 @@ def signal_tier(subentry_id: str) -> str:
     return f"{DOMAIN}_tier_{subentry_id}"
 
 
+def signal_new_company(entry_id: str) -> str:
+    """Dispatcher signal fired with a CompanyRuntime when a company is added."""
+    return f"{DOMAIN}_new_company_{entry_id}"
+
+
+def signal_new_officer(entry_id: str) -> str:
+    """Dispatcher signal fired with an OfficerRuntime when an officer is added."""
+    return f"{DOMAIN}_new_officer_{entry_id}"
+
+
 @dataclass(frozen=True)
 class ChangeEvent:
     """A change detected in the register."""
@@ -1103,11 +1113,20 @@ class OfficerRuntime(_Runtime):
         }
 
     @property
-    def officer_name(self) -> str:
-        """Return the name from the register, or the configured one."""
+    def register_name(self) -> str:
+        """Return the name as the register spells it, for searches."""
         if self.appointments.data is not None and self.appointments.data.name:
             return self.appointments.data.name
         return self.configured_name
+
+    @property
+    def officer_name(self) -> str:
+        """Return the name to show: the one chosen in settings, else the register's.
+
+        The register can hold several records for one person, so the chosen
+        name is what tells "Alex (main record)" from "Alex (Holdco record)".
+        """
+        return self.configured_name or self.register_name
 
     def _bus_context(self) -> dict[str, Any]:
         return {"officer_id": self.officer_id, "officer_name": self.officer_name}
@@ -1337,7 +1356,7 @@ class DisqualificationCoordinator(_OfficerCoordinator[DisqualificationResult]):
         return disqualification_next_run(self.officer.officer_id, now, self.fetched_at)
 
     async def _fetch(self, priority: Priority) -> DisqualificationResult:
-        name = self.officer.officer_name
+        name = self.officer.register_name
         dob = self.officer.date_of_birth
         appointments = self.officer.appointments.data
         if appointments is not None and appointments.date_of_birth is not None:
@@ -1483,5 +1502,7 @@ __all__ = [
     "StructureCoordinator",
     "match_disqualification",
     "signal_changes",
+    "signal_new_company",
+    "signal_new_officer",
     "signal_tier",
 ]
