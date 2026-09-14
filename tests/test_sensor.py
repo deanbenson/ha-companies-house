@@ -116,3 +116,55 @@ async def test_long_registered_office_is_truncated(
     assert state is not None
     assert len(state.state) == 255
     assert state.state.endswith("…")
+
+
+async def test_charge_sensors_list_the_charges(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Charge counts carry the charges themselves, newest first, out of the recorder."""
+    await setup_entry(["12345678"])
+    outstanding = hass.states.get("sensor.example_trading_limited_outstanding_charges")
+    assert outstanding is not None
+    assert outstanding.state == "1"
+    assert outstanding.attributes["lenders"] == ["HSBC UK Bank Plc"]
+    (row,) = outstanding.attributes["charges"]
+    assert row == {
+        "charge_code": "123456780002",
+        "lender": "HSBC UK Bank Plc",
+        "status": "outstanding",
+        "created_on": "2022-05-06",
+        "satisfied_on": None,
+        "secured": (
+            "All monies due or to become due from the company to the chargee on any "
+            "account…"
+        ),
+        "particulars": "",
+        "kind": "fixed and floating charge over all the company's assets",
+        "link": (
+            "https://find-and-update.company-information.service.gov.uk/company/"
+            "12345678/filing-history/MzM0MDAwMDAwMGFkaXF6a2N4/document?format=pdf&download=0"
+        ),
+    }
+    total = hass.states.get("sensor.example_trading_limited_charges_total")
+    assert total is not None
+    assert total.state == "2"
+    assert "lenders" not in total.attributes
+    rows = total.attributes["charges"]
+    assert [r["status"] for r in rows] == ["outstanding", "fully-satisfied"]
+    assert rows[1]["lender"] == "Lloyds Bank Plc"
+    assert rows[1]["satisfied_on"] == "2021-11-30"
+    assert rows[1]["kind"] == "fixed and floating charge"
+    assert rows[1]["particulars"].startswith("The freehold property known as Unit 4")
+    assert rows[1]["particulars"].endswith("…")
+    # The satisfied charge links to the filing that satisfied it (the MR04).
+    assert "/MzMxMDAwMDAwMGFkaXF6a2N4/document" in rows[1]["link"]
+    # The lists never reach the recorder; the counts and everything else do.
+    for state in (outstanding, total):
+        assert state.state_info is not None
+        assert {"charges", "lenders"} <= state.state_info["unrecorded_attributes"]
+    plain = hass.states.get("sensor.example_trading_limited_charges_satisfied")
+    assert plain is not None
+    assert plain.state_info is not None
+    assert "charges" not in plain.state_info["unrecorded_attributes"]

@@ -34,6 +34,7 @@ from .api import (
     Priority,
     RateLimitStatus,
 )
+from .charges import charge_payload
 from .const import (
     CONF_CADENCE_MULTIPLIER,
     CONF_CLOSE_WATCH,
@@ -62,6 +63,7 @@ from .const import (
 from .digest import describe_change, logo_for
 from .models import (
     AppointmentList,
+    Charge,
     ChargeList,
     CompanyProfile,
     DateOfBirth,
@@ -1082,20 +1084,9 @@ class PscCoordinator(_CompanyCoordinator[PscData]):
                 )
 
 
-def _charge_payload(charge: Any) -> dict[str, Any]:
-    return {
-        "charge_code": charge.charge_code,
-        "charge_id": charge.charge_id,
-        "persons_entitled": list(charge.persons_entitled),
-        "created_on": charge.created_on.isoformat() if charge.created_on else None,
-        "delivered_on": charge.delivered_on.isoformat()
-        if charge.delivered_on
-        else None,
-        "satisfied_on": charge.satisfied_on.isoformat()
-        if charge.satisfied_on
-        else None,
-        "status": charge.status,
-    }
+def _charge_payload(charge: Charge) -> dict[str, Any]:
+    """Return the event payload for a charge: parties, dates, security, filing ids."""
+    return charge_payload(charge)
 
 
 class ChargesCoordinator(_CompanyCoordinator[ChargeList]):
@@ -1122,7 +1113,7 @@ class ChargesCoordinator(_CompanyCoordinator[ChargeList]):
                     ChangeEvent("charge", event_type, _charge_payload(charge))
                 )
             elif old.status != charge.status:
-                if charge.status in ("fully-satisfied", "satisfied"):
+                if charge.is_satisfied:
                     self.company.dispatch(
                         ChangeEvent("charge", "satisfied", _charge_payload(charge))
                     )

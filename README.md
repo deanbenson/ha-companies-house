@@ -176,6 +176,15 @@ statements, charge counts by status, filings total and last 12 months, days
 since last filing, last filing category, previous names, UK establishments,
 insolvency cases, registers held.
 
+**Charges** — *outstanding charges* and *charges total* carry the charges
+themselves in a `charges` attribute, newest first: who the charge is in favour
+of (`lender`), its status, created and satisfied dates, the kind of charge in
+words (`kind`: "fixed and floating charge over all the company's assets"), what
+it secures (`secured`), what it is over (`particulars`) and a `link` to the
+filing's PDF — the MR01 that created it, or the MR04 that satisfied it. The
+outstanding list also names the `lenders` still owed; the total list includes
+satisfied charges. Both are capped at 25 and kept out of the recorder.
+
 Binary sensors (problem class, on by default): accounts overdue, confirmation
 statement overdue, accounts due soon, confirmation statement due soon,
 **proposed strike off** (from `company_status_detail` and from GAZ1 filings),
@@ -215,8 +224,9 @@ last error, companies monitored, officers monitored, next scheduled probe.
 
 ### Attribute size
 
-Attributes are kept small (lists capped at ten, appointments at fifty). If the
-recorder is large, exclude the heaviest entities:
+Attributes are kept small (lists capped at ten, appointments at fifty, charges
+at twenty-five and never recorded). If the recorder is large, exclude the
+heaviest entities:
 
 ```yaml
 recorder:
@@ -252,9 +262,14 @@ are included even if they were seen before the log began. Each change gets a
 **score** (what
 happened × how much the company matters: close watch 3, notify instantly 2,
 else 1), so the report opens with a *Worth a look* list of the week's most
-important changes. Problems are split into **new this week** (a strike-off or
-status change seen in the period, or a deadline that passed in it) and
-**still open** (known before, listed quietly at the bottom until they clear).
+important changes. A charge change reads as who lent and what secures it
+("A charge in favour of Lloyds Bank plc was registered on 3 Jul 2026 — fixed
+and floating charge over all the company's assets; secures all monies due")
+and opens the filing's PDF; a company's card says how many charges are
+outstanding and to whom. Problems are split into **new this week** (a
+strike-off or status change seen in the period, or a deadline that passed in
+it) and **still open** (known before, listed quietly at the bottom until they
+clear).
 It also lists deadlines in the next 30 days, **new companies** (recently
 incorporated, with the followed people at them) and, when ownership changed,
 **who controls what** across every watched company. It returns the report as
@@ -321,7 +336,7 @@ Event types by kind:
 | filing | accounts, confirmation-statement, officers, persons-with-significant-control, address, capital, mortgage, change-of-name, resolution, incorporation, gazette, insolvency, dissolution, other | transaction_id, date, description, rendered_description, category, subcategory, type, barcode, document_id, paper_filed, pages |
 | officer | appointed, resigned, details-changed | name, role, appointed_on, resigned_on, officer_id, appointment_id |
 | psc | notified, ceased, statement-added, details-changed | name, psc_kind, natures_of_control, notified_on, ceased_on |
-| charge | created, satisfied, part-satisfied, acquired | charge_code, persons_entitled, created_on, delivered_on, satisfied_on, status |
+| charge | created, satisfied, part-satisfied, acquired | charge_code, charge_id, lender, persons_entitled, created_on, delivered_on, satisfied_on, acquired_on, status, charge_kind, particulars, secured, security (the kind, what it is over and what it secures, in one clause), negative_pledge, created_transaction_id and satisfied_transaction_id (the MR01 / MR04 filings, for `download_document` or the register's PDF), transaction_ids |
 | status | status-changed, strike-off-proposed, strike-off-discontinued, dissolved | old_status, new_status, detail |
 | profile | name-changed, address-changed, sic-changed, accounting-reference-date-changed | old_value, new_value |
 | appointment (officer) | appointed, resigned, company-status-changed, disqualified, new-record, company-now-watched | company_number, company_name, company_status, role, appointed_on, resigned_on; `new-record` carries officer_id and name |
@@ -465,8 +480,11 @@ actions:
       message: >
         New charge {{ trigger.event.data.charge_code }} against
         {{ trigger.event.data.company_name }} in favour of
-        {{ trigger.event.data.persons_entitled | join(', ') }}.
+        {{ trigger.event.data.lender }}: {{ trigger.event.data.security }}.
 ```
+
+`security` is the kind of charge, what it is over and what it secures in one
+clause; `created_transaction_id` is the MR01 filing, for `download_document`.
 
 ### Weekly digest of everything filed
 

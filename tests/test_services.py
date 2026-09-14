@@ -531,6 +531,13 @@ async def test_digest_action_reports_the_week(
         {"text": "Officers", "href": changed["link"] + "/officers"}
     ]
     assert changed["changes"][1]["links"][0]["text"] == "Filing history"
+    # The card says who the company owes; the report shows it on the card.
+    assert changed["charges"] == {
+        "outstanding": 1,
+        "total": 2,
+        "lenders": ["HSBC UK Bank Plc"],
+        "link": changed["link"] + "/charges",
+    }
     assert response["top"][0]["title"] == "EXAMPLE TRADING LIMITED: director resigned"
     assert response["top"][0]["subject"] == "EXAMPLE TRADING LIMITED"
     # The liquidation started before this week: still open, not needing attention.
@@ -548,6 +555,7 @@ async def test_digest_action_reports_the_week(
     assert response["attachments"] == []
     html = response["html"]
     assert "A quiet week, one resignation." in html
+    assert "1 outstanding charge · HSBC UK Bank Plc" in html
     assert "Worth a look" in html
     assert "Still open" in html
     assert "director resigned" in html

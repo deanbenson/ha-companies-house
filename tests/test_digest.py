@@ -139,6 +139,12 @@ DIGEST = {
                 {"issue": "Strike-off proposed", "new": True, "since": None},
                 {"issue": "Accounts overdue", "new": False, "since": "2026-01-01"},
             ],
+            "charges": {
+                "outstanding": 2,
+                "total": 3,
+                "lenders": ["Lloyds Bank plc", "HSBC UK"],
+                "link": "https://example.invalid/company/12345678/charges",
+            },
             "changes": [
                 CHANGE,
                 {
@@ -250,6 +256,8 @@ def test_render_html_covers_every_section() -> None:
         'href="https://example.invalid/company/12345678/filing-history" style="color:#1d4ed8;text-decoration:none">Filing history',
         'href="https://example.invalid/company/12345678/insolvency" style="color:#1d4ed8;text-decoration:none">Insolvency',
         'href="https://example.invalid/company/12345678/charges" style="color:#1d4ed8;text-decoration:none">Charges',
+        # Who the company owes, on its card, linking to the charges page.
+        'href="https://example.invalid/company/12345678/charges" style="color:#1d4ed8;text-decoration:none">2 outstanding charges · Lloyds Bank plc, HSBC UK',
         'href="https://example.invalid/company/3" style="color:#6b7280;text-decoration:none">COMPANY 3 LTD',
         "All their appointments",
         "Gazette notices",
@@ -266,6 +274,7 @@ def test_render_html_covers_every_section() -> None:
     assert "New companies:" in text
     assert "NEW CO LTD (set up 1 Sep 2026): Jane Smith" in text
     assert "Due in the next 30 days:" in text
+    assert "ACME LTD\n  2 outstanding charges · Lloyds Bank plc, HSBC UK\n" in text
     assert "Still open (known before this week):" in text
 
 
