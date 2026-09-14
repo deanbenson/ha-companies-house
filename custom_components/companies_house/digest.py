@@ -62,6 +62,63 @@ def _document_link(number: str, transaction_id: str | None) -> str:
     )
 
 
+# The pages on the register worth a click for a company: (label, path).
+_COMPANY_PAGES = (
+    ("Filing history", "/filing-history"),
+    ("Officers", "/officers"),
+    ("People with control", "/persons-with-significant-control"),
+    ("Charges", "/charges"),
+)
+
+
+def company_pages(number: str, *, insolvency: bool = False) -> list[JsonDict]:
+    """Return the register's pages for a company, for a row of quick links."""
+    pages = [
+        {"text": text, "href": _company_link(number) + path}
+        for text, path in _COMPANY_PAGES
+    ]
+    if insolvency:
+        pages.append(
+            {"text": "Insolvency", "href": _company_link(number) + "/insolvency"}
+        )
+    return pages
+
+
+def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
+    """Return further register pages worth a click for one change."""
+    company_number = number or str(payload.get("company_number") or "")
+    if not company_number:
+        return []
+    company = _company_link(company_number)
+    links: list[JsonDict] = []
+    if kind == "filing":
+        links.append({"text": "Filing history", "href": company + "/filing-history"})
+    elif kind == "officer":
+        links.append({"text": "Officers", "href": company + "/officers"})
+    elif kind == "psc":
+        links.append(
+            {
+                "text": "People with control",
+                "href": company + "/persons-with-significant-control",
+            }
+        )
+    elif kind == "charge":
+        links.append({"text": "Charges", "href": company + "/charges"})
+    elif kind == "status":
+        links.append(
+            {
+                "text": "Gazette notices",
+                "href": company + "/filing-history?category=gazette",
+            }
+        )
+    elif kind == "appointment":
+        links.append({"text": "Officers", "href": company + "/officers"})
+    if not number:
+        # A person's change: the company page itself is the second link.
+        links.insert(0, {"text": "Company", "href": company})
+    return links
+
+
 def _on(value: Any) -> str:
     """Return a date as people write it, or say it is unknown."""
     return _pretty_date(value) if value else "an unknown date"
@@ -414,6 +471,7 @@ def _change_entry(
         "score": score_change(kind, event_type, weight=weight),
         "document_id": payload.get("document_id"),
         "transaction_id": payload.get("transaction_id"),
+        "links": _more_links(kind, payload, number),
     }
 
 
@@ -566,6 +624,16 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         "initials": _initials(company.company_name),
         "link": _company_link(company.company_number),
         "close_watch": company.close_watch,
+        "pages": company_pages(
+            company.company_number,
+            insolvency=bool(
+                profile
+                and (
+                    profile.has_insolvency_history
+                    or profile.company_status in _ONGOING_STATUSES
+                )
+            ),
+        ),
         "weight": weight,
         "incorporated": _iso(profile.date_of_creation) if profile else None,
         "next_deadline": {
@@ -621,6 +689,7 @@ def _person_card(officer: OfficerRuntime, since: datetime) -> JsonDict:
             {
                 "name": a.company_name,
                 "number": a.company_number,
+                "link": _company_link(a.company_number),
                 "role": _role(a.officer_role),
                 "appointed_on": _iso(a.appointed_on or a.appointed_before),
             }
@@ -937,6 +1006,27 @@ def _link(text: str, href: str, colour: str = "#1d4ed8") -> str:
     return f'<a href="{_e(href)}" style="color:{colour};text-decoration:none">{_e(text)}</a>'
 
 
+def _link_row(links: list[JsonDict], *, size: int = 12) -> str:
+    """Render a quiet row of links: "Filing history · Officers · Charges"."""
+    if not links:
+        return ""
+    return (
+        f'<div style="font-size:{size}px;{_FONT}margin-top:3px">'
+        + " · ".join(_link(x["text"], x["href"]) for x in links)
+        + "</div>"
+    )
+
+
+def _change_links(change: JsonDict) -> list[JsonDict]:
+    """Return the links a change offers: the document or page first, then more."""
+    links: list[JsonDict] = []
+    if change.get("link"):
+        first = "Open PDF" if change.get("document_id") else "Open"
+        links.append({"text": first, "href": change["link"]})
+    links.extend(change.get("links") or [])
+    return links
+
+
 def _change_rows(changes: list[JsonDict]) -> str:
     rows = []
     for change in changes:
@@ -948,7 +1038,8 @@ def _change_rows(changes: list[JsonDict]) -> str:
             f'width:72px;font-size:12px;{_MUTED}{_FONT}">{_e(_when(change.get("at")))}</td>'
             f'<td style="padding:6px 0 6px 8px;border-top:1px solid #f3f4f6;font-size:14px;{_FONT}">'
             f'<div style="font-weight:600;color:#111827">{title}</div>'
-            f'<div style="{_MUTED}font-size:13px">{_e(change.get("message"))}</div></td></tr>'
+            f'<div style="{_MUTED}font-size:13px">{_e(change.get("message"))}</div>'
+            f"{_link_row(_change_links(change))}</td></tr>"
         )
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
@@ -1007,19 +1098,22 @@ def _company_block(card: JsonDict) -> str:
     return _card(
         _avatar(card.get("logo", ""), card["initials"]),
         heading,
-        " · ".join(meta),
+        " · ".join(meta) + _link_row(card.get("pages") or []),
         _change_rows(card["changes"]),
     )
 
 
 def _person_block(card: JsonDict) -> str:
-    companies = ", ".join(_e(c["name"]) for c in card["companies"][:6])
+    companies = ", ".join(
+        _link(c["name"], c.get("link") or "", "#6b7280") for c in card["companies"][:6]
+    )
     if len(card["companies"]) > 6:
         companies += f" and {len(card['companies']) - 6} more"
     return _card(
         _avatar("", card["initials"], "#0f766e"),
         _link(card["name"], card["link"], "#111827"),
-        companies or "No current companies",
+        (companies or "No current companies")
+        + _link_row([{"text": "All their appointments", "href": card["link"]}]),
         _change_rows(card["changes"]),
     )
 
@@ -1035,8 +1129,8 @@ def _top_block(top: list[JsonDict]) -> str:
             f'<div style="font-size:14px;font-weight:600;color:#111827">{_link(change["subject"], change["subject_link"], "#111827")}'
             f'<span style="font-weight:400;{_MUTED}"> · {_e(what)}</span></div>'
             f'<div style="font-size:13px;{_MUTED}">{_e(change["message"])}'
-            + (f" {_link('Open', change['link'])}" if change.get("link") else "")
-            + f' <span style="font-size:11px">· {_e(_when(change.get("at")))}</span></div></td></tr>'
+            f' <span style="font-size:11px">· {_e(_when(change.get("at")))}</span></div>'
+            f"{_link_row(_change_links(change))}</td></tr>"
         )
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
@@ -1046,12 +1140,22 @@ def _top_block(top: list[JsonDict]) -> str:
 
 
 def _issues_list(items: list[JsonDict], colour: str) -> str:
+    rows = []
+    for a in items:
+        pages = [
+            {"text": "Filing history", "href": a["link"] + "/filing-history"},
+            {
+                "text": "Gazette notices",
+                "href": a["link"] + "/filing-history?category=gazette",
+            },
+        ]
+        rows.append(
+            f'<li style="margin:4px 0">{_link(a["company"], a["link"], colour)} — '
+            f"{_e(', '.join(a['issues']))}{_link_row(pages)}</li>"
+        )
     return (
         f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
-        + "".join(
-            f'<li style="margin:4px 0">{_link(a["company"], a["link"], colour)} — {_e(", ".join(a["issues"]))}</li>'
-            for a in items
-        )
+        + "".join(rows)
         + "</ul>"
     )
 
@@ -1064,7 +1168,9 @@ def _deadline_rows(deadlines: list[JsonDict]) -> str:
             f'<tr><td style="padding:5px 0;font-size:14px;{_FONT}">{_link(d["company"], d["link"], "#111827")}</td>'
             f'<td style="padding:5px 8px;font-size:13px;{_MUTED}{_FONT}">{_e(d["what"].replace("_", " "))}</td>'
             f'<td style="padding:5px 0;font-size:13px;{_FONT}white-space:nowrap">{_e(_pretty_date(d["date"]))}</td>'
-            f'<td style="padding:5px 0 5px 8px;font-size:13px;{_FONT}{due_style}white-space:nowrap">{_e(due_text)}</td></tr>'
+            f'<td style="padding:5px 0 5px 8px;font-size:13px;{_FONT}{due_style}white-space:nowrap">{_e(due_text)}</td>'
+            f'<td style="padding:5px 0 5px 8px;font-size:12px;{_FONT}white-space:nowrap">'
+            f"{_link('Filing history', d['link'] + '/filing-history')}</td></tr>"
         )
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
@@ -1080,9 +1186,13 @@ def _new_company_rows(items: list[JsonDict]) -> str:
             ", ".join(f"{p['name']} ({p['role']})" for p in n["people"])
             or "no one you follow yet"
         )
+        pages = [
+            {"text": "Officers", "href": n["link"] + "/officers"},
+            {"text": "Filing history", "href": n["link"] + "/filing-history"},
+        ]
         rows.append(
             f'<li style="margin:4px 0"><strong>{_link(n["company"], n["link"], "#111827")}</strong> '
-            f"— set up {_e(_pretty_date(n['incorporated']))} · {_e(who)}</li>"
+            f"— set up {_e(_pretty_date(n['incorporated']))} · {_e(who)}{_link_row(pages)}</li>"
         )
     return (
         f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
@@ -1095,7 +1205,8 @@ def _ownership_rows(holders: list[JsonDict], limit: int = 12) -> str:
     rows = []
     for h in holders[:limit]:
         holdings = "; ".join(
-            f"{_link(x['company'], x['link'], '#111827')} ({_e(x['control'])})"
+            f"{_link(x['company'], x['link'], '#111827')} "
+            f"({_link(x['control'], x['link'] + '/persons-with-significant-control', '#6b7280')})"
             for x in h["holdings"]
         )
         star = " ★" if h["followed"] else ""

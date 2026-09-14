@@ -23,6 +23,9 @@ CHANGE = {
     "score": 24,
     "document_id": None,
     "transaction_id": None,
+    "links": [
+        {"text": "Charges", "href": "https://example.invalid/company/12345678/charges"}
+    ],
 }
 
 DIGEST = {
@@ -119,6 +122,16 @@ DIGEST = {
             "initials": "AL",
             "link": "https://example.invalid/company/12345678",
             "close_watch": True,
+            "pages": [
+                {
+                    "text": "Filing history",
+                    "href": "https://example.invalid/company/12345678/filing-history",
+                },
+                {
+                    "text": "Insolvency",
+                    "href": "https://example.invalid/company/12345678/insolvency",
+                },
+            ],
             "weight": 3,
             "incorporated": "2015-01-01",
             "next_deadline": {"what": "accounts", "date": "2026-09-30", "days": 16},
@@ -150,6 +163,7 @@ DIGEST = {
                 {
                     "name": f"COMPANY {i} LTD",
                     "number": str(i),
+                    "link": f"https://example.invalid/company/{i}",
                     "role": "director",
                     "appointed_on": None,
                 }
@@ -232,6 +246,15 @@ def test_render_html_covers_every_section() -> None:
         "3 changes (1 charge, 1 ownership change, 1 role change)",
         "background:#fee2e2",  # new badge
         "background:#f3f4f6;color:#6b7280",  # ongoing badge
+        # Links to dig deeper: pages on every company, more on every change.
+        'href="https://example.invalid/company/12345678/filing-history" style="color:#1d4ed8;text-decoration:none">Filing history',
+        'href="https://example.invalid/company/12345678/insolvency" style="color:#1d4ed8;text-decoration:none">Insolvency',
+        'href="https://example.invalid/company/12345678/charges" style="color:#1d4ed8;text-decoration:none">Charges',
+        'href="https://example.invalid/company/3" style="color:#6b7280;text-decoration:none">COMPANY 3 LTD',
+        "All their appointments",
+        "Gazette notices",
+        'href="https://example.invalid/company/17000001/officers" style="color:#1d4ed8;text-decoration:none">Officers',
+        "persons-with-significant-control",
     ):
         assert expected in html, expected
     assert "A quiet week" not in html

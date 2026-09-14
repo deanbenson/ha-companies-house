@@ -519,6 +519,18 @@ async def test_digest_action_reports_the_week(
     # The resignation outranks the routine filing; both are scored by weight.
     assert [c["event_type"] for c in changed["changes"]] == ["resigned", "accounts"]
     assert [c["score"] for c in changed["changes"]] == [18, 15]
+    # Every company offers the register's pages; every change offers more links.
+    assert [p["text"] for p in changed["pages"]] == [
+        "Filing history",
+        "Officers",
+        "People with control",
+        "Charges",
+    ]
+    assert changed["pages"][0]["href"] == changed["link"] + "/filing-history"
+    assert changed["changes"][0]["links"] == [
+        {"text": "Officers", "href": changed["link"] + "/officers"}
+    ]
+    assert changed["changes"][1]["links"][0]["text"] == "Filing history"
     assert response["top"][0]["title"] == "EXAMPLE TRADING LIMITED: director resigned"
     assert response["top"][0]["subject"] == "EXAMPLE TRADING LIMITED"
     # The liquidation started before this week: still open, not needing attention.
@@ -619,6 +631,8 @@ async def test_digest_action_reports_the_week(
     (person,) = response["people"]
     (role,) = person["changes"]
     assert role["event_type"] == "appointed"
+    assert [x["text"] for x in role["links"]] == ["Company", "Officers"]
+    assert person["companies"][0]["link"].endswith("/company/10000001")
     assert role["at"].startswith("2026-09-10T00:00:00")
     assert "new role" in role["title"]
 
