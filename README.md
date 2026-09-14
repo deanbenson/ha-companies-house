@@ -136,9 +136,10 @@ seeded silently and no events fire.
 
 ## Entities
 
-Everything the API exposes is reachable, but only what someone would actually
-look at is enabled by default: a company device shows about fifteen rows out
-of the box. The rest can be enabled in the entity settings.
+Every entity is enabled. A disabled entity would cost nothing, but neither
+does an enabled one that rarely changes: the recorder only writes when a value
+changes, and most of these change a few times a year. The device page is long;
+the diagnostic section keeps the rarely-needed rows out of the way.
 
 ### Company
 
@@ -149,22 +150,22 @@ active, charges outstanding. Diagnostic: company name, status detail, type,
 subtype, jurisdiction, date of creation, date of cessation, registered office
 address (structured in attributes), polling tier.
 
-Disabled by default: company age, accounts and confirmation statement
-made-up-to and period dates, accounting reference date, last accounts type,
-days to each deadline (negative once overdue), SIC codes (count, descriptions
-in attributes), primary SIC description, officer counts by role, PSC totals
-and statements, charge counts by status, filings total and last 12 months,
-days since last filing, last filing category, previous names, UK
-establishments, insolvency cases, registers held.
+Also: company age, accounts and confirmation statement made-up-to and
+period dates, accounting reference date, last accounts type, days to each
+deadline (negative once overdue), SIC codes (count, descriptions in
+attributes), primary SIC description, officer counts by role, PSC totals and
+statements, charge counts by status, filings total and last 12 months, days
+since last filing, last filing category, previous names, UK establishments,
+insolvency cases, registers held.
 
 Binary sensors (problem class, on by default): accounts overdue, confirmation
 statement overdue, accounts due soon, confirmation statement due soon,
 **proposed strike off** (from `company_status_detail` and from GAZ1 filings),
 **insolvent** (liquidation, receivership, administration, voluntary
 arrangement, insolvency proceedings), registered office in dispute,
-undeliverable registered office. Plus *is active*, and disabled by default:
-can file, has outstanding charges, has insolvency history, has super secure
-officers, has exemptions.
+undeliverable registered office. Plus *is active*, can file, has outstanding
+charges, has insolvency history, has officers with protected details, has
+exemptions.
 
 A **calendar** per company with accounts due, confirmation statement due,
 accounts period end and the accounting reference date as all day events.
@@ -173,7 +174,7 @@ accounts period end and the accounting reference date as all day events.
 
 Appointments active, appointments total (with the full list in attributes,
 capped at fifty), most recent company, last appointment date, disqualified
-(problem), has active appointments; disabled: appointments resigned, first
+(problem), currently holds appointments, appointments resigned, first
 appointment date; diagnostic: nationality, country of residence, occupation,
 date of birth (month and year only), officer role.
 

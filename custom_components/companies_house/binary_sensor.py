@@ -134,31 +134,26 @@ COMPANY_BINARY_SENSORS: tuple[CompanyBinarySensorDescription, ...] = (
     ),
     CompanyBinarySensorDescription(
         key="can_file",
-        entity_registry_enabled_default=False,
         is_on_fn=lambda c: _profile(c).can_file,
     ),
     CompanyBinarySensorDescription(
         key="has_outstanding_charges",
         dataset=Dataset.CHARGES,
-        entity_registry_enabled_default=False,
         is_on_fn=lambda c: bool(
             c.charges and c.charges.data and c.charges.data.outstanding_count
         ),
     ),
     CompanyBinarySensorDescription(
         key="has_insolvency_history",
-        entity_registry_enabled_default=False,
         is_on_fn=lambda c: _profile(c).has_insolvency_history,
     ),
     CompanyBinarySensorDescription(
         key="has_super_secure_officers",
-        entity_registry_enabled_default=False,
         is_on_fn=lambda c: bool(_profile(c).super_secure_managing_officer_count),
     ),
     CompanyBinarySensorDescription(
         key="has_exemptions",
         dataset=Dataset.STRUCTURE,
-        entity_registry_enabled_default=False,
         is_on_fn=lambda c: bool(
             c.structure and c.structure.data and c.structure.data.exemptions
         ),

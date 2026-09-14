@@ -8,7 +8,11 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.typing import ConfigType
 
@@ -246,11 +250,25 @@ async def async_remove_config_entry_device(
 async def async_migrate_entry(
     hass: HomeAssistant, entry: CompaniesHouseConfigEntry
 ) -> bool:
-    """Migrate old config entries. Version 1.1 is the first release."""
+    """Migrate old config entries.
+
+    1.1 was the first release. 1.2 turned every entity on by default; entities
+    that 1.1 created switched off are switched on so existing installs match.
+    """
     LOGGER.debug(
         "Migrating entry %s from %s.%s",
         entry.entry_id,
         entry.version,
         entry.minor_version,
     )
-    return entry.version <= 1
+    if entry.version > 1:
+        return False
+    if entry.minor_version < 2:
+        entity_registry = er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(
+            entity_registry, entry.entry_id
+        ):
+            if entity.disabled_by is er.RegistryEntryDisabler.INTEGRATION:
+                entity_registry.async_update_entity(entity.entity_id, disabled_by=None)
+        hass.config_entries.async_update_entry(entry, minor_version=2)
+    return True

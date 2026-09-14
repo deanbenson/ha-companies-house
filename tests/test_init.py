@@ -78,7 +78,7 @@ async def test_setup_with_companies_and_officer(
         == "dissolved"
     )
     assert (
-        hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "20"
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "18"
     )
 
 

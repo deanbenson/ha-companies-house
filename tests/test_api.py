@@ -467,8 +467,11 @@ async def test_officer_appointments(
     appointments = await client.get_officer_appointments("officer-jane")
     assert appointments.name == "Jane Elizabeth SMITH"
     assert appointments.total_results == 23
-    assert len(appointments.active) == 20
+    # 20 are unresigned, but 2 of those are at dissolved companies.
+    assert len(appointments.active) == 18
     assert len(appointments.resigned) == 3
+    assert len(appointments.inactive) == 2
+    assert appointments.active_count is None  # the fixture predates the field
     assert appointments.date_of_birth is not None
     assert appointments.date_of_birth.year == 1978
     assert appointments.items[0].company_number == "10000001"

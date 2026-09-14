@@ -361,32 +361,27 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     # Off by default
     CompanySensorDescription(
         key="company_age",
-        entity_registry_enabled_default=False,
         native_unit_of_measurement=UnitOfTime.YEARS,
         suggested_display_precision=1,
         value_fn=_company_age,
     ),
     CompanySensorDescription(
         key="accounts_next_made_up_to",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda c: _profile(c).accounts.next_period_end,
     ),
     CompanySensorDescription(
         key="accounts_last_made_up_to",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda c: _profile(c).accounts.last_made_up_to,
     ),
     CompanySensorDescription(
         key="accounts_next_period_start",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda c: _profile(c).accounts.next_period_start,
     ),
     CompanySensorDescription(
         key="accounting_reference_date",
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             f"{a.reference_day:02d}/{a.reference_month:02d}"
             if (a := _profile(c).accounts).reference_day and a.reference_month
@@ -395,24 +390,20 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     ),
     CompanySensorDescription(
         key="last_accounts_type",
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _profile(c).accounts.last_type,
     ),
     CompanySensorDescription(
         key="confirmation_statement_next_made_up_to",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda c: _profile(c).confirmation_statement.next_made_up_to,
     ),
     CompanySensorDescription(
         key="confirmation_statement_last_made_up_to",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda c: _profile(c).confirmation_statement.last_made_up_to,
     ),
     CompanySensorDescription(
         key="days_to_accounts_due",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.DAYS,
         suggested_display_precision=0,
@@ -420,7 +411,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     ),
     CompanySensorDescription(
         key="days_to_confirmation_statement_due",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.DAYS,
         suggested_display_precision=0,
@@ -430,13 +420,11 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     ),
     CompanySensorDescription(
         key="sic_codes",
-        entity_registry_enabled_default=False,
         value_fn=lambda c: len(_profile(c).sic_codes),
         attrs_fn=_sic_attrs,
     ),
     CompanySensorDescription(
         key="primary_sic_description",
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             _truncate(SIC_DESCRIPTIONS.get(codes[0], codes[0]))
             if (codes := _profile(c).sic_codes)
@@ -446,19 +434,16 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="officers_total",
         dataset=Dataset.OFFICERS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _officers(c).total_results,
     ),
     CompanySensorDescription(
         key="officers_resigned",
         dataset=Dataset.OFFICERS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _officers(c).resigned_count,
     ),
     CompanySensorDescription(
         key="directors_active",
         dataset=Dataset.OFFICERS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _count_roles(
             c,
             (
@@ -472,7 +457,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="secretaries_active",
         dataset=Dataset.OFFICERS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _count_roles(
             c,
             (
@@ -486,7 +470,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="llp_members_active",
         dataset=Dataset.OFFICERS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _count_roles(
             c,
             (
@@ -500,13 +483,11 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="psc_total",
         dataset=Dataset.PSC,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _psc(c).total_results,
     ),
     CompanySensorDescription(
         key="psc_statements",
         dataset=Dataset.PSC,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _psc(c).statements_active_count,
         attrs_fn=lambda c: {
             "statements": [
@@ -517,37 +498,31 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="charges_total",
         dataset=Dataset.CHARGES,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _charges(c).total_count,
     ),
     CompanySensorDescription(
         key="charges_part_satisfied",
         dataset=Dataset.CHARGES,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _charges(c).part_satisfied_count,
     ),
     CompanySensorDescription(
         key="charges_satisfied",
         dataset=Dataset.CHARGES,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: _charges(c).satisfied_count,
     ),
     CompanySensorDescription(
         key="filings_total",
         dataset=Dataset.FILINGS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: c.probe.data.total_count if c.probe.data else None,
     ),
     CompanySensorDescription(
         key="filings_last_12_months",
         dataset=Dataset.FILINGS,
-        entity_registry_enabled_default=False,
         value_fn=_filings_last_12_months,
     ),
     CompanySensorDescription(
         key="days_since_last_filing",
         dataset=Dataset.FILINGS,
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.DAYS,
         suggested_display_precision=0,
@@ -560,7 +535,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="last_filing_category",
         dataset=Dataset.FILINGS,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             c.probe.data.items[0].category
             if c.probe.data and c.probe.data.items
@@ -569,7 +543,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     ),
     CompanySensorDescription(
         key="previous_names_count",
-        entity_registry_enabled_default=False,
         value_fn=lambda c: len(_profile(c).previous_company_names),
         attrs_fn=lambda c: {
             "names": [
@@ -585,7 +558,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="uk_establishments_count",
         dataset=Dataset.STRUCTURE,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             len(c.structure.data.uk_establishments)
             if c.structure and c.structure.data
@@ -602,7 +574,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="insolvency_cases_count",
         dataset=Dataset.INSOLVENCY,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             len(c.insolvency.data.cases) if c.insolvency and c.insolvency.data else None
         ),
@@ -626,7 +597,6 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     CompanySensorDescription(
         key="registers_held",
         dataset=Dataset.STRUCTURE,
-        entity_registry_enabled_default=False,
         value_fn=lambda c: (
             len(c.structure.data.registers)
             if c.structure and c.structure.data
@@ -700,6 +670,19 @@ def _appointments(officer: OfficerRuntime) -> Any:
     return officer.appointments.data
 
 
+def _active_appointments(officer: OfficerRuntime) -> int:
+    """Prefer the register's own count; it excludes dissolved companies."""
+    data = _appointments(officer)
+    return data.active_count if data.active_count is not None else len(data.active)
+
+
+def _resigned_appointments(officer: OfficerRuntime) -> int:
+    data = _appointments(officer)
+    return (
+        data.resigned_count if data.resigned_count is not None else len(data.resigned)
+    )
+
+
 def _appointment_date(a: Appointment) -> date | None:
     return a.appointed_on or a.appointed_before
 
@@ -743,7 +726,7 @@ OFFICER_SENSORS: tuple[OfficerSensorDescription, ...] = (
     OfficerSensorDescription(
         key="appointments_active",
         state_class=SensorStateClass.MEASUREMENT,
-        value_fn=lambda o: len(_appointments(o).active),
+        value_fn=_active_appointments,
         attrs_fn=_appointment_attrs,
     ),
     OfficerSensorDescription(
@@ -774,12 +757,10 @@ OFFICER_SENSORS: tuple[OfficerSensorDescription, ...] = (
     ),
     OfficerSensorDescription(
         key="appointments_resigned",
-        entity_registry_enabled_default=False,
-        value_fn=lambda o: len(_appointments(o).resigned),
+        value_fn=_resigned_appointments,
     ),
     OfficerSensorDescription(
         key="first_appointment_date",
-        entity_registry_enabled_default=False,
         device_class=SensorDeviceClass.DATE,
         value_fn=lambda o: min(
             (d for a in _appointments(o).items if (d := _appointment_date(a))),

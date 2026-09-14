@@ -20,6 +20,10 @@ from typing import Any, Self, get_args, get_origin, get_type_hints
 
 from .enumerations import FILING_DESCRIPTIONS
 
+# Statuses that mean a company is no longer on the register; kept here so the
+# models do not import const.
+FINISHED = frozenset({"dissolved", "removed", "converted-closed", "closed"})
+
 type JsonDict = dict[str, Any]
 
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -968,8 +972,12 @@ class Appointment(StorableModel):
 
     @property
     def is_active(self) -> bool:
-        """Return True while the appointment has not been resigned."""
-        return self.resigned_on is None
+        """Return True while not resigned and the company is still on the register.
+
+        Companies House counts an appointment at a dissolved company as
+        inactive rather than active, and so does this.
+        """
+        return self.resigned_on is None and self.company_status not in FINISHED
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -981,6 +989,9 @@ class AppointmentList(StorableModel):
     is_corporate_officer: bool = False
     date_of_birth: DateOfBirth | None = None
     total_results: int = 0
+    active_count: int | None = None
+    resigned_count: int | None = None
+    inactive_count: int | None = None
     items: list[Appointment] = field(default_factory=list)
     etag: str | None = None
 
@@ -996,6 +1007,9 @@ class AppointmentList(StorableModel):
             is_corporate_officer=bool(data.get("is_corporate_officer", False)),
             date_of_birth=DateOfBirth.from_api(data.get("date_of_birth")),
             total_results=_int(data.get("total_results")) or 0,
+            active_count=_int(data.get("active_count")),
+            resigned_count=_int(data.get("resigned_count")),
+            inactive_count=_int(data.get("inactive_count")),
             items=[Appointment.from_api(i) for i in raw_items if isinstance(i, dict)],
             etag=_str(data.get("etag")),
         )
@@ -1008,7 +1022,12 @@ class AppointmentList(StorableModel):
     @property
     def resigned(self) -> list[Appointment]:
         """Appointments that have been resigned."""
-        return [a for a in self.items if not a.is_active]
+        return [a for a in self.items if a.resigned_on is not None]
+
+    @property
+    def inactive(self) -> list[Appointment]:
+        """Unresigned appointments at companies no longer on the register."""
+        return [a for a in self.items if a.resigned_on is None and not a.is_active]
 
 
 @dataclass(frozen=True, kw_only=True)

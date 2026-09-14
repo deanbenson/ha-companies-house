@@ -16417,7 +16417,7 @@
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': '20',
+    'state': '18',
   })
 # ---
 # name: test_entities[sensor][sensor.jane_elizabeth_smith_appointments_resigned-entry]

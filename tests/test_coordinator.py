@@ -715,6 +715,8 @@ async def test_officer_appointments_and_events(
     ).attributes
     assert attrs["possible_matches"] == 1
     appointments = load_fixture("officer_many/appointments")
+    appointments["active_count"] = 16
+    appointments["resigned_count"] = 4
     appointments["items"][0]["resigned_on"] = "2026-09-01"
     appointments["items"][1]["appointed_to"]["company_status"] = "liquidation"
     appointments["items"].append(
@@ -741,6 +743,14 @@ async def test_officer_appointments_and_events(
     state = hass.states.get("event.jane_elizabeth_smith_appointment")
     assert state is not None
     assert state.attributes["event_type"] in types
+    # The register's own counts win over the derived ones when present.
+    assert (
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "16"
+    )
+    assert (
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_resigned").state
+        == "4"
+    )
 
 
 async def test_disqualification_exact_match_sets_sensor(
