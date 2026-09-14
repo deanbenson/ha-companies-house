@@ -46,7 +46,13 @@ from .const import (
     LOGGER,
     Dataset,
 )
-from .digest import build_digest, render_html, render_text
+from .digest import (
+    ATTACH_BYTES_LIMIT,
+    attachable_documents,
+    build_digest,
+    render_html,
+    render_text,
+)
 from .models import JsonDict, parse_date, render_filing_description
 
 ATTR_CONFIG_ENTRY_ID = "config_entry_id"
@@ -64,6 +70,7 @@ ATTR_DAYS = "days"
 ATTR_TITLE = "title"
 ATTR_SUMMARY = "summary"
 ATTR_SAVE = "save"
+ATTR_ATTACH = "attach"
 
 PSC_KINDS = (
     "individual",
@@ -385,42 +392,42 @@ _EXTENSIONS = {
 }
 
 
-async def _download_document(
-    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+async def async_download_document(
+    hass: HomeAssistant,
+    entry: Any,
+    client: CompaniesHouseClient,
+    *,
+    document_id: str,
+    company_number: str | None = None,
+    transaction_id: str | None = None,
+    description: str | None = None,
+    filing_date: str | None = None,
+    filename: str | None = None,
+    content_type: str = "application/pdf",
 ) -> JsonDict:
-    document_id = str(call.data[ATTR_DOCUMENT_ID])
-    content_type = str(call.data.get(ATTR_CONTENT_TYPE, "application/pdf"))
-    entry = _resolve_entry(hass, call)
+    """Save a filed document under the documents folder and describe the file.
+
+    Used by the download action and by the report when it attaches the
+    week's documents. Never overwrites: identical content returns the file
+    already there.
+    """
     metadata = await client.get_document_metadata(document_id)
-    company_number = call.data.get(ATTR_COMPANY_NUMBER) or metadata.get(
-        "company_number"
-    )
-    if company_number:
-        company_number = normalise_company_number(company_number)
-    description = call.data.get(ATTR_DESCRIPTION)
-    filing_date = call.data.get(ATTR_FILING_DATE)
+    number = company_number or metadata.get("company_number")
+    if number:
+        number = normalise_company_number(str(number))
     company_name: str | None = None
-    if company_number:
+    if number:
         for company in entry.runtime_data.companies.values():
-            if (
-                company.company_number == company_number
-                and company.profile.data is not None
-            ):
+            if company.company_number == number and company.profile.data is not None:
                 company_name = company.profile.data.company_name
-    if (
-        company_number
-        and call.data.get(ATTR_TRANSACTION_ID)
-        and not (description and filing_date)
-    ):
-        filing = await client.get_filing(
-            company_number, str(call.data[ATTR_TRANSACTION_ID])
-        )
+    if number and transaction_id and not (description and filing_date):
+        filing = await client.get_filing(number, transaction_id)
         description = description or render_filing_description(
             filing.get("description"), filing.get("description_values")
         )
         filing_date = filing_date or filing.get("date")
-    if company_number and company_name is None:
-        profile = await client.get_company(company_number, priority=Priority.ON_DEMAND)
+    if number and company_name is None:
+        profile = await client.get_company(number, priority=Priority.ON_DEMAND)
         company_name = profile.company_name
     description = (
         description
@@ -432,17 +439,15 @@ async def _download_document(
         or "undated"
     )
     extension = _EXTENSIONS.get(content_type, ".bin")
-    filename = (
-        call.data.get(ATTR_FILENAME)
-        or f"{filing_date} - Companies House - {description} ({company_name or company_number or document_id})"
+    name = (
+        filename
+        or f"{filing_date} - Companies House - {description} ({company_name or number or document_id})"
     )
-    filename = sanitise_filename(str(filename).removesuffix(extension), extension)
+    name = sanitise_filename(str(name).removesuffix(extension), extension)
     base = Path(
         str(entry.options.get(CONF_DOCUMENT_DIRECTORY, DEFAULT_DOCUMENT_DIRECTORY))
     )
-    folder = sanitise_dirname(
-        f"{company_number} {company_name}" if company_number else "documents"
-    )
+    folder = sanitise_dirname(f"{number} {company_name}" if number else "documents")
     directory = base / folder
     if not hass.config.is_allowed_path(str(directory)):
         raise ServiceValidationError(
@@ -453,7 +458,7 @@ async def _download_document(
     content = await client.download_document(document_id, content_type=content_type)
     try:
         path, existed = await hass.async_add_executor_job(
-            _write_unique, directory, filename, content
+            _write_unique, directory, name, content
         )
     except OSError as err:
         raise HomeAssistantError(
@@ -467,16 +472,34 @@ async def _download_document(
         "bytes": len(content),
         "already_existed": existed,
         "document_id": document_id,
-        "company_number": company_number,
+        "company_number": number,
         "company_name": company_name,
         "description": description,
         "filing_date": filing_date,
-        "transaction_id": call.data.get(ATTR_TRANSACTION_ID),
+        "transaction_id": transaction_id,
         "content_type": content_type,
     }
     hass.bus.async_fire(EVENT_DOCUMENT_DOWNLOADED, result)
     LOGGER.debug("Downloaded document %s to %s", document_id, path)
     return result
+
+
+async def _download_document(
+    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+) -> JsonDict:
+    entry = _resolve_entry(hass, call)
+    return await async_download_document(
+        hass,
+        entry,
+        client,
+        document_id=str(call.data[ATTR_DOCUMENT_ID]),
+        company_number=call.data.get(ATTR_COMPANY_NUMBER),
+        transaction_id=call.data.get(ATTR_TRANSACTION_ID),
+        description=call.data.get(ATTR_DESCRIPTION),
+        filing_date=call.data.get(ATTR_FILING_DATE),
+        filename=call.data.get(ATTR_FILENAME),
+        content_type=str(call.data.get(ATTR_CONTENT_TYPE, "application/pdf")),
+    )
 
 
 def _media_content_id(hass: HomeAssistant, path: Path) -> str | None:
@@ -508,6 +531,36 @@ async def _digest(
     html = render_html(digest, title=title, summary=summary)
     text = render_text(digest, title=title, summary=summary)
     result: JsonDict = {**digest, "title": title, "html": html, "text": text}
+    result["attachments"] = []
+    if call.data.get(ATTR_ATTACH):
+        total = 0
+        for filing in attachable_documents(digest):
+            try:
+                saved = await async_download_document(
+                    hass,
+                    entry,
+                    client,
+                    document_id=str(filing["document_id"]),
+                    company_number=str(filing["company_number"]),
+                    transaction_id=filing.get("transaction_id"),
+                )
+            except (CompaniesHouseError, HomeAssistantError) as err:
+                LOGGER.warning(
+                    "Could not attach %s to the report: %s", filing["title"], err
+                )
+                continue
+            total += int(saved["bytes"])
+            if total > ATTACH_BYTES_LIMIT:
+                break
+            if saved.get("media_content_id"):
+                result["attachments"].append(
+                    {
+                        "media_content_id": saved["media_content_id"],
+                        "media_content_type": saved["content_type"],
+                        "filename": Path(str(saved["path"])).name,
+                        "title": filing["title"],
+                    }
+                )
     if call.data.get(ATTR_SAVE):
         folder = Path(hass.config.path("www", DOMAIN))
         stamp = dt_util.now().strftime("%Y-%m-%d")
@@ -849,6 +902,7 @@ ACTIONS: tuple[ActionDef, ...] = (
             vol.Optional(ATTR_TITLE): cv.string,
             vol.Optional(ATTR_SUMMARY): cv.string,
             vol.Optional(ATTR_SAVE, default=False): cv.boolean,
+            vol.Optional(ATTR_ATTACH, default=False): cv.boolean,
         },
         handler=_digest,
         llm=False,

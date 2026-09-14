@@ -27,6 +27,18 @@ DEADLINE_HORIZON_DAYS = 30
 # ---------------------------------------------------------------- describing
 
 
+def logo_for(website: str) -> str:
+    """Return a logo image address for a website, or empty when there is none."""
+    domain = (
+        (website or "")
+        .strip()
+        .removeprefix("https://")
+        .removeprefix("http://")
+        .split("/")[0]
+    )
+    return LOGO_URL.format(domain=domain) if domain else ""
+
+
 def _company_link(number: str) -> str:
     return f"{FIND_AND_UPDATE_BASE}/company/{number}"
 
@@ -265,6 +277,65 @@ def describe_change(
 
 # ---------------------------------------------------------------- collecting
 
+# How much a kind of change matters, before the company's own weight.
+_KIND_WEIGHT: dict[tuple[str, str], int] = {
+    ("status", "strike-off-proposed"): 10,
+    ("status", "dissolved"): 10,
+    ("status", "status-changed"): 9,
+    ("status", "strike-off-discontinued"): 6,
+    ("filing", "gazette"): 9,
+    ("charge", "created"): 8,
+    ("charge", "acquired"): 8,
+    ("filing", "mortgage"): 8,
+    ("filing", "charges"): 8,
+    ("psc", "notified"): 7,
+    ("psc", "ceased"): 7,
+    ("psc", "statement-added"): 5,
+    ("psc", "details-changed"): 3,
+    ("officer", "appointed"): 6,
+    ("officer", "resigned"): 6,
+    ("officer", "details-changed"): 2,
+    ("filing", "accounts"): 5,
+    ("filing", "capital"): 5,
+    ("filing", "change-of-name"): 5,
+    ("filing", "resolution"): 4,
+    ("filing", "incorporation"): 5,
+    ("profile", "name-changed"): 5,
+    ("profile", "address-changed"): 3,
+    ("profile", "sic-changed"): 3,
+    ("profile", "accounting-reference-date-changed"): 3,
+    ("filing", "officers"): 3,
+    ("filing", "persons-with-significant-control"): 3,
+    ("filing", "address"): 2,
+    ("charge", "satisfied"): 3,
+    ("charge", "part-satisfied"): 2,
+    ("filing", "confirmation-statement"): 1,
+    ("appointment", "appointed"): 6,
+    ("appointment", "resigned"): 6,
+    ("appointment", "disqualified"): 10,
+    ("appointment", "company-status-changed"): 6,
+    ("appointment", "company-now-watched"): 4,
+    ("appointment", "new-record"): 3,
+}
+_ONGOING_STATUSES = ("liquidation", "administration", "receivership")
+NEW_COMPANY_DAYS = 90
+ATTACH_LIMIT = 8
+ATTACH_BYTES_LIMIT = 20_000_000
+
+
+def score_change(kind: str, event_type: str, *, weight: int) -> int:
+    """Return how much a change is worth looking at: kind times company weight."""
+    return _KIND_WEIGHT.get((kind, event_type), 2) * weight
+
+
+def _company_weight(company: CompanyRuntime) -> int:
+    """Your own (close watch) companies first, then the ones you want alerts from."""
+    if company.close_watch:
+        return 3
+    if company.notify_instantly:
+        return 2
+    return 1
+
 
 def _since(changes: Iterable[JsonDict], since: datetime) -> list[JsonDict]:
     out = []
@@ -280,51 +351,132 @@ def _initials(name: str) -> str:
     return "".join(w[0] for w in words[:2]).upper() or "?"
 
 
-def _company_card(company: CompanyRuntime, since: datetime) -> JsonDict:
+def _control_words(natures: Iterable[str]) -> str:
+    """Turn natures of control into a short phrase: "75-100% of the shares"."""
+    parts: list[str] = []
+    for nature in natures:
+        n = str(nature)
+        if n.startswith("ownership-of-shares"):
+            band = n.removeprefix("ownership-of-shares-").split("-percent")[0]
+            parts.append(f"{band.replace('-to-', ' to ')}% of the shares")
+        elif n.startswith("voting-rights"):
+            band = n.removeprefix("voting-rights-").split("-percent")[0]
+            parts.append(f"{band.replace('-to-', ' to ')}% of the votes")
+        elif n.startswith("right-to-appoint-and-remove-directors"):
+            parts.append("the right to appoint and remove directors")
+        elif n.startswith("significant-influence-or-control"):
+            parts.append("significant influence or control")
+        else:
+            parts.append(n.replace("-", " "))
+    seen: list[str] = []
+    for part in parts:
+        if part not in seen:
+            seen.append(part)
+    return ", ".join(seen)
+
+
+def _change_entry(
+    change: JsonDict, *, subject: str, number: str, weight: int
+) -> JsonDict:
+    kind = str(change.get("kind", ""))
+    event_type = str(change.get("event_type", ""))
+    payload = dict(change.get("payload") or {})
+    title, message, link = describe_change(
+        kind, event_type, payload, subject=subject, number=number
+    )
+    if kind == "psc" and event_type == "notified" and payload.get("natures_of_control"):
+        message = (
+            f"{payload.get('name')} now controls "
+            f"{_control_words(payload['natures_of_control'])}."
+        )
+    return {
+        "at": change.get("at"),
+        "kind": kind,
+        "event_type": event_type,
+        "title": title,
+        "message": message,
+        "link": link,
+        "score": score_change(kind, event_type, weight=weight),
+        "document_id": payload.get("document_id"),
+        "transaction_id": payload.get("transaction_id"),
+    }
+
+
+def _attention(
+    company: CompanyRuntime, changes: list[JsonDict], since: datetime, today: date
+) -> list[JsonDict]:
+    """Return the company's open problems, each marked new or ongoing.
+
+    New means it started inside the period: a strike-off or status change
+    seen in the log, or a deadline that passed during the period. Anything
+    older is ongoing and belongs in the report's "still open" line, not at
+    the top.
+    """
+    profile = company.profile.data
+    if profile is None:
+        return []
+    events = {(c["kind"], c["event_type"]) for c in changes}
+    out: list[JsonDict] = []
+
+    def add(issue: str, *, new: bool, since_date: date | None = None) -> None:
+        out.append({"issue": issue, "new": new, "since": _iso(since_date)})
+
+    if profile.company_status_detail == "active-proposal-to-strike-off":
+        add("Strike-off proposed", new=("status", "strike-off-proposed") in events)
+    if profile.company_status in _ONGOING_STATUSES:
+        add(
+            f"In {_status_word(profile.company_status)}",
+            new=("status", "status-changed") in events,
+        )
+    since_day = since.date()
+    if profile.accounts.next_overdue and profile.accounts.next_due:
+        due = profile.accounts.next_due
+        add("Accounts overdue", new=since_day <= due <= today, since_date=due)
+    if (
+        profile.confirmation_statement.overdue
+        and profile.confirmation_statement.next_due
+    ):
+        due = profile.confirmation_statement.next_due
+        add(
+            "Confirmation statement overdue",
+            new=since_day <= due <= today,
+            since_date=due,
+        )
+    return out
+
+
+def _iso(value: date | None) -> str | None:
+    return value.isoformat() if value else None
+
+
+def _company_card(company: CompanyRuntime, since: datetime, today: date) -> JsonDict:
     profile = company.profile.data
     website = (company.website or "").strip()
-    domain = website.removeprefix("https://").removeprefix("http://").split("/")[0]
     deadline = profile.next_deadline if profile else None
-    days = days_until(deadline[0], dt_util.now().date()) if deadline else None
-    changes = []
-    for change in _since(company.state.changes, since):
-        title, message, link = describe_change(
-            str(change.get("kind", "")),
-            str(change.get("event_type", "")),
-            dict(change.get("payload") or {}),
+    days = days_until(deadline[0], today) if deadline else None
+    weight = _company_weight(company)
+    changes = [
+        _change_entry(
+            c,
             subject=company.company_name,
             number=company.company_number,
+            weight=weight,
         )
-        changes.append(
-            {
-                "at": change.get("at"),
-                "kind": change.get("kind"),
-                "event_type": change.get("event_type"),
-                "title": title,
-                "message": message,
-                "link": link,
-            }
-        )
-    attention: list[str] = []
-    if profile is not None:
-        if profile.company_status_detail == "active-proposal-to-strike-off":
-            attention.append("Strike-off proposed")
-        if profile.company_status in ("liquidation", "administration", "receivership"):
-            attention.append(f"In {_status_word(profile.company_status)}")
-        if profile.accounts.next_overdue:
-            attention.append("Accounts overdue")
-        if profile.confirmation_statement.overdue:
-            attention.append("Confirmation statement overdue")
+        for c in _since(company.state.changes, since)
+    ]
+    changes.sort(key=lambda c: (-c["score"], str(c["at"])))
     return {
         "name": company.company_name,
         "number": company.company_number,
         "status": _status_word(profile.company_status) if profile else "unknown",
         "label": company.label,
         "website": website,
-        "logo": LOGO_URL.format(domain=domain) if domain else "",
+        "logo": logo_for(website),
         "initials": _initials(company.company_name),
         "link": _company_link(company.company_number),
         "close_watch": company.close_watch,
+        "weight": weight,
+        "incorporated": _iso(profile.date_of_creation) if profile else None,
         "next_deadline": {
             "what": deadline[1],
             "date": deadline[0].isoformat(),
@@ -332,8 +484,9 @@ def _company_card(company: CompanyRuntime, since: datetime) -> JsonDict:
         }
         if deadline
         else None,
-        "attention": attention,
+        "attention": _attention(company, changes, since, today),
         "changes": changes,
+        "score": max((c["score"] for c in changes), default=0),
     }
 
 
@@ -348,24 +501,12 @@ def _person_card(officer: OfficerRuntime, since: datetime) -> JsonDict:
         if data
         else []
     )
-    changes = []
-    for change in _since(officer.state.changes, since):
-        title, message, link = describe_change(
-            str(change.get("kind", "")),
-            str(change.get("event_type", "")),
-            dict(change.get("payload") or {}),
-            subject=officer.officer_name,
-        )
-        changes.append(
-            {
-                "at": change.get("at"),
-                "kind": change.get("kind"),
-                "event_type": change.get("event_type"),
-                "title": title,
-                "message": message,
-                "link": link,
-            }
-        )
+    weight = 2 if officer.notify_instantly else 1
+    changes = [
+        _change_entry(c, subject=officer.officer_name, number="", weight=weight)
+        for c in _since(officer.state.changes, since)
+    ]
+    changes.sort(key=lambda c: (-c["score"], str(c["at"])))
     return {
         "name": officer.officer_name,
         "officer_id": officer.officer_id,
@@ -377,11 +518,102 @@ def _person_card(officer: OfficerRuntime, since: datetime) -> JsonDict:
                 "name": a.company_name,
                 "number": a.company_number,
                 "role": _role(a.officer_role),
+                "appointed_on": _iso(a.appointed_on or a.appointed_before),
             }
             for a in current
         ],
         "changes": changes,
+        "score": max((c["score"] for c in changes), default=0),
     }
+
+
+def _normalise_person(name: str) -> str:
+    """Casefold a name and drop titles and punctuation, for matching."""
+    cleaned = name.replace(",", " ").replace(".", " ")
+    words = [
+        w.casefold()
+        for w in cleaned.split()
+        if w.casefold()
+        not in {"mr", "mrs", "ms", "miss", "dr", "sir", "obe", "dl", "mbe"}
+    ]
+    return " ".join(sorted(words))
+
+
+def _ownership(
+    companies: Iterable[CompanyRuntime], people: Iterable[OfficerRuntime]
+) -> list[JsonDict]:
+    """Who controls what, across every watched company with PSC data."""
+    followed = {_normalise_person(o.officer_name): o.officer_name for o in people}
+    for o in people:
+        followed[_normalise_person(o.register_name)] = o.officer_name
+    watched = {c.company_number: c.company_name for c in companies}
+    holders: dict[str, JsonDict] = {}
+    for company in companies:
+        if company.psc is None or company.psc.data is None:
+            continue
+        for psc in company.psc.data.items:
+            if psc.ceased:
+                continue
+            key = _normalise_person(psc.name)
+            holder = holders.setdefault(
+                key,
+                {
+                    "name": followed.get(key, psc.name),
+                    "followed": key in followed,
+                    "kind": (psc.kind or "").replace(
+                        "-person-with-significant-control", ""
+                    ),
+                    "holdings": [],
+                },
+            )
+            holder["holdings"].append(
+                {
+                    "company": company.company_name,
+                    "number": company.company_number,
+                    "link": _company_link(company.company_number),
+                    "control": _control_words(psc.natures_of_control),
+                    "watched": company.company_number in watched,
+                }
+            )
+    result = list(holders.values())
+    result.sort(key=lambda h: (not h["followed"], -len(h["holdings"]), h["name"]))
+    return result
+
+
+def _new_companies(
+    companies: list[JsonDict], people: list[JsonDict], since: datetime, today: date
+) -> list[JsonDict]:
+    """Watched companies incorporated recently, with the followed people at them."""
+    cutoff = today - timedelta(days=NEW_COMPANY_DAYS)
+    since_day = since.date()
+    out: list[JsonDict] = []
+    for card in companies:
+        created = card.get("incorporated")
+        if not created or date.fromisoformat(created) < cutoff:
+            continue
+        founders = [
+            {"name": p["name"], "role": h["role"]}
+            for p in people
+            for h in p["companies"]
+            if h["number"] == card["number"]
+        ]
+        seen_this_period = date.fromisoformat(created) >= since_day or any(
+            c["event_type"] == "company-now-watched" for c in card["changes"]
+        )
+        if not founders and not seen_this_period:
+            continue
+        out.append(
+            {
+                "company": card["name"],
+                "number": card["number"],
+                "link": card["link"],
+                "incorporated": created,
+                "new_this_period": seen_this_period,
+                "people": founders,
+            }
+        )
+    out.sort(key=lambda n: n["incorporated"], reverse=True)
+    return out
 
 
 def build_digest(
@@ -389,20 +621,21 @@ def build_digest(
 ) -> JsonDict:
     """Gather everything a report needs, for the companies and people opted in."""
     now = now or dt_util.utcnow()
+    today = dt_util.as_local(now).date()
     since = now - timedelta(days=days)
     runtime = entry.runtime_data
+    all_companies = [
+        c for c in runtime.companies.values() if c.profile.data is not None
+    ]
+    all_people = [
+        o for o in runtime.officers.values() if o.appointments.data is not None
+    ]
     companies = [
-        _company_card(c, since)
-        for c in runtime.companies.values()
-        if c.in_weekly_report and c.profile.data is not None
+        _company_card(c, since, today) for c in all_companies if c.in_weekly_report
     ]
-    people = [
-        _person_card(o, since)
-        for o in runtime.officers.values()
-        if o.in_weekly_report and o.appointments.data is not None
-    ]
-    companies.sort(key=lambda c: (not c["changes"], not c["attention"], c["name"]))
-    people.sort(key=lambda p: (not p["changes"], p["name"]))
+    people = [_person_card(o, since) for o in all_people if o.in_weekly_report]
+    companies.sort(key=lambda c: (-c["score"], -c["weight"], c["name"]))
+    people.sort(key=lambda p: (-p["score"], p["name"]))
     deadlines = sorted(
         (
             {
@@ -414,25 +647,60 @@ def build_digest(
             for c in companies
             if c["next_deadline"]
             and c["next_deadline"]["days"] is not None
-            and c["next_deadline"]["days"] <= DEADLINE_HORIZON_DAYS
+            and 0 <= c["next_deadline"]["days"] <= DEADLINE_HORIZON_DAYS
         ),
-        key=lambda d: d["date"],
+        key=lambda d: (d["date"], d["company"]),
     )
-    attention = [
+    new_issues = [
         {
             "company": c["name"],
             "number": c["number"],
             "link": c["link"],
-            "issues": c["attention"],
+            "issues": [a["issue"] for a in c["attention"] if a["new"]],
         }
         for c in companies
-        if c["attention"]
+        if any(a["new"] for a in c["attention"])
+    ]
+    still_open = [
+        {
+            "company": c["name"],
+            "number": c["number"],
+            "link": c["link"],
+            "issues": [a["issue"] for a in c["attention"] if not a["new"]],
+        }
+        for c in companies
+        if any(not a["new"] for a in c["attention"])
     ]
     changed_companies = [c for c in companies if c["changes"]]
     changed_people = [p for p in people if p["changes"]]
-    change_count = sum(len(c["changes"]) for c in companies) + sum(
-        len(p["changes"]) for p in people
-    )
+    all_changes = [
+        {
+            **change,
+            "subject": c["name"],
+            "number": c["number"],
+            "logo": c["logo"],
+            "initials": c["initials"],
+            "subject_link": c["link"],
+        }
+        for c in changed_companies
+        for change in c["changes"]
+    ] + [
+        {
+            **change,
+            "subject": p["name"],
+            "number": "",
+            "logo": "",
+            "initials": p["initials"],
+            "subject_link": p["link"],
+        }
+        for p in changed_people
+        for change in p["changes"]
+    ]
+    all_changes.sort(key=lambda c: (-c["score"], str(c["at"])))
+    by_kind: dict[str, int] = {}
+    for change in all_changes:
+        by_kind[change["kind"]] = by_kind.get(change["kind"], 0) + 1
+    new_companies = _new_companies(companies, people, since, today)
     return {
         "generated_at": now.isoformat(),
         "since": since.isoformat(),
@@ -440,40 +708,72 @@ def build_digest(
         "summary": {
             "companies": len(companies),
             "people": len(people),
-            "changes": change_count,
+            "changes": len(all_changes),
+            "by_kind": by_kind,
             "companies_with_changes": len(changed_companies),
             "people_with_changes": len(changed_people),
-            "needs_attention": len(attention),
+            "new_issues": len(new_issues),
+            "still_open": len(still_open),
             "deadlines_soon": len(deadlines),
+            "new_companies": len(new_companies),
         },
-        "needs_attention": attention,
+        "top": all_changes[:5],
+        "needs_attention": new_issues,
+        "still_open": still_open,
         "deadlines": deadlines,
+        "new_companies": new_companies,
         "companies": changed_companies,
         "people": changed_people,
+        "ownership": _ownership(all_companies, all_people),
         "quiet_companies": [c["name"] for c in companies if not c["changes"]],
     }
+
+
+def attachable_documents(digest: JsonDict) -> list[JsonDict]:
+    """Return the filings worth attaching: accounts anywhere, anything at your own.
+
+    Returned in score order and capped, so an email stays a sensible size.
+    """
+    wanted: list[JsonDict] = []
+    for card in digest["companies"]:
+        for change in card["changes"]:
+            if change["kind"] != "filing" or not change.get("document_id"):
+                continue
+            if change["event_type"] == "accounts" or card["close_watch"]:
+                wanted.append({**change, "company_number": card["number"]})
+    wanted.sort(key=lambda c: -c["score"])
+    return wanted[:ATTACH_LIMIT]
 
 
 # ---------------------------------------------------------------- rendering
 
 _FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;"
 _MUTED = "color:#6b7280;"
+_KIND_LABEL = {
+    "filing": "filing",
+    "officer": "director change",
+    "psc": "ownership change",
+    "charge": "charge",
+    "status": "status change",
+    "profile": "details change",
+    "appointment": "role change",
+}
 
 
 def _e(value: Any) -> str:
     return escape(str(value if value is not None else ""))
 
 
-def _avatar(logo: str, initials: str, colour: str = "#1f4e79") -> str:
+def _avatar(logo: str, initials: str, colour: str = "#1f4e79", size: int = 40) -> str:
     if logo:
         return (
-            f'<img src="{_e(logo)}" width="40" height="40" alt="" '
-            'style="width:40px;height:40px;border-radius:8px;display:block;'
+            f'<img src="{_e(logo)}" width="{size}" height="{size}" alt="" '
+            f'style="width:{size}px;height:{size}px;border-radius:8px;display:block;'
             'background:#fff;object-fit:contain">'
         )
     return (
-        f'<div style="width:40px;height:40px;border-radius:8px;background:{colour};'
-        f'color:#fff;text-align:center;line-height:40px;font-weight:600;{_FONT}">'
+        f'<div style="width:{size}px;height:{size}px;border-radius:8px;background:{colour};'
+        f'color:#fff;text-align:center;line-height:{size}px;font-weight:600;{_FONT}">'
         f"{_e(initials)}</div>"
     )
 
@@ -483,6 +783,13 @@ def _when(value: Any) -> str:
     if parsed is None:
         return ""
     return dt_util.as_local(parsed).strftime("%a %-d %b")
+
+
+def _pretty_date(value: Any) -> str:
+    try:
+        return date.fromisoformat(str(value)).strftime("%-d %b %Y")
+    except ValueError:
+        return str(value or "")
 
 
 def _due(days: int | None) -> tuple[str, str]:
@@ -497,21 +804,31 @@ def _due(days: int | None) -> tuple[str, str]:
     return f"in {days} days", _MUTED
 
 
-def _section(title: str, body: str, *, icon: str = "") -> str:
+def _section(title: str, body: str, *, icon: str = "", intro: str = "") -> str:
+    lead = (
+        f'<p style="margin:0 0 10px 0;font-size:13px;{_MUTED}{_FONT}">{_e(intro)}</p>'
+        if intro
+        else ""
+    )
     return (
         '<tr><td style="padding:24px 24px 0 24px">'
-        f'<h2 style="margin:0 0 12px 0;font-size:17px;{_FONT}color:#111827">'
-        f"{icon} {_e(title)}</h2>{body}</td></tr>"
+        f'<h2 style="margin:0 0 10px 0;font-size:17px;{_FONT}color:#111827">'
+        f"{icon} {_e(title)}</h2>{lead}{body}</td></tr>"
     )
+
+
+def _link(text: str, href: str, colour: str = "#1d4ed8") -> str:
+    if not href:
+        return _e(text)
+    return f'<a href="{_e(href)}" style="color:{colour};text-decoration:none">{_e(text)}</a>'
 
 
 def _change_rows(changes: list[JsonDict]) -> str:
     rows = []
     for change in changes:
-        link = change.get("link")
-        title = _e(change["title"].split(": ", 1)[-1])
-        if link:
-            title = f'<a href="{_e(link)}" style="color:#1d4ed8;text-decoration:none">{title}</a>'
+        title = _link(
+            change["title"].split(": ", 1)[-1], change.get("link") or "", "#111827"
+        )
         rows.append(
             '<tr><td style="padding:6px 0;border-top:1px solid #f3f4f6;vertical-align:top;'
             f'width:72px;font-size:12px;{_MUTED}{_FONT}">{_e(_when(change.get("at")))}</td>'
@@ -526,42 +843,58 @@ def _change_rows(changes: list[JsonDict]) -> str:
     )
 
 
+def _badge(text: str, *, new: bool) -> str:
+    colours = (
+        "background:#fee2e2;color:#991b1b;"
+        if new
+        else "background:#f3f4f6;color:#6b7280;"
+    )
+    return (
+        f'<span style="display:inline-block;{colours}border-radius:999px;'
+        f'padding:2px 8px;font-size:12px;margin-left:6px;{_FONT}">{_e(text)}</span>'
+    )
+
+
+def _card(avatar: str, heading: str, meta: str, body: str) -> str:
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="margin-bottom:14px;border:1px solid #e5e7eb;border-radius:10px">'
+        '<tr><td style="padding:12px 14px 4px 14px">'
+        '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        f'<td style="vertical-align:top;padding-right:10px">{avatar}</td>'
+        f'<td style="vertical-align:top;{_FONT}"><div style="font-size:15px;font-weight:600;color:#111827">'
+        f"{heading}</div>"
+        f'<div style="font-size:12px;{_MUTED}">{meta}</div></td></tr></table>'
+        f'</td></tr><tr><td style="padding:4px 14px 10px 14px">{body}</td></tr></table>'
+    )
+
+
 def _company_block(card: JsonDict) -> str:
     deadline = card.get("next_deadline")
-    due_text, due_style = _due(deadline["days"]) if deadline else ("", _MUTED)
-    meta = [
-        f'<a href="{_e(card["link"])}" style="color:#6b7280;text-decoration:none">{_e(card["number"])}</a>'
-    ]
+    meta = [_link(card["number"], card["link"], "#6b7280")]
     if card.get("website"):
         site = (
             card["website"]
             if card["website"].startswith("http")
             else "https://" + card["website"]
         )
-        meta.append(
-            f'<a href="{_e(site)}" style="color:#1d4ed8;text-decoration:none">website</a>'
-        )
+        meta.append(_link("website", site))
     if card.get("label"):
         meta.append(_e(card["label"]))
-    if deadline:
+    if deadline and deadline["days"] is not None and deadline["days"] >= 0:
+        due_text, due_style = _due(deadline["days"])
         meta.append(
             f'<span style="{due_style}">{_e(deadline["what"].replace("_", " "))} {_e(due_text)}</span>'
         )
     badges = "".join(
-        f'<span style="display:inline-block;background:#fee2e2;color:#991b1b;border-radius:999px;'
-        f'padding:2px 8px;font-size:12px;margin-left:6px;{_FONT}">{_e(a)}</span>'
-        for a in card.get("attention") or []
+        _badge(a["issue"], new=a["new"]) for a in card.get("attention") or []
     )
-    return (
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
-        'style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:10px">'
-        '<tr><td style="padding:12px 14px 4px 14px">'
-        '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        f'<td style="vertical-align:top;padding-right:10px">{_avatar(card.get("logo", ""), card["initials"])}</td>'
-        f'<td style="vertical-align:top;{_FONT}"><div style="font-size:15px;font-weight:600;color:#111827">'
-        f'<a href="{_e(card["link"])}" style="color:#111827;text-decoration:none">{_e(card["name"])}</a>{badges}</div>'
-        f'<div style="font-size:12px;{_MUTED}">{" · ".join(meta)}</div></td></tr></table>'
-        f'</td></tr><tr><td style="padding:4px 14px 10px 14px">{_change_rows(card["changes"])}</td></tr></table>'
+    heading = _link(card["name"], card["link"], "#111827") + badges
+    return _card(
+        _avatar(card.get("logo", ""), card["initials"]),
+        heading,
+        " · ".join(meta),
+        _change_rows(card["changes"]),
     )
 
 
@@ -569,28 +902,125 @@ def _person_block(card: JsonDict) -> str:
     companies = ", ".join(_e(c["name"]) for c in card["companies"][:6])
     if len(card["companies"]) > 6:
         companies += f" and {len(card['companies']) - 6} more"
+    return _card(
+        _avatar("", card["initials"], "#0f766e"),
+        _link(card["name"], card["link"], "#111827"),
+        companies or "No current companies",
+        _change_rows(card["changes"]),
+    )
+
+
+def _top_block(top: list[JsonDict]) -> str:
+    rows = []
+    for change in top:
+        what = change["title"].split(": ", 1)[-1]
+        rows.append(
+            '<tr><td style="padding:8px 0;border-top:1px solid #f3f4f6;vertical-align:top;width:32px">'
+            f"{_avatar(change.get('logo', ''), change.get('initials', '?'), '#1f4e79' if change.get('number') else '#0f766e', 32)}</td>"
+            f'<td style="padding:8px 0 8px 10px;border-top:1px solid #f3f4f6;{_FONT}">'
+            f'<div style="font-size:14px;font-weight:600;color:#111827">{_link(change["subject"], change["subject_link"], "#111827")}'
+            f'<span style="font-weight:400;{_MUTED}"> · {_e(what)}</span></div>'
+            f'<div style="font-size:13px;{_MUTED}">{_e(change["message"])}'
+            + (f" {_link('Open', change['link'])}" if change.get("link") else "")
+            + f' <span style="font-size:11px">· {_e(_when(change.get("at")))}</span></div></td></tr>'
+        )
     return (
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
-        'style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:10px">'
-        '<tr><td style="padding:12px 14px 4px 14px">'
-        '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        f'<td style="vertical-align:top;padding-right:10px">{_avatar("", card["initials"], "#0f766e")}</td>'
-        f'<td style="vertical-align:top;{_FONT}"><div style="font-size:15px;font-weight:600;color:#111827">'
-        f'<a href="{_e(card["link"])}" style="color:#111827;text-decoration:none">{_e(card["name"])}</a></div>'
-        f'<div style="font-size:12px;{_MUTED}">{companies or "No current companies"}</div></td></tr></table>'
-        f'</td></tr><tr><td style="padding:4px 14px 10px 14px">{_change_rows(card["changes"])}</td></tr></table>'
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+        + "".join(rows)
+        + "</table>"
+    )
+
+
+def _issues_list(items: list[JsonDict], colour: str) -> str:
+    return (
+        f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
+        + "".join(
+            f'<li style="margin:4px 0">{_link(a["company"], a["link"], colour)} — {_e(", ".join(a["issues"]))}</li>'
+            for a in items
+        )
+        + "</ul>"
+    )
+
+
+def _deadline_rows(deadlines: list[JsonDict]) -> str:
+    rows = []
+    for d in deadlines:
+        due_text, due_style = _due(d["days"])
+        rows.append(
+            f'<tr><td style="padding:5px 0;font-size:14px;{_FONT}">{_link(d["company"], d["link"], "#111827")}</td>'
+            f'<td style="padding:5px 8px;font-size:13px;{_MUTED}{_FONT}">{_e(d["what"].replace("_", " "))}</td>'
+            f'<td style="padding:5px 0;font-size:13px;{_FONT}white-space:nowrap">{_e(_pretty_date(d["date"]))}</td>'
+            f'<td style="padding:5px 0 5px 8px;font-size:13px;{_FONT}{due_style}white-space:nowrap">{_e(due_text)}</td></tr>'
+        )
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+        + "".join(rows)
+        + "</table>"
+    )
+
+
+def _new_company_rows(items: list[JsonDict]) -> str:
+    rows = []
+    for n in items:
+        who = (
+            ", ".join(f"{p['name']} ({p['role']})" for p in n["people"])
+            or "no one you follow yet"
+        )
+        rows.append(
+            f'<li style="margin:4px 0"><strong>{_link(n["company"], n["link"], "#111827")}</strong> '
+            f"— set up {_e(_pretty_date(n['incorporated']))} · {_e(who)}</li>"
+        )
+    return (
+        f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
+        + "".join(rows)
+        + "</ul>"
+    )
+
+
+def _ownership_rows(holders: list[JsonDict], limit: int = 12) -> str:
+    rows = []
+    for h in holders[:limit]:
+        holdings = "; ".join(
+            f"{_link(x['company'], x['link'], '#111827')} ({_e(x['control'])})"
+            for x in h["holdings"]
+        )
+        star = " ★" if h["followed"] else ""
+        rows.append(
+            f'<li style="margin:4px 0"><strong>{_e(h["name"])}</strong>{star} — {holdings}</li>'
+        )
+    more = (
+        f'<p style="font-size:12px;{_MUTED}{_FONT}">and {len(holders) - limit} more</p>'
+        if len(holders) > limit
+        else ""
+    )
+    return (
+        f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
+        + "".join(rows)
+        + "</ul>"
+        + more
+    )
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
+def _stats_line(digest: JsonDict) -> str:
+    s = digest["summary"]
+    kinds = ", ".join(
+        _plural(n, _KIND_LABEL.get(k, k))
+        for k, n in sorted(s.get("by_kind", {}).items(), key=lambda kv: -kv[1])
+    )
+    return (
+        _plural(s["changes"], "change")
+        + (f" ({kinds})" if kinds else "")
+        + f" · {s['companies']} companies and {s['people']} people watched"
     )
 
 
 def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> str:
     """Render the report as email-safe HTML with inline styles."""
-    s = digest["summary"]
     period = f"{_when(digest['since'])} to {_when(digest['generated_at'])}"
-    stats = (
-        f"{s['changes']} changes across {s['companies_with_changes']} companies "
-        f"and {s['people_with_changes']} people · {s['companies']} companies and "
-        f"{s['people']} people watched"
-    )
     parts: list[str] = []
     if summary:
         paragraphs = "".join(
@@ -603,35 +1033,36 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             f"{paragraphs}</div></td></tr>"
         )
     if digest["needs_attention"]:
-        items = "".join(
-            f'<li style="margin:4px 0"><a href="{_e(a["link"])}" style="color:#991b1b;font-weight:600;'
-            f'text-decoration:none">{_e(a["company"])}</a> — {_e(", ".join(a["issues"]))}</li>'
-            for a in digest["needs_attention"]
-        )
         parts.append(
             _section(
-                "Needs attention",
-                f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">{items}</ul>',
+                "New this week: needs attention",
+                _issues_list(digest["needs_attention"], "#991b1b"),
                 icon="⚠️",
             )
         )
-    if digest["deadlines"]:
-        rows = []
-        for d in digest["deadlines"]:
-            due_text, due_style = _due(d["days"])
-            rows.append(
-                f'<tr><td style="padding:5px 0;font-size:14px;{_FONT}"><a href="{_e(d["link"])}" '
-                f'style="color:#111827;text-decoration:none">{_e(d["company"])}</a></td>'
-                f'<td style="padding:5px 8px;font-size:13px;{_MUTED}{_FONT}">{_e(d["what"].replace("_", " "))}</td>'
-                f'<td style="padding:5px 0;font-size:13px;{_FONT}white-space:nowrap">{_e(d["date"])}</td>'
-                f'<td style="padding:5px 0 5px 8px;font-size:13px;{_FONT}{due_style}white-space:nowrap">{_e(due_text)}</td></tr>'
-            )
+    if digest.get("top"):
         parts.append(
             _section(
-                f"Deadlines in the next {DEADLINE_HORIZON_DAYS} days",
-                '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
-                + "".join(rows)
-                + "</table>",
+                "Worth a look",
+                _top_block(digest["top"]),
+                icon="⭐",
+                intro="The week's changes, most important first.",
+            )
+        )
+    if digest.get("new_companies"):
+        parts.append(
+            _section(
+                "New companies",
+                _new_company_rows(digest["new_companies"]),
+                icon="🆕",
+                intro="Recently set up by people you follow.",
+            )
+        )
+    if digest["deadlines"]:
+        parts.append(
+            _section(
+                f"Due in the next {DEADLINE_HORIZON_DAYS} days",
+                _deadline_rows(digest["deadlines"]),
                 icon="📅",
             )
         )
@@ -649,6 +1080,15 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
                 "People", "".join(_person_block(p) for p in digest["people"]), icon="👥"
             )
         )
+    if digest["summary"].get("by_kind", {}).get("psc") and digest.get("ownership"):
+        parts.append(
+            _section(
+                "Who controls what",
+                _ownership_rows(digest["ownership"]),
+                icon="🧭",
+                intro="Ownership changed this week. ★ marks people you follow.",
+            )
+        )
     if not digest["companies"] and not digest["people"]:
         parts.append(
             _section(
@@ -658,12 +1098,12 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
                 icon="😌",
             )
         )
-    quiet = digest.get("quiet_companies") or []
-    if quiet and digest["companies"]:
+    if digest.get("still_open"):
         parts.append(
             _section(
-                "No change",
-                f'<p style="margin:0;font-size:13px;{_FONT}{_MUTED}">{_e(", ".join(quiet))}</p>',
+                "Still open",
+                _issues_list(digest["still_open"], "#6b7280"),
+                intro="Known problems from before this week. They stay here until they clear.",
             )
         )
     body = "".join(parts)
@@ -678,11 +1118,11 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
         '<tr><td style="padding:28px 24px 0 24px">'
         f'<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;{_MUTED}{_FONT}">Companies House</div>'
         f'<h1 style="margin:4px 0 6px 0;font-size:24px;{_FONT}color:#111827">{_e(title)}</h1>'
-        f'<div style="font-size:13px;{_MUTED}{_FONT}">{_e(period)} · {_e(stats)}</div></td></tr>'
+        f'<div style="font-size:13px;{_MUTED}{_FONT}">{_e(period)} · {_e(_stats_line(digest))}</div></td></tr>'
         f"{body}"
         f'<tr><td style="padding:24px;font-size:12px;{_MUTED}{_FONT}">Links open the Companies House '
-        "register. Filed documents open as PDFs on the register. Built by your Home Assistant "
-        "Companies House integration.</td></tr></table></td></tr></table></body></html>"
+        "register; filed documents open as PDFs. Built by your Home Assistant Companies House "
+        "integration.</td></tr></table></td></tr></table></body></html>"
     )
 
 
@@ -692,17 +1132,32 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
     if summary:
         lines += [summary.strip(), ""]
     if digest["needs_attention"]:
-        lines.append("Needs attention:")
+        lines.append("New this week, needs attention:")
         lines += [
             f"  - {a['company']}: {', '.join(a['issues'])}"
             for a in digest["needs_attention"]
         ]
         lines.append("")
+    if digest.get("top"):
+        lines.append("Worth a look:")
+        for c in digest["top"]:
+            lines.append(
+                f"  - {c['subject']}: {c['title'].split(': ', 1)[-1]} — {c['message']}"
+            )
+        lines.append("")
+    if digest.get("new_companies"):
+        lines.append("New companies:")
+        for n in digest["new_companies"]:
+            who = ", ".join(p["name"] for p in n["people"])
+            lines.append(
+                f"  - {n['company']} (set up {_pretty_date(n['incorporated'])}){': ' + who if who else ''}"
+            )
+        lines.append("")
     if digest["deadlines"]:
-        lines.append(f"Deadlines in the next {DEADLINE_HORIZON_DAYS} days:")
+        lines.append(f"Due in the next {DEADLINE_HORIZON_DAYS} days:")
         for d in digest["deadlines"]:
             lines.append(
-                f"  - {d['date']} {d['company']}: {d['what'].replace('_', ' ')} ({_due(d['days'])[0]})"
+                f"  - {_pretty_date(d['date'])} {d['company']}: {d['what'].replace('_', ' ')} ({_due(d['days'])[0]})"
             )
         lines.append("")
     for card in digest["companies"]:
@@ -720,7 +1175,13 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
         ]
         lines.append("")
     if not digest["companies"] and not digest["people"]:
-        lines.append("Nothing changed at any watched company or person.")
+        lines += ["Nothing changed at any watched company or person.", ""]
+    if digest.get("still_open"):
+        lines.append("Still open (known before this week):")
+        lines += [
+            f"  - {a['company']}: {', '.join(a['issues'])}"
+            for a in digest["still_open"]
+        ]
     return "\n".join(lines).rstrip() + "\n"
 
 

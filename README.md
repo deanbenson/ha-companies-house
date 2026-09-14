@@ -245,13 +245,22 @@ Companies also take a **website**, used for a logo and a link in reports.
 
 The **`companies_house.digest`** action gathers everything that changed at the
 opted-in companies and people over the last `days` (default 7) — every change
-is remembered in the store, newest first — plus deadlines in the next 30 days
-and anything needing attention (strike-off, insolvency, overdue filings). It
-returns the report as data, as email-safe HTML (inline styles, logos, links to
-the register and to filed PDFs) and as plain text. Pass `summary` to put a
-paragraph at the top (an `ai_task.generate_data` call over the data works
-well), and `save: true` to also write it under `www/companies_house/` so it has
-a link. No API requests are made.
+is remembered in the store, newest first. Each change gets a **score** (what
+happened × how much the company matters: close watch 3, notify instantly 2,
+else 1), so the report opens with a *Worth a look* list of the week's most
+important changes. Problems are split into **new this week** (a strike-off or
+status change seen in the period, or a deadline that passed in it) and
+**still open** (known before, listed quietly at the bottom until they clear).
+It also lists deadlines in the next 30 days, **new companies** (recently
+incorporated, with the followed people at them) and, when ownership changed,
+**who controls what** across every watched company. It returns the report as
+data, as email-safe HTML (inline styles, logos, links to the register and to
+filed PDFs) and as plain text. Pass `summary` to put a paragraph at the top (an
+`ai_task.generate_data` call over the data works well), `save: true` to also
+write it under `www/companies_house/` so it has a link, and `attach: true` to
+download the period's accounts and every filing at close-watch companies
+(capped) and return them as `attachments` for `notify.send_message`. Only
+`attach` costs API requests.
 
 Downloads return a `media_content_id` when the document lands under a media
 folder, so an automation can hand the PDF to `ai_task.generate_data` for a

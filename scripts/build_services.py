@@ -443,6 +443,11 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
                 "Also save the HTML under www/companies_house so it has a link you can open on your phone.",
                 BOOL,
             ),
+            "attach": (
+                "Fetch the key documents",
+                "Download the period's accounts, and every filing at close-watch companies, so they can be attached to the email. Returned as attachments.",
+                BOOL,
+            ),
         },
     ),
     "refresh": (

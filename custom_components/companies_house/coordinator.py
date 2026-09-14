@@ -61,7 +61,7 @@ from .const import (
     OfficerDataset,
     Tier,
 )
-from .digest import describe_change
+from .digest import describe_change, logo_for
 from .models import (
     AppointmentList,
     ChargeList,
@@ -173,12 +173,14 @@ class _Runtime:
         self,
         hass: HomeAssistant,
         subentry: ConfigSubentry,
+        store: ChangeStore,
         *,
         notify_instantly: bool = False,
         in_weekly_report: bool = True,
     ) -> None:
         self.hass = hass
         self.subentry = subentry
+        self.store = store
         self.ready = False
         self.notify_instantly = notify_instantly
         self.in_weekly_report = in_weekly_report
@@ -202,6 +204,7 @@ class _Runtime:
                 "payload": event.payload,
             },
         )
+        self.store.save()
 
     @callback
     def dispatch(self, event: ChangeEvent) -> None:
@@ -230,8 +233,19 @@ class _Runtime:
             title, message, link = self._describe(event)
             self.hass.bus.async_fire(
                 EVENT_COMPANIES_HOUSE_ALERT,
-                {**context, "title": title, "message": message, "link": link},
+                {
+                    **context,
+                    "title": title,
+                    "message": message,
+                    "link": link,
+                    "logo": self.logo_url,
+                },
             )
+
+    @property
+    def logo_url(self) -> str:
+        """Return a logo for alerts, or empty. Companies with a website have one."""
+        return ""
 
     @callback
     def mark_ready(self) -> None:
@@ -466,6 +480,7 @@ class CompanyRuntime(_Runtime):
         super().__init__(
             hass,
             subentry,
+            store,
             notify_instantly=notify_instantly,
             in_weekly_report=in_weekly_report,
         )
@@ -544,6 +559,11 @@ class CompanyRuntime(_Runtime):
             subject=self.company_name,
             number=self.company_number,
         )
+
+    @property
+    def logo_url(self) -> str:
+        """Return the logo for the company's website, if one is set."""
+        return logo_for(self.website)
 
     async def async_first_refresh(self) -> None:
         """Refresh every coordinator once at setup, tolerating failures.
@@ -1178,6 +1198,7 @@ class OfficerRuntime(_Runtime):
         super().__init__(
             hass,
             subentry,
+            store,
             notify_instantly=notify_instantly,
             in_weekly_report=in_weekly_report,
         )

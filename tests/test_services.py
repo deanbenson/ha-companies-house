@@ -451,16 +451,47 @@ async def test_digest_action_reports_the_week(
     aioclient_mock: AiohttpClientMocker,
     tmp_path: Path,
 ) -> None:
-    """The report covers changes, deadlines and attention, as data, HTML and text."""
+    """The report ranks changes, splits new problems from old, and can attach PDFs."""
     from custom_components.companies_house.const import Dataset
 
-    entry = await setup_entry(["12345678", "34567890"], officers=True)
+    entry = await setup_entry(
+        ["12345678", "34567890"],
+        officers=True,
+        close_watch={"12345678"},
+        options={"document_directory": str(tmp_path)},
+    )
+    hass.config.allowlist_external_dirs.add(str(tmp_path))
+    hass.config.media_dirs["local"] = str(tmp_path)
     company = entry.runtime_data.companies["sub_12345678"]
     officers = load_fixture("company_active/officers")
     officers["items"][1]["resigned_on"] = "2026-09-12"
+    filings = load_fixture("company_active/filing_history")
+    filings["items"].insert(
+        0,
+        {
+            **filings["items"][0],
+            "transaction_id": "tx-accounts",
+            "date": "2026-09-13",
+            "category": "accounts",
+            "type": "AA",
+            "description": "accounts-with-accounts-type-micro-entity",
+            "description_values": {"made_up_date": "2026-03-31"},
+            "links": {
+                "self": "/company/12345678/filing-history/tx-accounts",
+                "document_metadata": f"{DOCUMENT_API_BASE}/document/doc-accounts",
+            },
+        },
+    )
+    filings["total_count"] += 1
     aioclient_mock.clear_requests()
-    mock_company(aioclient_mock, "12345678", overrides={"officers": officers})
-    await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
+    mock_company(
+        aioclient_mock,
+        "12345678",
+        overrides={"officers": officers, "filing_history": filings},
+    )
+    await company.async_refresh_datasets(
+        [Dataset.OFFICERS, Dataset.FILINGS], reason="test"
+    )
     await hass.async_block_till_done()
 
     response = await hass.services.async_call(
@@ -474,17 +505,22 @@ async def test_digest_action_reports_the_week(
     assert response["days"] == 7
     assert response["summary"]["companies"] == 2
     assert response["summary"]["people"] == 1
-    assert response["summary"]["changes"] == 1
-    assert response["summary"]["companies_with_changes"] == 1
+    assert response["summary"]["changes"] == 2
+    assert response["summary"]["by_kind"] == {"filing": 1, "officer": 1}
+    assert response["summary"]["new_issues"] == 0
+    assert response["summary"]["still_open"] == 1
     (changed,) = response["companies"]
     assert changed["name"] == "EXAMPLE TRADING LIMITED"
     assert changed["initials"] == "ET"
-    assert changed["link"].endswith("/company/12345678")
-    (change,) = changed["changes"]
-    assert change["title"] == "EXAMPLE TRADING LIMITED: director resigned"
-    assert change["link"].endswith("/company/12345678/officers")
-    # The company in liquidation is flagged even though nothing changed.
-    assert response["needs_attention"] == [
+    assert changed["weight"] == 3  # close watch: your own company
+    # The resignation outranks the routine filing; both are scored by weight.
+    assert [c["event_type"] for c in changed["changes"]] == ["resigned", "accounts"]
+    assert [c["score"] for c in changed["changes"]] == [18, 15]
+    assert response["top"][0]["title"] == "EXAMPLE TRADING LIMITED: director resigned"
+    assert response["top"][0]["subject"] == "EXAMPLE TRADING LIMITED"
+    # The liquidation started before this week: still open, not needing attention.
+    assert response["needs_attention"] == []
+    assert response["still_open"] == [
         {
             "company": "SUNSET RETAIL LIMITED",
             "number": "34567890",
@@ -493,16 +529,53 @@ async def test_digest_action_reports_the_week(
         }
     ]
     assert "SUNSET RETAIL LIMITED" in response["quiet_companies"]
+    assert response["new_companies"] == []
+    assert response["attachments"] == []
     html = response["html"]
     assert "A quiet week, one resignation." in html
-    assert "EXAMPLE TRADING LIMITED" in html
+    assert "Worth a look" in html
+    assert "Still open" in html
     assert "director resigned" in html
-    assert "In liquidation" in html
     assert "<script" not in html
     text = response["text"]
-    assert "Needs attention:" in text
+    assert "Still open (known before this week):" in text
     assert "director resigned" in text
     assert "url" not in response
+
+    # With attach on, the accounts PDF is fetched and offered as an attachment.
+    aioclient_mock.get(
+        f"{DOCUMENT_API_BASE}/document/doc-accounts",
+        json=load_fixture("document/metadata"),
+    )
+    aioclient_mock.get(
+        f"{DOCUMENT_API_BASE}/document/doc-accounts/content",
+        status=302,
+        headers={"Location": "https://s3.example.invalid/accounts"},
+    )
+    aioclient_mock.get("https://s3.example.invalid/accounts", content=b"%PDF-1.4 acc")
+    aioclient_mock.get(
+        f"{API_BASE}/company/12345678/filing-history/tx-accounts",
+        json=filings["items"][0],
+    )
+    response = await hass.services.async_call(
+        DOMAIN,
+        "digest",
+        {"days": 7, "save": True, "attach": True},
+        blocking=True,
+        return_response=True,
+    )
+    assert response is not None
+    (attachment,) = response["attachments"]
+    assert attachment["media_content_type"] == "application/pdf"
+    assert attachment["filename"].startswith("2026-09-13 - Companies House - ")
+    assert attachment["media_content_id"].startswith(
+        "media-source://media_source/local/"
+    )
+    saved = Path(response["path"])
+    assert saved.parent == Path(hass.config.path("www", DOMAIN))
+    assert saved.name.startswith("report-")
+    assert saved.read_text(encoding="utf-8") == response["html"]  # noqa: ASYNC240
+    assert response["url"].endswith(f"/local/{DOMAIN}/{saved.name}")
 
     # A company opted out of the report is left out entirely.
     await hass.services.async_call(
@@ -513,17 +586,65 @@ async def test_digest_action_reports_the_week(
     )
     await hass.async_block_till_done()
     response = await hass.services.async_call(
-        DOMAIN, "digest", {"days": 7, "save": True}, blocking=True, return_response=True
+        DOMAIN, "digest", {"days": 7}, blocking=True, return_response=True
     )
     assert response is not None
     assert response["summary"]["companies"] == 1
     assert response["companies"] == []
-    assert "A quiet week" in response["html"]  # the no-change section
-    saved = Path(response["path"])
-    assert saved.parent == Path(hass.config.path("www", DOMAIN))
-    assert saved.name.startswith("report-")
-    assert saved.read_text(encoding="utf-8") == response["html"]  # noqa: ASYNC240
-    assert response["url"].endswith(f"/local/{DOMAIN}/{saved.name}")
+    assert "A quiet week" in response["html"]
+
+
+def test_new_companies_and_ownership_are_spotted() -> None:
+    """A freshly incorporated watched company with a followed founder is highlighted."""
+    from custom_components.companies_house.digest import _control_words, _new_companies
+
+    companies = [
+        {
+            "name": "BRAND NEW LTD",
+            "number": "17000001",
+            "link": "x",
+            "incorporated": "2026-09-01",
+            "changes": [],
+        },
+        {
+            "name": "OLD HAT LTD",
+            "number": "10000001",
+            "link": "y",
+            "incorporated": "2015-01-01",
+            "changes": [],
+        },
+        {
+            "name": "ALSO NEW LTD",
+            "number": "17000002",
+            "link": "z",
+            "incorporated": "2026-08-01",
+            "changes": [],
+        },
+    ]
+    people = [
+        {
+            "name": "Jane Smith",
+            "companies": [
+                {"number": "17000001", "role": "director", "name": "BRAND NEW LTD"}
+            ],
+        }
+    ]
+    from datetime import UTC, date, datetime
+
+    found = _new_companies(
+        companies, people, datetime(2026, 9, 8, tzinfo=UTC), date(2026, 9, 14)
+    )
+    assert [n["company"] for n in found] == ["BRAND NEW LTD"]
+    assert found[0]["people"] == [{"name": "Jane Smith", "role": "director"}]
+    assert (
+        _control_words(
+            ["ownership-of-shares-75-to-100-percent", "voting-rights-75-to-100-percent"]
+        )
+        == "75 to 100% of the shares, 75 to 100% of the votes"
+    )
+    assert _control_words(["right-to-appoint-and-remove-directors"]) == (
+        "the right to appoint and remove directors"
+    )
 
 
 async def test_download_document_write_failure(

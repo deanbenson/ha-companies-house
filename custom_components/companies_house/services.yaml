@@ -374,6 +374,8 @@ digest:
           multiline: true
     save:
       selector: *id006
+    attach:
+      selector: *id006
 refresh:
   fields:
     config_entry_id:
