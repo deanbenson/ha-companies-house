@@ -289,6 +289,12 @@
           "open": "Open"
         }
       },
+      "strike_off_earliest_on": {
+        "name": "Earliest strike-off date"
+      },
+      "days_to_object": {
+        "name": "Days to object to strike-off"
+      },
       "last_filing_date": {
         "name": "Last filing date"
       },
@@ -682,6 +688,7 @@
             "state": {
               "status-changed": "Status changed",
               "strike-off-proposed": "Strike off proposed",
+              "strike-off-suspended": "Strike off suspended",
               "strike-off-discontinued": "Strike off discontinued",
               "dissolved": "Dissolved"
             }

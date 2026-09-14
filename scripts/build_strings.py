@@ -71,6 +71,8 @@ COMPANY_SENSORS = {
     "accounts_next_due": "Accounts next due",
     "confirmation_statement_next_due": "Confirmation statement next due",
     "company_status": "Company status",
+    "strike_off_earliest_on": "Earliest strike-off date",
+    "days_to_object": "Days to object to strike-off",
     "last_filing_date": "Last filing date",
     "last_filing_description": "Last filing",
     "officers_active": "Officers active",
@@ -214,6 +216,7 @@ EVENTS = {
         {
             "status-changed": "Status changed",
             "strike-off-proposed": "Strike off proposed",
+            "strike-off-suspended": "Strike off suspended",
             "strike-off-discontinued": "Strike off discontinued",
             "dissolved": "Dissolved",
         },

@@ -1,0 +1,93 @@
+{
+  "etag": "fh-10916685",
+  "filing_history_status": "filing-history-available",
+  "items": [
+    {
+      "category": "dissolution",
+      "date": "2024-08-07",
+      "description": "dissolved-compulsory-strike-off-suspended",
+      "links": {
+        "document_metadata": "https://document-api.company-information.service.gov.uk/document/doc-diss16-2024",
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDA2"
+      },
+      "paper_filed": true,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDA2",
+      "type": "DISS16(SOAS)"
+    },
+    {
+      "category": "gazette",
+      "date": "2024-07-30",
+      "description": "gazette-notice-compulsory",
+      "links": {
+        "document_metadata": "https://document-api.company-information.service.gov.uk/document/doc-gaz1-2024",
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDA1"
+      },
+      "paper_filed": true,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDA1",
+      "type": "GAZ1"
+    },
+    {
+      "action_date": "2022-08-31",
+      "barcode": "XC2AA2022",
+      "category": "accounts",
+      "date": "2023-08-16",
+      "description": "accounts-with-accounts-type-micro-entity",
+      "description_values": {
+        "made_up_date": "2022-08-31"
+      },
+      "links": {
+        "document_metadata": "https://document-api.company-information.service.gov.uk/document/doc-aa-2022",
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDA0"
+      },
+      "pages": 4,
+      "paper_filed": false,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDA0",
+      "type": "AA"
+    },
+    {
+      "category": "gazette",
+      "date": "2023-08-15",
+      "description": "gazette-filings-brought-up-to-date",
+      "links": {
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDAz"
+      },
+      "paper_filed": true,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDAz",
+      "type": "DISS40"
+    },
+    {
+      "action_date": "2023-07-31",
+      "barcode": "XC2CS2023",
+      "category": "confirmation-statement",
+      "date": "2023-08-14",
+      "description": "confirmation-statement-with-no-updates",
+      "description_values": {
+        "made_up_date": "2023-07-31"
+      },
+      "links": {
+        "document_metadata": "https://document-api.company-information.service.gov.uk/document/doc-cs01-2023",
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDAy"
+      },
+      "pages": 3,
+      "paper_filed": false,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDAy",
+      "type": "CS01"
+    },
+    {
+      "category": "gazette",
+      "date": "2023-08-01",
+      "description": "gazette-notice-compulsory",
+      "links": {
+        "document_metadata": "https://document-api.company-information.service.gov.uk/document/doc-gaz1-2023",
+        "self": "/company/10916685/filing-history/MzQwNjAwMDAwMDAwMDAwMDAx"
+      },
+      "paper_filed": true,
+      "transaction_id": "MzQwNjAwMDAwMDAwMDAwMDAx",
+      "type": "GAZ1"
+    }
+  ],
+  "items_per_page": 25,
+  "kind": "filing-history",
+  "start_index": 0,
+  "total_count": 6
+}

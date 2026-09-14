@@ -1,0 +1,55 @@
+{
+  "accounts": {
+    "accounting_reference_date": {
+      "day": "31",
+      "month": "08"
+    },
+    "last_accounts": {
+      "made_up_to": "2022-08-31",
+      "period_end_on": "2022-08-31",
+      "type": "micro-entity"
+    },
+    "next_accounts": {
+      "due_on": "2024-05-31",
+      "overdue": true,
+      "period_end_on": "2023-08-31",
+      "period_start_on": "2022-09-01"
+    },
+    "next_due": "2024-05-31",
+    "overdue": true
+  },
+  "can_file": true,
+  "company_name": "TRUVAI EXAMPLE LIMITED",
+  "company_number": "10916685",
+  "company_status": "active",
+  "company_status_detail": "active-proposal-to-strike-off",
+  "confirmation_statement": {
+    "last_made_up_to": "2023-07-31",
+    "next_due": "2024-08-14",
+    "next_made_up_to": "2024-07-31",
+    "overdue": true
+  },
+  "date_of_creation": "2017-08-15",
+  "etag": "etag-10916685-1",
+  "has_charges": false,
+  "has_insolvency_history": false,
+  "jurisdiction": "england-wales",
+  "links": {
+    "filing_history": "/company/10916685/filing-history",
+    "officers": "/company/10916685/officers",
+    "persons_with_significant_control": "/company/10916685/persons-with-significant-control",
+    "self": "/company/10916685"
+  },
+  "registered_office_address": {
+    "address_line_1": "12 Market Place",
+    "country": "England",
+    "locality": "Saltburn-by-the-Sea",
+    "postal_code": "TS12 1AB"
+  },
+  "registered_office_is_in_dispute": false,
+  "sic_codes": [
+    "62012"
+  ],
+  "type": "ltd",
+  "undeliverable_registered_office_address": false
+}

@@ -541,6 +541,7 @@ async def test_digest_action_reports_the_week(
             "number": "34567890",
             "link": changed["link"].replace("12345678", "34567890"),
             "issues": ["In liquidation", "Confirmation statement overdue"],
+            "links": [],
         }
     ]
     assert "SUNSET RETAIL LIMITED" in response["quiet_companies"]

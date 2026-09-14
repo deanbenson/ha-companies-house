@@ -40,6 +40,17 @@
           "closed": "mdi:office-building-remove"
         }
       },
+      "strike_off_earliest_on": {
+        "default": "mdi:calendar-remove"
+      },
+      "days_to_object": {
+        "default": "mdi:gavel",
+        "range": {
+          "-100000": "mdi:calendar-alert",
+          "0": "mdi:gavel",
+          "15": "mdi:calendar-clock"
+        }
+      },
       "last_filing_date": {
         "default": "mdi:file-clock"
       },
