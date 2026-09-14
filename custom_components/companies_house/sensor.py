@@ -205,14 +205,11 @@ def _figure_attrs(company: CompanyRuntime, metric: str) -> Attrs:
             "statistic_id": statistic_id(company.company_number, metric),
         }
     figure = year.figure(metric)
-    status = figure.status.replace("_", " ")
-    if figure.value is None and figure.status == "not_disclosed":
-        status = year.undisclosed_reason or "not disclosed"
     return {
         "made_up_to": _iso(year.made_up_to),
         "prior": plain_number(figure.prior),
         "change_percent": percent_change(figure.value, figure.prior),
-        "status": status,
+        "status": year.figure_status_words(metric),
         "source": year.source,
         "statistic_id": statistic_id(company.company_number, metric),
     }

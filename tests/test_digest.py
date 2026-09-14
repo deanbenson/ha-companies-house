@@ -5,7 +5,9 @@ from __future__ import annotations
 from custom_components.companies_house.digest import (
     _control_words,
     _due,
+    _list_words,
     _normalise_person,
+    _plural,
     _pretty_date,
     logo_for,
     render_html,
@@ -35,8 +37,8 @@ DIGEST = {
     "summary": {
         "companies": 3,
         "people": 2,
-        "changes": 3,
-        "by_kind": {"charge": 1, "psc": 1, "appointment": 1},
+        "changes": 5,
+        "by_kind": {"charge": 1, "psc": 1, "appointment": 1, "accounts": 2},
         "companies_with_changes": 1,
         "people_with_changes": 1,
         "new_issues": 1,
@@ -243,6 +245,16 @@ DIGEST = {
                     "change_percent": None,
                     "worse": False,
                 },
+                # A first trading year: last year's figure was nil, so no change.
+                {
+                    "metric": "employees",
+                    "name": "Employees",
+                    "value": "3",
+                    "prior": "0",
+                    "change": "",
+                    "change_percent": None,
+                    "worse": False,
+                },
             ],
             "flags": ["Turnover down 20 %+"],
             "undisclosed": None,
@@ -257,7 +269,7 @@ DIGEST = {
             "document": "https://example.invalid/company/17000002/filing-history/t2/document",
             "rows": [],
             "flags": [],
-            "undisclosed": "not disclosed (micro-entity accounts)",
+            "undisclosed": "Turnover, profit and cash: not disclosed (micro-entity accounts)",
             "weight": 1,
         },
     ],
@@ -296,7 +308,7 @@ def test_render_html_covers_every_section() -> None:
         "OLD PIG LTD",
         "url=https://acme.co.uk&amp;size=128",
         "and 2 more",  # Jane's companies beyond six
-        "3 changes (1 charge, 1 ownership change, 1 role change)",
+        "5 changes (2 sets of accounts read, 1 charge, 1 ownership change, 1 role change)",
         "background:#fee2e2",  # new badge
         "background:#f3f4f6;color:#6b7280",  # ongoing badge
         # Links to dig deeper: pages on every company, more on every change.
@@ -323,6 +335,7 @@ def test_render_html_covers_every_section() -> None:
     assert "  - ACME LTD: full accounts to 31 Dec 2025" in text
     assert "      Turnover: £1.2m (last year £1.5m, down 20 %)" in text
     assert "      Cash: £40k\n" in text
+    assert "      Employees: 3 (last year 0)\n" in text
     assert "      Flags: Turnover down 20 %+" in text
     assert (
         "      Turnover, profit and cash: not disclosed (micro-entity accounts)" in text
@@ -374,6 +387,13 @@ def test_helpers() -> None:
     assert _control_words(["significant-influence-or-control", "something-else"]) == (
         "significant influence or control, something else"
     )
+    assert _list_words([]) == ""
+    assert _list_words(["cash"]) == "cash"
+    assert _list_words(["turnover", "profit"]) == "turnover and profit"
+    assert _list_words(["turnover", "profit", "cash"]) == "turnover, profit and cash"
+    assert _plural(1, "set of accounts read") == "1 set of accounts read"
+    assert _plural(3, "set of accounts read") == "3 sets of accounts read"
+    assert _plural(2, "filing") == "2 filings"
     assert score_change("status", "strike-off-proposed", weight=3) == 30
     assert score_change("filing", "confirmation-statement", weight=1) == 1
     assert score_change("made", "up", weight=2) == 4

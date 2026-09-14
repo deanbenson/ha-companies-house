@@ -702,6 +702,20 @@ def _accounts_card(company: CompanyRuntime) -> JsonDict | None:
     }
 
 
+_HEADLINE_NAMES = {
+    "turnover": "turnover",
+    "profit_before_tax": "profit",
+    "cash": "cash",
+}
+
+
+def _list_words(words: list[str]) -> str:
+    """Join words the way a sentence does: "turnover, profit and cash"."""
+    if len(words) <= 1:
+        return "".join(words)
+    return ", ".join(words[:-1]) + " and " + words[-1]
+
+
 def _accounts_read(
     companies: Iterable[CompanyRuntime], since: datetime
 ) -> list[JsonDict]:
@@ -735,15 +749,13 @@ def _accounts_read(
             None,
         )
         rows: list[JsonDict] = []
-        undisclosed = False
+        # The headline figures abbreviated accounts leave out, when they do.
+        undisclosed: list[str] = []
         for metric in METRICS:
             figure = year.figure(metric) if year else None
             if figure is None or figure.value is None:
-                undisclosed = undisclosed or metric in (
-                    "turnover",
-                    "profit_before_tax",
-                    "cash",
-                )
+                if metric in _HEADLINE_NAMES:
+                    undisclosed.append(_HEADLINE_NAMES[metric])
                 continue
             change = percent_change(figure.value, figure.prior)
             rows.append(
@@ -765,6 +777,11 @@ def _accounts_read(
                 }
             )
         reason = year.undisclosed_reason if year else None
+        if not undisclosed or not reason:
+            note = None
+        else:
+            note = _list_words(undisclosed)
+            note = f"{note[0].upper()}{note[1:]}: {reason}"
         out.append(
             {
                 "company": company.company_name,
@@ -779,7 +796,7 @@ def _accounts_read(
                 "flags": flags_for(year.figures)
                 if year
                 else [str(f) for f in payload.get("flags") or []],
-                "undisclosed": reason if undisclosed and reason else None,
+                "undisclosed": note,
                 "weight": _company_weight(company),
             }
         )
@@ -1085,6 +1102,8 @@ _KIND_LABEL = {
     "appointment": "role change",
     "accounts": "set of accounts read",
 }
+# Labels that do not pluralise by adding an s.
+_PLURALS = {"set of accounts read": "sets of accounts read"}
 
 
 def _e(value: Any) -> str:
@@ -1406,7 +1425,7 @@ def _accounts_rows(items: list[JsonDict]) -> str:
         )
         note = (
             f'<div style="font-size:12px;{_MUTED}{_FONT}margin-top:4px">'
-            f"Turnover, profit and cash: {_e(a['undisclosed'])}.</div>"
+            f"{_e(a['undisclosed'])}.</div>"
             if a.get("undisclosed")
             else ""
         )
@@ -1423,7 +1442,18 @@ def _accounts_rows(items: list[JsonDict]) -> str:
 
 
 def _plural(n: int, word: str) -> str:
-    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+    if n == 1:
+        return f"{n} {word}"
+    return f"{n} {_PLURALS.get(word, word + 's')}"
+
+
+def _row_text(row: JsonDict) -> str:
+    """Write one figure row for the text report: value, then last year's."""
+    if not row["prior"]:
+        return str(row["value"])
+    if not row["change"]:
+        return f"{row['value']} (last year {row['prior']})"
+    return f"{row['value']} (last year {row['prior']}, {row['change']})"
 
 
 def _stats_line(digest: JsonDict) -> str:
@@ -1596,15 +1626,11 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             lines.append(
                 f"  - {a['company']}: {a['accounts_type']} to {_pretty_date(a['made_up_to'])}"
             )
-            lines += [
-                f"      {r['name']}: {r['value']}"
-                + (f" (last year {r['prior']}, {r['change']})" if r["prior"] else "")
-                for r in a["rows"]
-            ]
+            lines += [f"      {r['name']}: {_row_text(r)}" for r in a["rows"]]
             if a["flags"]:
                 lines.append(f"      Flags: {', '.join(a['flags'])}")
             if a.get("undisclosed"):
-                lines.append(f"      Turnover, profit and cash: {a['undisclosed']}")
+                lines.append(f"      {a['undisclosed']}")
         lines.append("")
     for card in digest["companies"]:
         lines.append(card["name"])

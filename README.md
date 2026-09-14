@@ -207,17 +207,23 @@ sheet has no cash line, so most small companies disclose net assets, creditors
 and employees and nothing else; the attributes say `not disclosed
 (micro-entity accounts)` in that case. Accounts filed on paper, or as a PDF
 only, have no structured data (`no structured data`); for those years the
-year-before column of the next accounts stands in, marked `comparative`.
+year-before column of the next accounts stands in, marked `comparative`, but
+only when that column really is about that year (a year missing from the
+register's list never gets another year's figures).
 
 Reading is gentle on the allowance. A minute after setup a single queue reads
 one company at a time with a pause between them: one request lists the
 accounts filings, then each of the last five years costs one request (plus
 a fetch from the register's document store that is not rate limited), and
 the result is kept in the store so a restart reads nothing again. When the
-scheduled budget is spent the queue waits for the window to roll over. A new
-accounts filing seen by the probe is read on its own. Each year's figures
-come from its own accounts; the `read_accounts` action reads again on
-request.
+scheduled budget is spent the queue waits for the window to roll over,
+however many times it takes; a document the register cannot serve is left
+for a later go (three goes, a quarter of an hour apart) without holding up
+the company's other years. A new accounts filing seen by the probe is read
+on its own, and goes back on the queue if that read could not finish. Each
+year's figures come from its own accounts; an amended set replaces the year
+it restates and is announced like any other read. The `read_accounts` action
+reads again on request.
 
 When the recorder is running the figures are also written to **long-term
 statistics** (`companies_house:<number>_<metric>`, one row per financial year,

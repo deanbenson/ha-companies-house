@@ -39,6 +39,7 @@ from custom_components.companies_house.accounts import (
 )
 from custom_components.companies_house.accounts_coordinator import (
     BACKFILL_GAP,
+    BACKFILL_RETRY_GAP,
     BACKFILL_START_DELAY,
     fill_comparatives,
     merge_filings,
@@ -271,6 +272,7 @@ async def test_backfill_reads_five_years_after_setup(
     assert by_year[2025].accounts_type == "full"
     assert by_year[2025].value("turnover") == Decimal(13784)
     assert by_year[2025].figure("turnover").prior == Decimal(16600)
+    assert by_year[2025].prior_period_end == date(2024, 12, 31)
     assert by_year[2025].accounting_standard == "SmallEntities"
     # PDF-only accounts (406) borrow the next year's comparative column.
     assert by_year[2024].status == "no_ixbrl"
@@ -282,10 +284,13 @@ async def test_backfill_reads_five_years_after_setup(
     assert by_year[2023].amended
     assert by_year[2023].status == "ok"
     assert by_year[2023].value("cash") == Decimal(11)
-    # Paper accounts cost no request and take the comparative too.
+    # Paper accounts cost no request. They would take the next year's
+    # comparative column too, but that document's year before is not 2022
+    # (its own year end is 28 Feb 2026), so nothing is put under 2022.
+    assert by_year[2023].prior_period_end == date(2025, 2, 28)
     assert by_year[2022].status == "no_ixbrl"
-    assert by_year[2022].source == "comparative"
-    assert by_year[2022].value("cash") == Decimal(11)
+    assert by_year[2022].source == "none"
+    assert not by_year[2022].has_figures
     # A PDF body when structured data was asked for: the metadata settles it.
     assert by_year[2021].status == "no_ixbrl"
     assert by_year[2021].source == "none"
@@ -346,7 +351,6 @@ async def test_sensors_show_the_latest_figures(
         "/filing-history/tx-2025/document?format=pdf&download=0"
     )
     assert [row["made_up_to"] for row in attrs["series"]] == [
-        "2022-12-31",
         "2023-12-31",
         "2024-12-31",
         "2025-12-31",
@@ -477,15 +481,6 @@ async def test_budget_spent_pauses_the_queue_and_resumes(
         {"X-Ratelimit-Remain": "600", "X-Ratelimit-Reset": str(reset + 400)}
     )
     await run_backfill(hass, freezer, timedelta(seconds=201))
-    print(
-        "DBG",
-        company.accounts.last_reason,
-        company.accounts.retry_in,
-        queue.queued,
-        queue._unsub,
-        [c[1].path for c in aioclient_mock.mock_calls],
-        limiter.status(),
-    )
     assert [y.status for y in company.accounts.data.years] == ["ok", "ok"]
     assert queue.queued == []
 
@@ -572,6 +567,248 @@ async def test_fetch_failure_lets_other_companies_go_first(
     await run_backfill(hass, freezer, timedelta(minutes=15))
     assert queue.queued == []
     assert _document_calls(aioclient_mock).count("/document/doc-a/content") == 3
+
+
+async def test_budget_waits_are_never_given_up_on(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """However many windows the budget stays spent, the company keeps its place."""
+    freezer.move_to(NOW)
+    items = [_item("tx-a", "2025-12-31", "2026-06-01", document_id="doc-a")]
+    mock_accounts(
+        aioclient_mock, items=items, documents={"doc-a": _ixbrl("full_frs102")}
+    )
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    limiter = entry.runtime_data.client.limiter
+    queue = entry.runtime_data.accounts_backfill
+    reset = int(dt_util.utcnow().timestamp())
+    for attempt in range(1, 6):
+        # Room for the listing only; the document hits the reserve every time.
+        reset += 300
+        limiter.update_from_headers(
+            {"X-Ratelimit-Remain": "121", "X-Ratelimit-Reset": str(reset)}
+        )
+        await run_backfill(
+            hass,
+            freezer,
+            BACKFILL_START_DELAY if attempt == 1 else timedelta(seconds=300),
+        )
+        assert company.accounts.retry_in is not None, attempt
+        assert company.accounts.data.years[0].status == "pending", attempt
+        assert queue.queued == [ACTIVE], attempt
+    limiter.update_from_headers(
+        {"X-Ratelimit-Remain": "600", "X-Ratelimit-Reset": str(reset + 300)}
+    )
+    await run_backfill(hass, freezer, timedelta(seconds=300))
+    assert company.accounts.data.years[0].status == "ok"
+    assert queue.queued == []
+    assert _document_calls(aioclient_mock).count("/document/doc-a/content") == 1
+
+
+async def test_one_bad_document_does_not_hold_the_others_back(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A document the register cannot serve is skipped; the older years are still read."""
+    freezer.move_to(NOW)
+    items = [
+        _item("tx-a", "2025-12-31", "2026-06-01", document_id="doc-a"),
+        _item("tx-b", "2024-12-31", "2025-06-01", document_id="doc-b"),
+        _item("tx-c", "2023-12-31", "2024-06-01", document_id="doc-c"),
+    ]
+    docs = {
+        "doc-a": 500,
+        "doc-b": _ixbrl("small_filleted"),
+        "doc-c": _ixbrl("micro_doctype"),
+    }
+    mock_accounts(aioclient_mock, items=items, documents=docs)
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    queue = entry.runtime_data.accounts_backfill
+    await run_backfill(hass, freezer)
+    statuses = {y.transaction_id: y.status for y in company.accounts.data.years}
+    assert statuses == {"tx-a": "pending", "tx-b": "ok", "tx-c": "ok"}
+    assert company.accounts.fetch_failed
+    assert company.accounts.wants_reading
+    assert queue.queued == [ACTIVE]
+    # The years read are news even though the newest could not be fetched.
+    assert company.state.changes[0]["payload"]["transaction_id"] == "tx-b"
+    # The retries only ask for the document still missing.
+    await run_backfill(hass, freezer, BACKFILL_RETRY_GAP)
+    await run_backfill(hass, freezer, BACKFILL_RETRY_GAP)
+    calls = _document_calls(aioclient_mock)
+    assert calls.count("/document/doc-a/content") == 3
+    assert calls.count("/document/doc-b/content") == 1
+    assert calls.count("/document/doc-c/content") == 1
+    assert queue.queued == []
+
+
+async def test_probe_read_paused_on_budget_goes_back_to_the_queue(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """New accounts the probe saw are still read when the first try hit the reserve."""
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    mock_accounts(aioclient_mock, items=FILINGS[1:])
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    queue = entry.runtime_data.accounts_backfill
+    limiter = entry.runtime_data.client.limiter
+    await run_backfill(hass, freezer)
+    assert queue.queued == []
+    assert len([e for e in events if e.data["kind"] == "accounts"]) == 1
+
+    history = load_fixture("company_active/filing_history")
+    history["items"].insert(0, FILINGS[0])
+    history["total_count"] += 1
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock)
+    mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
+    # Room for the probe and the listing; the document itself hits the reserve.
+    reset = int(dt_util.utcnow().timestamp()) + 200
+    limiter.update_from_headers(
+        {"X-Ratelimit-Remain": "122", "X-Ratelimit-Reset": str(reset)}
+    )
+    await company.probe.async_refresh()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    latest = company.accounts.data.latest
+    assert latest.transaction_id == "tx-2025"
+    assert latest.status == "pending"
+    assert company.accounts.retry_in is not None
+    assert company.accounts.last_reason == "fetched"
+    assert hass.states.get("sensor.example_trading_limited_cash").state == "11"
+    # Nobody ran the queue for this, so it took the company back itself.
+    assert queue.queued == [ACTIVE]
+    assert not _document_calls(aioclient_mock)
+
+    limiter.update_from_headers(
+        {"X-Ratelimit-Remain": "600", "X-Ratelimit-Reset": str(reset + 400)}
+    )
+    await run_backfill(hass, freezer, timedelta(seconds=201))
+    assert company.accounts.data.latest.status == "ok"
+    assert queue.queued == []
+    assert hass.states.get("sensor.example_trading_limited_cash").state == "13552"
+    read = [e for e in events if e.data["kind"] == "accounts"]
+    assert len(read) == 2
+    assert read[-1].data["transaction_id"] == "tx-2025"
+
+
+async def test_probe_read_that_fails_is_retried_by_the_queue(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A document the register could not serve to the probe's read is tried again later."""
+    freezer.move_to(NOW)
+    mock_accounts(aioclient_mock, items=FILINGS[1:])
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    queue = entry.runtime_data.accounts_backfill
+    await run_backfill(hass, freezer)
+    assert queue.queued == []
+
+    history = load_fixture("company_active/filing_history")
+    history["items"].insert(0, FILINGS[0])
+    history["total_count"] += 1
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock, documents={**DOCUMENTS, "doc-2025": 503})
+    mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
+    await company.probe.async_refresh()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    latest = company.accounts.data.latest
+    assert latest.status == "pending"
+    assert "HTTP 503" in (latest.error or "")
+    assert queue.queued == [ACTIVE]
+    # Not yet: failures wait a while before the next go.
+    await run_backfill(hass, freezer, BACKFILL_GAP)
+    assert _document_calls(aioclient_mock).count("/document/doc-2025/content") == 1
+
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock)
+    mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
+    await run_backfill(hass, freezer, BACKFILL_RETRY_GAP)
+    assert company.accounts.data.latest.status == "ok"
+    assert company.accounts.data.latest.error is None
+    assert queue.queued == []
+
+    # A read the action asked for that fails on the listing is queued too.
+    company.accounts.mark_unread()
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, ACTIVE)
+    aioclient_mock.get(
+        f"{API_BASE}/company/{ACTIVE}/filing-history?category=accounts", status=500
+    )
+    response = await hass.services.async_call(
+        DOMAIN,
+        "read_accounts",
+        {"company_number": ACTIVE},
+        blocking=True,
+        return_response=True,
+    )
+    assert response["companies"][0]["latest"]["status"] == "pending"
+    assert not company.accounts.last_update_success
+    assert queue.queued == [ACTIVE]
+
+
+async def test_amended_accounts_are_read_and_announced(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """An amended set for a year already read replaces it and fires the read event."""
+    freezer.move_to(NOW)
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    original = _item(
+        "tx-1", "2025-12-31", "2026-06-01", document_id="doc-1", accounts_type="full"
+    )
+    mock_accounts(
+        aioclient_mock, items=[original], documents={"doc-1": _ixbrl("full_frs102")}
+    )
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    await run_backfill(hass, freezer)
+    assert company.accounts.data.latest.value("net_assets") == Decimal(-1026)
+    assert len([e for e in events if e.data["kind"] == "accounts"]) == 1
+
+    amended = _item(
+        "tx-1a",
+        "2025-12-31",
+        "2026-09-01",
+        document_id="doc-1a",
+        accounts_type="full",
+        filing_type="AAMD",
+    )
+    aioclient_mock.clear_requests()
+    mock_accounts(
+        aioclient_mock,
+        items=[amended, original],
+        documents={"doc-1a": _ixbrl("full_net_liabilities")},
+    )
+    mock_company(aioclient_mock, ACTIVE)
+    await company.accounts.async_refresh_now(on_demand=True)
+    years = company.accounts.data.years
+    assert [y.transaction_id for y in years] == ["tx-1a"]
+    assert years[0].amended
+    assert years[0].value("net_assets") == Decimal(-48576)
+    read = [e for e in events if e.data["kind"] == "accounts"]
+    assert len(read) == 2
+    assert read[-1].data["transaction_id"] == "tx-1a"
+    assert read[-1].data["amended"] is True
+    assert read[-1].data["figures"]["employees"] == 2
+    # Reading again with nothing new is not news.
+    await company.accounts.async_refresh_now(on_demand=True)
+    assert len([e for e in events if e.data["kind"] == "accounts"]) == 2
 
 
 async def test_unreadable_documents_are_marked_not_retried(
@@ -783,7 +1020,7 @@ async def test_statistics_are_imported_for_every_year(
         by_id["companies_house:12345678_employees"]["statistics_unit_of_measurement"]
         is None
     )
-    # Profit after tax was never disclosed, so no series exists for it.
+    # Full accounts disclose profit after tax, so that series exists too.
     assert "companies_house:12345678_profit_after_tax" in by_id
     stats = await get_instance(hass).async_add_executor_job(
         statistics_during_period,
@@ -798,10 +1035,10 @@ async def test_statistics_are_imported_for_every_year(
     turnover_rows = stats["companies_house:12345678_turnover"]
     assert [row["mean"] for row in turnover_rows] == [16600.0, 13784.0]
     net_rows = stats["companies_house:12345678_net_assets"]
-    assert [row["mean"] for row in net_rows] == [11.0, 11.0, -2865.0, -1026.0]
+    assert [row["mean"] for row in net_rows] == [11.0, -2865.0, -1026.0]
     # The rows sit at local midnight on the year end.
     first = dt_util.utc_from_timestamp(net_rows[0]["start"])
-    assert dt_util.as_local(first).year == 2022
+    assert dt_util.as_local(first).year == 2023
 
 
 # ---------------------------------------------------------------- actions
@@ -840,10 +1077,13 @@ async def test_accounts_action_returns_the_history(
     assert len(response["years"]) == 5
     assert response["years"][1]["source"] == "comparative"
     assert response["years"][1]["status_words"] == "no structured data"
-    assert response["years"][4]["figures"]["turnover"]["text"] == (
-        "not disclosed (micro-entity accounts)"
-    )
-    assert len(response["series"]) == 4
+    # A year with no structured data says so, rather than "not disclosed".
+    assert response["years"][4]["status"] == "no_ixbrl"
+    assert response["years"][4]["figures"]["turnover"]["text"] == "no structured data"
+    # A year that borrowed the comparative column carries its figures.
+    assert response["years"][1]["figures"]["turnover"]["text"] == "£16.6k"
+    assert response["years"][1]["figures"]["turnover"]["status"] == "ok"
+    assert len(response["series"]) == 3
     with pytest.raises(ServiceValidationError, match="not being watched"):
         await hass.services.async_call(
             DOMAIN,
@@ -954,16 +1194,31 @@ async def test_report_has_an_accounts_section(
         items=[_item("tx-llp", "2025-03-31", "2025-12-01", document_id="doc-llp")],
         documents={"doc-llp": _ixbrl("micro_hidden_employees")},
     )
-    await setup_entry([ACTIVE, "OC123456"], close_watch={"OC123456"})
+    mock_accounts(
+        aioclient_mock,
+        "56789012",
+        items=[
+            _item(
+                "tx-sub",
+                "2026-02-28",
+                "2026-08-01",
+                document_id="doc-sub",
+                accounts_type="small",
+            )
+        ],
+        documents={"doc-sub": _ixbrl("small_filleted")},
+    )
+    await setup_entry([ACTIVE, "OC123456", "56789012"], close_watch={"OC123456"})
     await run_backfill(hass, freezer)
+    await run_backfill(hass, freezer, BACKFILL_GAP)
     await run_backfill(hass, freezer, BACKFILL_GAP)
     response = await hass.services.async_call(
         DOMAIN, "digest", {"days": 7}, blocking=True, return_response=True
     )
-    assert response["summary"]["accounts_read"] == 2
+    assert response["summary"]["accounts_read"] == 3
     read = response["accounts_read"]
-    # The one with flags first.
-    assert [a["number"] for a in read] == [ACTIVE, "OC123456"]
+    # The one with flags first, then the closely watched one.
+    assert [a["number"] for a in read] == [ACTIVE, "OC123456", "56789012"]
     first = read[0]
     assert first["accounts_type"] == "full accounts"
     assert first["made_up_to"] == "2025-12-31"
@@ -983,8 +1238,17 @@ async def test_report_has_an_accounts_section(
     assert rows["creditors_within_one_year"]["worse"] is True
     assert first["document"].endswith("tx-2025/document?format=pdf&download=0")
     second = read[1]
-    assert second["undisclosed"] == "not disclosed (micro-entity accounts)"
+    assert second["undisclosed"] == (
+        "Turnover, profit and cash: not disclosed (micro-entity accounts)"
+    )
     assert [r["metric"] for r in second["rows"]] == ["net_assets", "employees"]
+    # Filleted accounts keep cash: the note names only what is missing, so
+    # it never contradicts the table above it.
+    third = read[2]
+    assert third["undisclosed"] == (
+        "Turnover and profit: not disclosed (small company accounts)"
+    )
+    assert {r["metric"]: r["value"] for r in third["rows"]}["cash"] == "£11"
     html = response["html"]
     assert "Accounts read this week" in html
     assert "£13.8k" in html
@@ -997,6 +1261,8 @@ async def test_report_has_an_accounts_section(
     assert "Turnover: £13.8k (last year £16.6k, down 17 %)" in text
     assert "Flags: Net liabilities, Creditors exceed cash and debtors" in text
     assert "Turnover, profit and cash: not disclosed (micro-entity accounts)" in text
+    assert "Turnover and profit: not disclosed (small company accounts)" in text
+    assert "Cash: £11 (last year £11, unchanged)" in text
     # The company cards carry the figures for other features.
     cards = {c["number"]: c for c in response["companies"]}
     assert cards[ACTIVE]["accounts"]["figures"]["turnover"] == 13784
@@ -1088,6 +1354,10 @@ def test_formatting_helpers() -> None:
     assert format_money(43_300_000) == "£43.3m"
     assert format_money(Decimal(2_000_000)) == "£2m"
     assert format_money(912_345) == "£912k"
+    # Rounding never leaves a four-digit thousands figure behind.
+    assert format_money(999_999) == "£1m"
+    assert format_money(999_499) == "£999k"
+    assert format_money(1_060_000) == "£1.1m"
     assert format_money(13_784) == "£13.8k"
     assert format_money(1000) == "£1k"
     assert format_money(-1026) == "-£1k"
@@ -1102,6 +1372,12 @@ def test_formatting_helpers() -> None:
     assert format_change(0) == "unchanged"
     assert format_change(12.5) == "up 12.5 %"
     assert format_change(-3) == "down 3 %"
+    # A dormant company that starts trading: written out, never 2.5e+06.
+    assert format_change(percent_change(Decimal(25_000), Decimal(1))) == (
+        "up 2,499,900 %"
+    )
+    assert format_change(1000.0) == "up 1,000 %"
+    assert format_change(-999.9) == "down 999.9 %"
     assert percent_change(Decimal(110), Decimal(100)) == 10.0
     assert percent_change(Decimal(50), Decimal(-100)) == 150.0
     assert percent_change(Decimal(1), Decimal(0)) is None
@@ -1220,6 +1496,24 @@ def test_year_and_history_summaries() -> None:
     assert attrs["cash"]["status"] == "not disclosed (small company accounts)"
     unit = _year(figures={"cash": Figure(status="unit_mismatch")})
     assert figure_attributes(unit)["cash"]["status"] == "unit mismatch"
+    # Before the accounts were read nothing is "not disclosed" yet.
+    paper = _year(accounts_type="full", status="no_ixbrl", source="none", figures={})
+    assert figure_attributes(paper)["turnover"]["status"] == "no structured data"
+    pending = _year(accounts_type="micro-entity", status="pending", figures={})
+    assert figure_attributes(pending)["cash"]["status"] == "not read yet"
+    assert figure_attributes(_year(status="parse_error", figures={}))["cash"][
+        "status"
+    ] == ("could not be read")
+    borrowed = _year(
+        accounts_type="full",
+        status="no_ixbrl",
+        source="comparative",
+        figures={"turnover": Figure(value=Decimal(5), status="ok")},
+    )
+    assert figure_attributes(borrowed)["turnover"]["status"] == "ok"
+    assert figure_attributes(borrowed)["cash"]["status"] == (
+        "not in the following year's comparatives"
+    )
     summary = history_summary(AccountsHistory(years=[year], checked=True))
     assert summary["latest"]["figures"]["turnover"]["text"] == "£1k"
     assert summary["latest"]["flags"] == [
@@ -1402,6 +1696,32 @@ def test_fill_comparatives_rules() -> None:
     assert fill_comparatives([bare, paper])[1] is paper
     # The newest year never borrows.
     assert fill_comparatives([paper])[0] is paper
+    # The comparative column must be about that year: with the 2024 accounts
+    # missing from the list, 2023 does not get 2024's figures.
+    dated = _year(transaction_id="a", prior_period_end=date(2024, 12, 31))
+    assert fill_comparatives([dated, paper])[1].source == "comparative"
+    assert fill_comparatives([dated, paper_too])[1] is paper_too
+    # A few days between the register's date and the accounts' own is fine.
+    close = _year(transaction_id="a", prior_period_end=date(2025, 1, 5))
+    assert fill_comparatives([close, paper])[1].source == "comparative"
+    far = _year(transaction_id="a", prior_period_end=date(2025, 2, 28))
+    assert fill_comparatives([far, paper])[1] is paper
+    # When the accounts were read before the date was kept, a year within
+    # eighteen months passes for the year before; a bigger gap does not.
+    assert fill_comparatives([read, paper_too])[1] is paper_too
+    long_first_year = _year(
+        transaction_id="f",
+        made_up_to=date(2025, 12, 31),
+        status="no_ixbrl",
+        source="none",
+        figures={},
+    )
+    assert (
+        fill_comparatives(
+            [_year(transaction_id="g", made_up_to=date(2027, 3, 31)), long_first_year]
+        )[1].source
+        == "comparative"
+    )
 
 
 def test_figures_round_trip_through_storage() -> None:

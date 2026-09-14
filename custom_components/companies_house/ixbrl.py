@@ -133,6 +133,11 @@ CANDIDATES: dict[str, tuple[tuple[str, Dims], ...]] = {
     ),
 }
 
+# Head counts: whole people, not sums of money. One filing package tags them
+# with scale="-2" while writing the plain count ("2"), which read literally
+# would be 0.02 employees; a negative scale on a whole number is ignored.
+COUNT_CONCEPTS = frozenset({"AverageNumberEmployeesDuringPeriod", "EmployeesTotal"})
+
 # Facts about the report itself, read from ix:nonNumeric tags.
 _REPORT_CONCEPTS = frozenset(
     {
@@ -174,7 +179,13 @@ class Figure(StorableModel):
 
 @dataclass(frozen=True, kw_only=True)
 class ParsedAccounts:
-    """What one iXBRL document says about the company."""
+    """What one iXBRL document says about the company.
+
+    ``prior_period_end`` is the year end the comparative column refers to:
+    the end of the year before when the accounts cover one, otherwise the
+    earlier balance sheet date, and None when there is no comparative at
+    all (a first year).
+    """
 
     period_start: date | None
     period_end: date | None
@@ -264,6 +275,19 @@ def parse_number(
     if sign == "-":
         value = -value
     return value
+
+
+def _count_scale(concept: str, text: str, scale: str | None) -> str | None:
+    """Return the scale to apply, dropping a negative one on a whole head count."""
+    if (
+        concept in COUNT_CONCEPTS
+        and scale
+        and scale.strip().startswith("-")
+        and "." not in text
+        and "," not in text
+    ):
+        return None
+    return scale
 
 
 def _fact_text(element: ET.Element) -> str:
@@ -378,20 +402,22 @@ def _read_document(root: ET.Element) -> _Document:
             context_ref = element.get("contextRef") or ""
             if context_ref not in doc.periods:
                 continue
+            concept = _local(element.get("name"))
+            text = _fact_text(element)
             value = (
                 None
                 if element.get(XSI_NIL) == "true"
                 else parse_number(
-                    _fact_text(element),
+                    text,
                     element.get("format"),
-                    element.get("scale"),
+                    _count_scale(concept, text, element.get("scale")),
                     element.get("sign"),
                 )
             )
             unit_ref = element.get("unitRef")
             doc.facts.append(
                 Fact(
-                    concept=_local(element.get("name")),
+                    concept=concept,
                     period=doc.periods[context_ref],
                     dims=doc.dims.get(context_ref, ()),
                     value=value,
@@ -597,10 +623,13 @@ def parse_accounts(data: bytes) -> ParsedAccounts:
             status=status,
             concept=concept or prior_concept,
         )
+    has_prior = any(f.prior is not None for f in figures.values())
     return ParsedAccounts(
         period_start=periods.start,
         period_end=periods.end,
-        prior_period_end=_iso(periods.prior[1]) if periods.prior else None,
+        prior_period_end=_iso(periods.prior_instant[0])
+        if periods.prior_instant and (periods.prior or has_prior)
+        else None,
         dormant=_dormant(doc),
         accounting_standard=doc.members.get("AccountingStandardsDimension"),
         accounts_type_member=doc.members.get("AccountsTypeDimension"),
@@ -628,6 +657,7 @@ def looks_like_ixbrl(data: bytes) -> bool:
 
 __all__ = [
     "CANDIDATES",
+    "COUNT_CONCEPTS",
     "DURATION_METRICS",
     "MAX_BYTES",
     "METRICS",

@@ -96,6 +96,8 @@ class AccountsYear(StorableModel):
     transaction_id: str
     made_up_to: date
     filed_on: date | None = None
+    # The year end the comparative (year before) column refers to, once read.
+    prior_period_end: date | None = None
     accounts_type: str | None = None
     amended: bool = False
     paper_filed: bool = False
@@ -149,6 +151,23 @@ class AccountsYear(StorableModel):
         if "filleted" in member or "abridged" in member:
             return f"not disclosed ({self.type_words})"
         return None
+
+    def figure_status_words(self, metric: str) -> str:
+        """Say in plain English why a figure is there or not.
+
+        A figure can only be "not disclosed" once the accounts were read;
+        before that the year's own state is the reason ("not read yet", "no
+        structured data"). Figures borrowed from the next year's comparative
+        column are missing when that column left them out.
+        """
+        figure = self.figure(metric)
+        if figure.value is not None or figure.status != "not_disclosed":
+            return figure.status.replace("_", " ")
+        if self.source == "comparative":
+            return "not in the following year's comparatives"
+        if not self.is_read:
+            return STATUS_WORDS.get(self.status, self.status)
+        return self.undisclosed_reason or "not disclosed"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -213,7 +232,8 @@ def format_money(value: Decimal | float | None) -> str:
     amount = Decimal(str(value))
     sign = "-" if amount < 0 else ""
     amount = abs(amount)
-    if amount >= 1_000_000:
+    # The unit is chosen after rounding, so £999,950 is £1m rather than £1000k.
+    if round(amount / 1_000) >= 1_000:
         text = f"{amount / 1_000_000:.1f}".removesuffix(".0") + "m"
     elif amount >= 100_000:
         text = f"{amount / 1_000:.0f}k"
@@ -244,7 +264,11 @@ def format_change(percent: float | None) -> str:
     if percent == 0:
         return "unchanged"
     word = "up" if percent > 0 else "down"
-    return f"{word} {abs(percent):g} %"
+    size = abs(percent)
+    # Big jumps (a dormant company starting to trade) are written in full,
+    # never as 2.5e+06.
+    number = f"{size:,.0f}" if size >= 1_000 else f"{size:g}"
+    return f"{word} {number} %"
 
 
 # ---------------------------------------------------------------- reading
@@ -362,14 +386,11 @@ def figure_attributes(year: AccountsYear) -> dict[str, JsonDict]:
     out: dict[str, JsonDict] = {}
     for metric in METRICS:
         figure = year.figure(metric)
-        status = figure.status
-        if figure.value is None and status == "not_disclosed":
-            status = year.undisclosed_reason or "not disclosed"
         out[metric] = {
             "value": plain_number(figure.value),
             "prior": plain_number(figure.prior),
             "change_percent": percent_change(figure.value, figure.prior),
-            "status": status.replace("_", " "),
+            "status": year.figure_status_words(metric),
         }
     return out
 

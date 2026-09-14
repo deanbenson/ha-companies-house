@@ -86,7 +86,8 @@ def test_dormant_aa02_has_an_instant_end_date_and_no_prior_year() -> None:
     assert parsed.dormant
     assert parsed.period_start == date(2025, 7, 1)
     assert parsed.period_end == date(2026, 6, 30)
-    assert parsed.prior_period_end is None
+    # No duration for last year, but the balance sheet has a comparative.
+    assert parsed.prior_period_end == date(2025, 6, 30)
     assert _values(parsed, "net_assets") == (Decimal(1), Decimal(1), "ok")
     assert _values(parsed, "employees") == (Decimal(0), None, "ok")
 
@@ -126,7 +127,8 @@ def test_creditors_prefer_the_within_one_year_dimension() -> None:
     )
     assert _values(parsed, "net_assets") == (Decimal(-48576), Decimal(-43086), "ok")
     assert _values(parsed, "cash") == (Decimal(66637), Decimal(18992), "ok")
-    assert _values(parsed, "employees") == (Decimal("0.02"), Decimal("0.02"), "ok")
+    # Tagged "2" with scale="-2", a common filer slip: two people, not 0.02.
+    assert _values(parsed, "employees") == (Decimal(2), Decimal(2), "ok")
 
 
 def test_doctype_and_first_year_accounts() -> None:
@@ -300,6 +302,36 @@ def test_hand_built_document_covers_formats_scale_sign_and_dedupe() -> None:
     assert _values(parsed, "debtors") == (None, None, "not_disclosed")
 
 
+def test_head_counts_ignore_a_negative_scale_on_whole_numbers() -> None:
+    """A head count tagged "2" with scale="-2" is two people; money keeps its scale."""
+    body = END_DATE + "".join(
+        [
+            _fact(
+                "core:AverageNumberEmployeesDuringPeriod",
+                "cur",
+                "2",
+                unit="pure",
+                fmt=None,
+                scale="-2",
+            ),
+            # A genuine fraction keeps the scale it was tagged with.
+            _fact(
+                "core:AverageNumberEmployeesDuringPeriod",
+                "prev",
+                "250.0",
+                unit="pure",
+                fmt=None,
+                scale="-2",
+            ),
+            # Sums of money are read exactly as tagged.
+            _fact("core:CashBankOnHand", "cur_end", "150", scale="-2"),
+        ]
+    )
+    parsed = parse_accounts(_doc(body))
+    assert _values(parsed, "employees") == (Decimal(2), Decimal("2.500"), "ok")
+    assert _values(parsed, "cash") == (Decimal("1.50"), None, "ok")
+
+
 def test_conflicting_duplicates_keep_the_visible_value() -> None:
     """Two different values for one figure: the visible one wins and it is flagged."""
     body = END_DATE + "".join(
@@ -357,7 +389,7 @@ def test_period_falls_back_to_the_latest_duration_and_balance_sheet_date() -> No
     )
     parsed = parse_accounts(_doc(body))
     assert parsed.period_start == date(2025, 1, 1)
-    assert parsed.prior_period_end is None
+    assert parsed.prior_period_end == date(2024, 12, 31)
     assert _values(parsed, "net_assets") == (Decimal(8), Decimal(7), "ok")
     # The same with the start written as an ISO date in an instant context.
     body = (
@@ -379,9 +411,18 @@ def test_period_falls_back_to_the_latest_duration_and_balance_sheet_date() -> No
     parsed = parse_accounts(_doc(body))
     assert parsed.period_start is None
     assert parsed.period_end == date(2025, 12, 31)
-    assert parsed.prior_period_end is None
+    assert parsed.prior_period_end == date(2024, 12, 31)
     assert _values(parsed, "net_assets") == (Decimal(8), Decimal(7), "ok")
     assert _values(parsed, "turnover") == (None, None, "not_disclosed")
+    # A first year with a start but nothing tagged before it has no comparative.
+    body = (
+        END_DATE
+        + '<ix:nonNumeric name="bus:StartDateForPeriodCoveredByReport" contextRef="cur">1 January 2025</ix:nonNumeric>'
+        + _fact("core:NetAssetsLiabilities", "cur_end", "8")
+    )
+    parsed = parse_accounts(_doc(body))
+    assert parsed.period_start == date(2025, 1, 1)
+    assert parsed.prior_period_end is None
     # An end date whose text is not a date and no facts at all: no period.
     body = '<ix:nonNumeric name="bus:EndDateForPeriodCoveredByReport" contextRef="broken">soon</ix:nonNumeric>'
     with pytest.raises(IxbrlError, match="no reporting period"):

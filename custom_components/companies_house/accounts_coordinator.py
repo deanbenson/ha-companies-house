@@ -57,7 +57,16 @@ BACKFILL_START_DELAY = timedelta(seconds=60)
 BACKFILL_GAP = timedelta(seconds=20)
 # After a failed read (not a spent budget) wait this long before trying again.
 BACKFILL_RETRY_GAP = timedelta(minutes=15)
+# How many times a company whose documents keep failing is tried per request.
+# A spent budget is not a failure: the queue simply waits for the window.
 BACKFILL_MAX_ATTEMPTS = 3
+# The register's made-up date and the year end written in the accounts
+# themselves can differ by a few days; a comparative column this close to a
+# year's made-up date is about that year.
+COMPARATIVE_TOLERANCE = timedelta(days=31)
+# When the comparative column's date is unknown (accounts read before it was
+# recorded), a year this close to the next one is taken to be the year before.
+COMPARATIVE_MAX_GAP = timedelta(days=548)
 
 
 def _is_accounts(item: FilingHistoryItem) -> bool:
@@ -118,12 +127,21 @@ def merge_filings(
     return ordered[:HISTORY_CAP]
 
 
+def _is_year_before(newer: AccountsYear, year: AccountsYear) -> bool:
+    """Return True when ``newer``'s comparative column is about ``year``."""
+    if newer.prior_period_end is not None:
+        return abs(newer.prior_period_end - year.made_up_to) <= COMPARATIVE_TOLERANCE
+    return newer.made_up_to - year.made_up_to <= COMPARATIVE_MAX_GAP
+
+
 def fill_comparatives(years: list[AccountsYear]) -> list[AccountsYear]:
     """Borrow the year-before column for years with no structured accounts.
 
     Each year's figures come from its own accounts. Only when a year has
     none (paper accounts, or accounts that could not be read) does the next
-    year's comparative column stand in, marked as such.
+    year's comparative column stand in, marked as such, and only when that
+    column really is about this year: a gap in the register's list (a
+    missing year) must not put one year's figures under another's date.
     """
     out: list[AccountsYear] = []
     for index, year in enumerate(years):
@@ -131,7 +149,7 @@ def fill_comparatives(years: list[AccountsYear]) -> list[AccountsYear]:
             out.append(year)
             continue
         newer = years[index - 1]
-        if not newer.is_read:
+        if not newer.is_read or not _is_year_before(newer, year):
             out.append(year)
             continue
         figures = {
@@ -225,9 +243,10 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
             self.retry_in = err.retry_after
             raise
         years = merge_filings(known, history.items, dt_util.now().date())
-        newest_read = max(
-            (y.made_up_to for y in known.years if y.is_read), default=None
-        )
+        # What was already read, by year end: news is a year later than any
+        # of these, or a different filing (an amended set) for one of them.
+        read_before = {y.made_up_to: y.transaction_id for y in known.years if y.is_read}
+        newest_read = max(read_before, default=None)
         read_now: list[AccountsYear] = []
         for index, year in enumerate(years):
             if year.status != "pending":
@@ -243,6 +262,7 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
                 )
                 break
             except CompaniesHouseConnectionError as err:
+                # This document is out of reach for now; the others may not be.
                 years[index] = _with(year, error=str(err))
                 self.fetch_failed = True
                 LOGGER.debug(
@@ -251,7 +271,7 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
                     year.made_up_to,
                     err,
                 )
-                break
+                continue
             if years[index].is_read:
                 read_now.append(years[index])
         result = AccountsHistory(years=fill_comparatives(years), checked=True)
@@ -261,11 +281,39 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
             # One event for the newest accounts read, not one per back-filled
             # year: the older ones are history, not news.
             newest = max(read_now, key=lambda y: y.made_up_to)
-            if newest_read is None or newest.made_up_to > newest_read:
+            replaced = read_before.get(newest.made_up_to)
+            if (
+                newest_read is None
+                or newest.made_up_to > newest_read
+                or (replaced is not None and replaced != newest.transaction_id)
+            ):
                 self.company.dispatch(
                     ChangeEvent("accounts", "read", year_payload(newest))
                 )
         return result
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Hand an unfinished read back to the queue.
+
+        A read asked for by the probe or an action has no timer of its own,
+        so when it stopped early (budget spent, a document out of reach, the
+        listing failed) the queue takes it from here. The queue's own reads
+        decide for themselves.
+        """
+        if not self._force_fetch:
+            return
+        queue = self.company.entry.runtime_data.accounts_backfill
+        if queue.running is self.company:
+            return
+        if self.retry_in is not None:
+            queue.enqueue(
+                self.company,
+                delay=max(timedelta(seconds=self.retry_in), BACKFILL_GAP),
+                front=True,
+            )
+        elif self.fetch_failed or not self.last_update_success:
+            queue.enqueue(self.company, delay=BACKFILL_RETRY_GAP)
 
     async def _read_year(self, year: AccountsYear, priority: Priority) -> AccountsYear:
         """Fetch and parse one set of accounts. Budget errors propagate."""
@@ -311,6 +359,7 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
             status="ok",
             source="ixbrl",
             error=None,
+            prior_period_end=parsed.prior_period_end,
             dormant=parsed.dormant,
             accounting_standard=parsed.accounting_standard,
             accounts_type_member=parsed.accounts_type_member,
@@ -463,11 +512,10 @@ class AccountsBackfill:
         number = company.company_number
         delay = BACKFILL_GAP
         if coordinator.retry_in is not None:
-            # Budget spent: the same company again once the window rolls over.
-            self._attempts[number] = self._attempts.get(number, 0) + 1
-            if self._attempts[number] < BACKFILL_MAX_ATTEMPTS:
-                self._queue.appendleft(company)
-                delay = max(timedelta(seconds=coordinator.retry_in), BACKFILL_GAP)
+            # Budget spent: the same company again once the window rolls
+            # over, however often that takes; waiting is not failing.
+            self._queue.appendleft(company)
+            delay = max(timedelta(seconds=coordinator.retry_in), BACKFILL_GAP)
         elif coordinator.fetch_failed or not coordinator.last_update_success:
             # Something could not be fetched: let the others go first, and
             # wait a while when there is nobody else.
@@ -495,6 +543,7 @@ class AccountsBackfill:
 
 __all__ = [
     "BACKFILL_GAP",
+    "BACKFILL_RETRY_GAP",
     "BACKFILL_START_DELAY",
     "AccountsBackfill",
     "AccountsCoordinator",
