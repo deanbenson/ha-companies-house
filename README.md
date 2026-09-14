@@ -245,7 +245,10 @@ Companies also take a **website**, used for a logo and a link in reports.
 
 The **`companies_house.digest`** action gathers everything that changed at the
 opted-in companies and people over the last `days` (default 7) — every change
-is remembered in the store, newest first. Each change gets a **score** (what
+is remembered in the store, newest first, and the register's own dates fill in
+the rest: filings dated in the period and roles that started or ended in it
+are included even if they were seen before the log began. Each change gets a
+**score** (what
 happened × how much the company matters: close watch 3, notify instantly 2,
 else 1), so the report opens with a *Worth a look* list of the week's most
 important changes. Problems are split into **new this week** (a strike-off or
@@ -257,7 +260,8 @@ incorporated, with the followed people at them) and, when ownership changed,
 data, as email-safe HTML (inline styles, logos, links to the register and to
 filed PDFs) and as plain text. Pass `summary` to put a paragraph at the top (an
 `ai_task.generate_data` call over the data works well), `save: true` to also
-write it under `www/companies_house/` so it has a link, and `attach: true` to
+write it under `www/companies_house/` so it has a link (`report-DATE.html`,
+plus `report-latest.html` at a fixed address), and `attach: true` to
 download the period's accounts and every filing at close-watch companies
 (capped) and return them as `attachments` (and `email_attachments`, already in
 the shape `smtp.send_message` takes). Only `attach` costs API requests.

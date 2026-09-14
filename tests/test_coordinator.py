@@ -175,6 +175,12 @@ async def test_catch_up_fetches_only_missing_filings(
     assert any("/charges" in u for u in urls)  # implicated by the mortgage filing
     assert any("/officers" in u for u in urls)
     assert company.state.recent_filings[0]["transaction_id"] == "NEWTRANSACTION0002"
+    # The snapshot keeps the seeded history behind the new page, newest first.
+    assert company.probe.data is not None
+    kept = [item.transaction_id for item in company.probe.data.items]
+    assert kept[:2] == ["NEWTRANSACTION0002", "NEWTRANSACTION0001"]
+    assert len(kept) == len(load_fixture("company_active/filing_history")["items"]) + 2
+    assert len(set(kept)) == len(kept)
 
 
 async def test_officer_and_charge_changes_fire_events(

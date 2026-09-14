@@ -18,6 +18,7 @@ import types
 import typing
 from typing import Any, Self, get_args, get_origin, get_type_hints
 
+from .const import FILING_CATEGORY_EVENT_TYPE, FILING_EVENT_TYPES
 from .enumerations import FILING_DESCRIPTIONS
 
 # Statuses that mean a company is no longer on the register; kept here so the
@@ -486,6 +487,29 @@ class FilingHistoryItem(StorableModel):
             document_id=last_path_segment(links.get("document_metadata")),
             action_date=parse_date(data.get("action_date")),
         )
+
+    @property
+    def event_type(self) -> str:
+        """The filing event type, from the category."""
+        category = self.category or "other"
+        event_type = FILING_CATEGORY_EVENT_TYPE.get(category, category)
+        return event_type if event_type in FILING_EVENT_TYPES else "other"
+
+    def event_payload(self) -> JsonDict:
+        """Return the payload of a filing change event."""
+        return {
+            "transaction_id": self.transaction_id,
+            "date": self.date.isoformat() if self.date else None,
+            "description": self.description,
+            "rendered_description": self.rendered_description,
+            "category": self.category,
+            "subcategory": self.subcategory,
+            "type": self.type,
+            "barcode": self.barcode,
+            "document_id": self.document_id,
+            "paper_filed": self.paper_filed,
+            "pages": self.pages,
+        }
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -1008,6 +1032,18 @@ class Appointment(StorableModel):
         inactive rather than active, and so does this.
         """
         return self.resigned_on is None and self.company_status not in FINISHED
+
+    def event_payload(self) -> JsonDict:
+        """Return the payload of an appointment change event."""
+        started = self.appointed_on or self.appointed_before
+        return {
+            "company_number": self.company_number,
+            "company_name": self.company_name,
+            "company_status": self.company_status,
+            "role": self.officer_role,
+            "appointed_on": started.isoformat() if started else None,
+            "resigned_on": self.resigned_on.isoformat() if self.resigned_on else None,
+        }
 
 
 @dataclass(frozen=True, kw_only=True)

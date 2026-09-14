@@ -402,6 +402,66 @@ def _change_entry(
     }
 
 
+def _midnight(day: date) -> str:
+    return dt_util.start_of_local_day(day).isoformat()
+
+
+def _register_filings(
+    company: CompanyRuntime, since_day: date, logged: set[str]
+) -> list[JsonDict]:
+    """Filings the register dates inside the period that the log has not got.
+
+    The change log only starts when a company is first watched, and it
+    records when a filing was noticed rather than when it was made. The
+    filing history itself says what was filed this period, so the report
+    reads from that too and the two are merged by transaction id.
+    """
+    data = company.probe.data
+    if data is None:
+        return []
+    return [
+        {
+            "at": _midnight(item.date),
+            "kind": "filing",
+            "event_type": item.event_type,
+            "payload": item.event_payload(),
+        }
+        for item in data.items
+        if item.date is not None
+        and item.date >= since_day
+        and item.transaction_id not in logged
+    ]
+
+
+def _register_appointments(
+    officer: OfficerRuntime, since_day: date, logged: set[tuple[str, str]]
+) -> list[JsonDict]:
+    """Roles the register says started or ended this period, if not logged."""
+    data = officer.appointments.data
+    if data is None:
+        return []
+    out: list[JsonDict] = []
+    for appointment in data.items:
+        payload = appointment.event_payload()
+        started = appointment.appointed_on
+        ended = appointment.resigned_on
+        for event_type, day in (("appointed", started), ("resigned", ended)):
+            if (
+                day is not None
+                and day >= since_day
+                and (appointment.company_number, event_type) not in logged
+            ):
+                out.append(
+                    {
+                        "at": _midnight(day),
+                        "kind": "appointment",
+                        "event_type": event_type,
+                        "payload": payload,
+                    }
+                )
+    return out
+
+
 def _attention(
     company: CompanyRuntime, changes: list[JsonDict], since: datetime, today: date
 ) -> list[JsonDict]:
@@ -422,7 +482,13 @@ def _attention(
         out.append({"issue": issue, "new": new, "since": _iso(since_date)})
 
     if profile.company_status_detail == "active-proposal-to-strike-off":
-        add("Strike-off proposed", new=("status", "strike-off-proposed") in events)
+        # Logged as a status change when noticed; a Gazette notice dated this
+        # period says the same thing when read from the register.
+        add(
+            "Strike-off proposed",
+            new=("status", "strike-off-proposed") in events
+            or ("filing", "gazette") in events,
+        )
     if profile.company_status in _ONGOING_STATUSES:
         add(
             f"In {_status_word(profile.company_status)}",
@@ -455,6 +521,16 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
     deadline = profile.next_deadline if profile else None
     days = days_until(deadline[0], today) if deadline else None
     weight = _company_weight(company)
+    logged = _since(company.state.changes, since)
+    filed = _register_filings(
+        company,
+        since.date(),
+        {
+            str((c.get("payload") or {}).get("transaction_id") or "")
+            for c in logged
+            if c.get("kind") == "filing"
+        },
+    )
     changes = [
         _change_entry(
             c,
@@ -462,7 +538,7 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
             number=company.company_number,
             weight=weight,
         )
-        for c in _since(company.state.changes, since)
+        for c in logged + filed
     ]
     changes.sort(key=lambda c: (-c["score"], str(c["at"])))
     return {
@@ -502,9 +578,22 @@ def _person_card(officer: OfficerRuntime, since: datetime) -> JsonDict:
         else []
     )
     weight = 2 if officer.notify_instantly else 1
+    logged = _since(officer.state.changes, since)
+    moved = _register_appointments(
+        officer,
+        since.date(),
+        {
+            (
+                str((c.get("payload") or {}).get("company_number") or ""),
+                str(c["event_type"]),
+            )
+            for c in logged
+            if c.get("kind") == "appointment"
+        },
+    )
     changes = [
         _change_entry(c, subject=officer.officer_name, number="", weight=weight)
-        for c in _since(officer.state.changes, since)
+        for c in logged + moved
     ]
     changes.sort(key=lambda c: (-c["score"], str(c["at"])))
     return {

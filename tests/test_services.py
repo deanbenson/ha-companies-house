@@ -6,6 +6,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from freezegun.api import FrozenDateTimeFactory
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import llm
@@ -450,10 +451,12 @@ async def test_digest_action_reports_the_week(
     setup_entry: Callable[..., Any],
     aioclient_mock: AiohttpClientMocker,
     tmp_path: Path,
+    freezer: FrozenDateTimeFactory,
 ) -> None:
     """The report ranks changes, splits new problems from old, and can attach PDFs."""
     from custom_components.companies_house.const import Dataset
 
+    freezer.move_to("2026-09-14 12:00:00+00:00")
     entry = await setup_entry(
         ["12345678", "34567890"],
         officers=True,
@@ -589,6 +592,36 @@ async def test_digest_action_reports_the_week(
     assert latest.read_text(encoding="utf-8") == response["html"]
     assert response["latest_url"].endswith(f"/local/{DOMAIN}/report-latest.html")
 
+    # The register's own dates fill in what the change log never saw: with the
+    # log wiped, this week's filing and a new role still make the report, while
+    # the company-officer resignation (only ever a log entry) does not.
+    officer = next(iter(entry.runtime_data.officers.values()))
+    appointments = load_fixture("officer_many/appointments")
+    appointments["items"][0]["appointed_on"] = "2026-09-10"
+    aioclient_mock.get(
+        f"{API_BASE}/officers/{officer.officer_id}/appointments",
+        json=appointments,
+    )
+    await officer.appointments.async_refresh()
+    await hass.async_block_till_done()
+    company.state.changes = []
+    officer.state.changes = []
+    response = await hass.services.async_call(
+        DOMAIN, "digest", {"days": 7}, blocking=True, return_response=True
+    )
+    assert response is not None
+    assert response["summary"]["by_kind"] == {"filing": 1, "appointment": 1}
+    (changed,) = response["companies"]
+    (filed,) = changed["changes"]
+    assert filed["event_type"] == "accounts"
+    assert filed["at"].startswith("2026-09-13T00:00:00")
+    assert filed["transaction_id"] == "tx-accounts"
+    (person,) = response["people"]
+    (role,) = person["changes"]
+    assert role["event_type"] == "appointed"
+    assert role["at"].startswith("2026-09-10T00:00:00")
+    assert "new role" in role["title"]
+
     # A company opted out of the report is left out entirely.
     await hass.services.async_call(
         "switch",
@@ -603,7 +636,8 @@ async def test_digest_action_reports_the_week(
     assert response is not None
     assert response["summary"]["companies"] == 1
     assert response["companies"] == []
-    assert "A quiet week" in response["html"]
+    assert "EXAMPLE TRADING LIMITED" not in response["html"]
+    assert "new role" in response["html"]
 
 
 def test_new_companies_and_ownership_are_spotted() -> None:

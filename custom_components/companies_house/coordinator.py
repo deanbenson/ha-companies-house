@@ -11,7 +11,7 @@ fans them out to the event entities and the bus.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
@@ -47,9 +47,7 @@ from .const import (
     DOMAIN,
     EVENT_COMPANIES_HOUSE,
     EVENT_COMPANIES_HOUSE_ALERT,
-    FILING_CATEGORY_EVENT_TYPE,
     FILING_CATEGORY_REFRESH,
-    FILING_EVENT_TYPES,
     FILING_UNKNOWN_REFRESH,
     FINISHED_STATUSES,
     LOGGER,
@@ -114,6 +112,9 @@ type CompaniesHouseConfigEntry = ConfigEntry[CompaniesHouseRuntimeData]
 
 PROBE_SEED_ITEMS = 25
 PROBE_CATCH_UP_MAX = 25
+# How many filings the probe's snapshot keeps, newest first, so the register's
+# recent history stays available (for the report) without another request.
+PROBE_KEEP_ITEMS = 25
 ACCOUNT_INTERVAL = timedelta(seconds=60)
 STRIKE_OFF_NOTICE_DESCRIPTIONS = frozenset(
     {
@@ -660,6 +661,15 @@ class _CompanyCoordinator[DataT: StorableModel](CompaniesHouseCoordinator[DataT]
         return self.company.company_number
 
 
+def _keep_recent(
+    newest: list[FilingHistoryItem], known: list[FilingHistoryItem]
+) -> list[FilingHistoryItem]:
+    """Merge a fresh page in front of the filings already held, newest first."""
+    seen = {item.transaction_id for item in newest}
+    kept = [item for item in known if item.transaction_id not in seen]
+    return (list(newest) + kept)[:PROBE_KEEP_ITEMS]
+
+
 class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
     """Probe the filing history and drive the other coordinators."""
 
@@ -685,6 +695,7 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
             number, items_per_page=PROBE_SEED_ITEMS if seeding else 1, priority=priority
         )
         newest = history.items[0] if history.items else None
+        known = self.data.items if self.data is not None else []
         now = dt_util.utcnow()
         if seeding:
             # First ever look: remember what is there and fire nothing (8.4).
@@ -707,6 +718,7 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
             newest is not None and newest.transaction_id != state.newest_transaction_id
         )
         new_items: list[FilingHistoryItem] = []
+        candidates = history.items
         if changed:
             delta = history.total_count - (state.filings_total_count or 0)
             if delta > 1:
@@ -716,8 +728,6 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
                     priority=priority,
                 )
                 candidates = page.items
-            else:
-                candidates = history.items
             new_items = [
                 item
                 for item in candidates
@@ -754,7 +764,7 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
         if structure_due(number, now, state.last_structure):
             self._pending_refresh.add(Dataset.STRUCTURE)
             state.last_structure = now
-        return history
+        return replace(history, items=_keep_recent(candidates, known))
 
     def _record_newest(
         self, history: FilingHistory, newest: FilingHistoryItem | None
@@ -766,28 +776,8 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
             state.newest_filing_date = newest.date
 
     def _fire_filing(self, item: FilingHistoryItem) -> None:
-        category = item.category or "other"
-        event_type = FILING_CATEGORY_EVENT_TYPE.get(category, category)
-        if event_type not in FILING_EVENT_TYPES:
-            event_type = "other"
         self.company.dispatch(
-            ChangeEvent(
-                "filing",
-                event_type,
-                {
-                    "transaction_id": item.transaction_id,
-                    "date": item.date.isoformat() if item.date else None,
-                    "description": item.description,
-                    "rendered_description": item.rendered_description,
-                    "category": item.category,
-                    "subcategory": item.subcategory,
-                    "type": item.type,
-                    "barcode": item.barcode,
-                    "document_id": item.document_id,
-                    "paper_filed": item.paper_filed,
-                    "pages": item.pages,
-                },
-            )
+            ChangeEvent("filing", item.event_type, item.event_payload())
         )
         state = self.company.state
         if item.description in STRIKE_OFF_NOTICE_DESCRIPTIONS:
@@ -1298,7 +1288,7 @@ class OfficerRuntime(_Runtime):
                 ChangeEvent(
                     "appointment",
                     "company-now-watched",
-                    _appointment_payload(appointment),
+                    appointment.event_payload(),
                 )
             )
             added = True
@@ -1396,23 +1386,6 @@ class _OfficerCoordinator[DataT: StorableModel](CompaniesHouseCoordinator[DataT]
         return max(slot - now, timedelta(minutes=1)), "hash spread slot"
 
 
-def _appointment_payload(appointment: Any) -> dict[str, Any]:
-    return {
-        "company_number": appointment.company_number,
-        "company_name": appointment.company_name,
-        "company_status": appointment.company_status,
-        "role": appointment.officer_role,
-        "appointed_on": (
-            appointment.appointed_on or appointment.appointed_before
-        ).isoformat()
-        if (appointment.appointed_on or appointment.appointed_before)
-        else None,
-        "resigned_on": appointment.resigned_on.isoformat()
-        if appointment.resigned_on
-        else None,
-    }
-
-
 class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
     """An officer's appointments across every company, daily."""
 
@@ -1482,15 +1455,11 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
             old = before.get(appointment.key)
             if old is None:
                 self.officer.dispatch(
-                    ChangeEvent(
-                        "appointment", "appointed", _appointment_payload(appointment)
-                    )
+                    ChangeEvent("appointment", "appointed", appointment.event_payload())
                 )
             elif old.resigned_on is None and appointment.resigned_on is not None:
                 self.officer.dispatch(
-                    ChangeEvent(
-                        "appointment", "resigned", _appointment_payload(appointment)
-                    )
+                    ChangeEvent("appointment", "resigned", appointment.event_payload())
                 )
             elif old.company_status != appointment.company_status:
                 self.officer.dispatch(
@@ -1498,7 +1467,7 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
                         "appointment",
                         "company-status-changed",
                         {
-                            **_appointment_payload(appointment),
+                            **appointment.event_payload(),
                             "old_status": old.company_status,
                         },
                     )
