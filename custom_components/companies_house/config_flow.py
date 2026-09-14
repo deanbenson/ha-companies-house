@@ -324,9 +324,19 @@ def _plural(count: Any, singular: str, plural: str) -> str:
 
 
 def _display_name(name: str) -> str:
-    """Turn the officer list's ``SURNAME, Forenames`` into ``Forenames SURNAME``."""
+    """Show a register name as ``Forenames Surname``.
+
+    The register writes surnames in capitals: ``SURNAME, Forenames`` in a
+    company's officer list, ``Forenames SURNAME`` in search results. A name
+    that is all capitals (a corporate officer) is left as it is.
+    """
     surname, sep, forenames = name.partition(", ")
-    return f"{forenames} {surname}".strip() if sep else name
+    if sep:
+        name = f"{forenames} {surname}".strip()
+    words = name.split()
+    if len(words) < 2 or all(w.isupper() for w in words):
+        return name
+    return " ".join(w.title() if w.isupper() and len(w) > 1 else w for w in words)
 
 
 def _company_label(item: JsonDict) -> str:
@@ -805,11 +815,11 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 return self.async_abort(reason="already_configured")
             dob = chosen.get("date_of_birth") or {}
             return self.async_create_entry(
-                title=str(chosen["name"]),
+                title=_display_name(str(chosen["name"])),
                 data={
                     CONF_OFFICER_ID: officer_id,
                     CONF_OFFICER_IDS: [officer_id],
-                    CONF_OFFICER_NAME: chosen["name"],
+                    CONF_OFFICER_NAME: _display_name(str(chosen["name"])),
                     CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
                     CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
                     CONF_WATCH_COMPANIES: bool(user_input[CONF_WATCH_COMPANIES]),

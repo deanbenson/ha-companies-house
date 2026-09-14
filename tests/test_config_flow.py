@@ -475,11 +475,11 @@ async def test_track_officer_shortcut(
         s for s in entry.subentries.values() if s.subentry_type == SUBENTRY_TYPE_OFFICER
     )
     assert officer.unique_id == "officer-jane"
-    assert officer.title == "Jane Elizabeth SMITH"
+    assert officer.title == "Jane Elizabeth Smith"
     assert officer.data == {
         CONF_OFFICER_ID: "officer-jane",
         CONF_OFFICER_IDS: ["officer-jane"],
-        CONF_OFFICER_NAME: "Jane Elizabeth SMITH",
+        CONF_OFFICER_NAME: "Jane Elizabeth Smith",
         CONF_DATE_OF_BIRTH_MONTH: 6,
         CONF_DATE_OF_BIRTH_YEAR: 1978,
         CONF_WATCH_COMPANIES: True,
@@ -493,8 +493,8 @@ async def test_track_officer_shortcut(
         for s in entry.subentries.values()
         if s.subentry_type == SUBENTRY_TYPE_COMPANY and s.unique_id == "34567890"
     )
-    assert added.title == "SUNSET RETAIL LIMITED (Jane Elizabeth SMITH)"
-    assert added.data["label"] == "Jane Elizabeth SMITH"
+    assert added.title == "SUNSET RETAIL LIMITED (Jane Elizabeth Smith)"
+    assert added.data["label"] == "Jane Elizabeth Smith"
     assert (
         hass.states.get("sensor.sunset_retail_limited_company_status").state
         == "liquidation"
@@ -592,7 +592,7 @@ async def test_officer_subentry_search_and_add(
     )
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Jane Elizabeth SMITH"
+    assert result["title"] == "Jane Elizabeth Smith"
     assert result["unique_id"] == "officer-jane"
     assert result["data"][CONF_DATE_OF_BIRTH_YEAR] == 1978
     assert (
@@ -885,3 +885,16 @@ async def test_track_officer_404_means_none(
     )
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "no_officers"
+
+
+def test_display_name_reads_like_a_person() -> None:
+    """Register spellings come out as Forenames Surname; companies stay as they are."""
+    from custom_components.companies_house.config_flow import _display_name
+
+    assert _display_name("REED, Simon Peter") == "Simon Peter Reed"
+    assert _display_name("Simon Peter REED") == "Simon Peter Reed"
+    assert _display_name("O'BRIEN, Mary") == "Mary O'Brien"
+    assert _display_name("SMITH-JONES, Ann") == "Ann Smith-Jones"
+    assert _display_name("ACME SECRETARIES LIMITED") == "ACME SECRETARIES LIMITED"
+    assert _display_name("Laura Price") == "Laura Price"
+    assert _display_name("Cher") == "Cher"
