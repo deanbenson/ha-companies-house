@@ -160,6 +160,22 @@ def _status_word(status: str | None) -> str:
     return str(COMPANY_STATUS.get(status, status)).lower()
 
 
+# How a company in trouble is said to be: "X is in liquidation", not "X is
+# liquidation" (the register's own words do not follow "is").
+_STATUS_PHRASES = {
+    "liquidation": "in liquidation",
+    "administration": "in administration",
+    "receivership": "in receivership",
+    "voluntary-arrangement": "in a voluntary arrangement",
+    "insolvency-proceedings": "in insolvency proceedings",
+}
+
+
+def _status_phrase(status: str | None) -> str:
+    """Say a status the way it follows "is": "active", "in liquidation"."""
+    return _STATUS_PHRASES.get(status or "", _status_word(status))
+
+
 def _role(role: str | None) -> str:
     return (role or "officer").replace("-", " ")
 
@@ -744,8 +760,9 @@ def _attention(
             ],
         )
     if profile.company_status in _ONGOING_STATUSES:
+        phrase = _status_phrase(profile.company_status)
         add(
-            f"In {_status_word(profile.company_status)}",
+            phrase[0].upper() + phrase[1:],
             new=("status", "status-changed") in events,
         )
     since_day = since.date()

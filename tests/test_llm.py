@@ -22,11 +22,13 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
 )
 
 from custom_components.companies_house.accounts import AccountsYear
+from custom_components.companies_house.const import CONF_API_KEY, DOMAIN
 from custom_components.companies_house.coordinator import (
     ChangeEvent,
     CompanyRuntime,
     OfficerRuntime,
 )
+from custom_components.companies_house.gazette import compute_countdown
 from custom_components.companies_house.ixbrl import Figure
 from custom_components.companies_house.llm import (
     PROMPT,
@@ -34,13 +36,24 @@ from custom_components.companies_house.llm import (
     NoAnswerError,
     _due_words,
     _match_score,
+    _month_words,
     _normalise,
+    _objection_text,
     async_get_tools,
     find_company,
 )
-from custom_components.companies_house.models import AccountsInfo
+from custom_components.companies_house.models import (
+    AccountsInfo,
+    DateOfBirth,
+    Officer,
+)
 
-from .conftest import COMPANY_FIXTURES
+from .conftest import (
+    COMPANY_FIXTURES,
+    TEST_API_KEY,
+    company_subentry,
+    mock_company,
+)
 from .test_accounts import mock_accounts, run_backfill
 
 NOW = "2026-09-15T09:00:00+00:00"
@@ -321,7 +334,7 @@ async def test_company_answer_in_trouble(
         "Risk rating red: strike-off proposed (compulsory) on 25 Aug 2026; "
         "accounts 7 months overdue; confirmation statement 7 months overdue; "
         "files dormant accounts (declares it is not trading) and 2 more. "
-        "Next deadline: object to strike-off 26 days to object (11 Oct 2026)."
+        "Next deadline: 26 days to object to the strike-off (11 Oct 2026)."
     )
     assert answer["attention"] == [
         "Strike-off proposed (compulsory) — 26 days to object",
@@ -338,10 +351,22 @@ async def test_company_answer_in_trouble(
     assert answer["strike_off"]["link"].endswith(
         "/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx/document?format=pdf&download=0"
     )
-    assert [(d["what"], d["status"]) for d in answer["deadlines"]] == [
-        ("annual accounts", "overdue by 199 days"),
-        ("confirmation statement", "overdue by 212 days"),
-        ("object to strike-off", "26 days to object"),
+    assert [(d["what"], d["status"], d["text"]) for d in answer["deadlines"]] == [
+        (
+            "annual accounts",
+            "overdue by 199 days",
+            "annual accounts overdue by 199 days",
+        ),
+        (
+            "confirmation statement",
+            "overdue by 212 days",
+            "confirmation statement overdue by 212 days",
+        ),
+        (
+            "object to strike-off",
+            "26 days to object",
+            "26 days to object to the strike-off",
+        ),
     ]
     assert answer["deadlines"][0]["overdue"] is True
     assert answer["charges"]["text"] == "No outstanding charges"
@@ -352,6 +377,50 @@ async def test_company_answer_in_trouble(
         "OLD VENTURES LIMITED (23456789) is dissolved since 13 Aug 2024."
     )
     assert answer["deadlines"] == []
+    # An insolvent company is "in liquidation", said once, not "is liquidation".
+    result = await ask(hass, "company", name="sunset")
+    answer = result["result"]
+    assert answer["status"] == "liquidation"
+    assert answer["summary"] == (
+        "SUNSET RETAIL LIMITED (34567890) is in liquidation, incorporated 12 Mar 2015. "
+        "Confirmation statement overdue. "
+        "Risk rating red: being wound up (solvent liquidation) since 1 Jul 2026; "
+        "confirmation statement 3 months overdue; sole director. "
+        "Next deadline: annual accounts due in 15 days (30 Sep 2026)."
+    )
+    assert answer["attention"] == [
+        "In liquidation",
+        "Confirmation statement overdue",
+        "Risk rating red",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("status", "phrase", "issue"),
+    [
+        ("administration", "in administration", "In administration"),
+        ("receivership", "in receivership", "In receivership"),
+        ("voluntary-arrangement", "in a voluntary arrangement", None),
+        ("insolvency-proceedings", "in insolvency proceedings", None),
+        ("removed", "removed", None),
+    ],
+)
+async def test_company_answer_status_phrases(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    status: str,
+    phrase: str,
+    issue: str | None,
+) -> None:
+    """Every insolvent status reads as a phrase after "is", and only once."""
+    company = _company(entry, "34567890")
+    company.profile.data = replace(company.profile.data, company_status=status)
+    answer = (await ask(hass, "company", name="sunset"))["result"]
+    assert answer["summary"].startswith(f"SUNSET RETAIL LIMITED (34567890) is {phrase}")
+    assert answer["summary"].count(phrase) == 1
+    assert [a for a in answer["attention"] if a.startswith("In ")] == (
+        [issue] if issue else []
+    )
 
 
 async def test_company_answer_with_accounts(
@@ -498,9 +567,13 @@ async def test_deadlines(hass: HomeAssistant, entry: MockConfigEntry) -> None:
         ("SUNSET RETAIL LIMITED", "annual accounts", "due in 15 days"),
         ("DORMANT HOLDINGS LIMITED", "object to strike-off", "26 days to object"),
     ]
-    assert answer["summary"].startswith(
+    assert answer["summary"] == (
         "5 deadlines in the next 30 days, 3 already overdue: "
-        "DORMANT HOLDINGS LIMITED confirmation statement overdue by 212 days; "
+        "DORMANT HOLDINGS LIMITED: confirmation statement overdue by 212 days; "
+        "DORMANT HOLDINGS LIMITED: annual accounts overdue by 199 days; "
+        "SUNSET RETAIL LIMITED: confirmation statement overdue by 92 days; "
+        "SUNSET RETAIL LIMITED: annual accounts due in 15 days; "
+        "DORMANT HOLDINGS LIMITED: 26 days to object to the strike-off."
     )
     assert answer["deadlines"][-1]["link"].endswith(
         "/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx/document?format=pdf&download=0"
@@ -569,7 +642,7 @@ async def test_person_followed(hass: HomeAssistant, entry: MockConfigEntry) -> N
     assert answer["name"] == "Jane Elizabeth SMITH"
     assert answer["followed"] is True
     assert answer["records"] == ["officer-jane"]
-    assert answer["date_of_birth"] == "06/1978"
+    assert answer["date_of_birth"] == "Jun 1978"
     assert len(answer["roles"]) == 18
     assert answer["roles"][0] == {
         "company": "PORTFOLIO COMPANY 11 LIMITED",
@@ -714,6 +787,46 @@ async def test_person_from_the_watched_companies(
     }
 
 
+async def test_person_best_fit_wins(
+    hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """An exact name at a watched company beats a partial fit, followed or not."""
+    company = _company(entry, "34567890")
+    assert company.officers is not None
+    board = company.officers.data
+    assert board is not None
+    company.officers.data = replace(
+        board,
+        items=[
+            *board.items,
+            Officer(
+                name="SMITH, Jane",
+                officer_role="director",
+                appointed_on=date(2024, 1, 2),
+            ),
+            Officer(name="SMITHSON, Jane", officer_role="secretary"),
+        ],
+    )
+    # "Jane Smith" is exactly the director at Sunset Retail, not the followed
+    # Jane Elizabeth Smith, and not made ambiguous by Jane Smithson.
+    answer = (await ask(hass, "person", name="Jane Smith"))["result"]
+    assert answer["followed"] is False
+    assert answer["name"] == "Jane Smith"
+    assert answer["summary"] == (
+        "Jane Smith is not followed. 1 current role at the watched companies: "
+        "director at SUNSET RETAIL LIMITED."
+    )
+    # A part of both names, and of nobody followed, is still ambiguous.
+    result = await ask(hass, "person", name="jane s")
+    assert result["success"] is False
+    assert result["candidates"] == ["Jane Smith", "Jane Smithson"]
+    result = await ask(hass, "person", name="jane")
+    assert result["success"] is True
+    assert result["result"]["followed"] is True
+    # A tie goes to the followed person: "smith" is a part of every Smith.
+    assert (await ask(hass, "person", name="smith"))["result"]["followed"] is True
+
+
 # ---------------------------------------------------------------- connections
 
 
@@ -744,7 +857,7 @@ async def test_connections(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     assert answer["status"] == "own"
     assert [(c["with"], c["how"], c["current"]) for c in answer["connections"]] == [
         ("ACME SECRETARIES LIMITED", "Secretary", True),
-        ("HSBC UK Bank Plc", "charge", True),
+        ("HSBC UK Bank Plc", "Lender holding a charge", True),
         ("Jane Elizabeth Smith", "Director", True),
         (
             "Jane Elizabeth Smith",
@@ -752,12 +865,13 @@ async def test_connections(hass: HomeAssistant, entry: MockConfigEntry) -> None:
             True,
         ),
         ("Priya Patel", "Director", True),
-        ("Lloyds Bank Plc", "charge", False),
+        ("Lloyds Bank Plc", "Lender holding a charge", False),
         ("Thomas Brown", "Director", False),
     ]
     assert answer["connections"][5]["until"] == "30 Nov 2021"
     assert answer["summary"].startswith(
         "EXAMPLE TRADING LIMITED has 5 current connections: Secretary — ACME SECRETARIES LIMITED; "
+        "Lender holding a charge — HSBC UK Bank Plc; "
     )
     assert answer["interesting"]
     assert answer["link"].endswith("/company/12345678")
@@ -795,6 +909,26 @@ async def test_connections(hass: HomeAssistant, entry: MockConfigEntry) -> None:
         result["result"]["summary"]
         == "Priya Patel has 1 current connection: Director — EXAMPLE TRADING LIMITED."
     )
+    # A watched company that lent to another is on the lending side.
+    charges = _company(entry, "12345678").charges
+    assert charges is not None
+    assert charges.data is not None
+    lent = replace(
+        charges.data.items[0], persons_entitled=["SUBSIDIARY SERVICES LIMITED"]
+    )
+    charges.data = replace(charges.data, items=[lent, *charges.data.items[1:]])
+    result = await ask(hass, "connections", name="subsidiary services")
+    assert [(c["with"], c["how"]) for c in result["result"]["connections"]] == [
+        ("Anna Lee", "Director"),
+        ("EXAMPLE TRADING LIMITED", "Holds a charge over"),
+        (
+            "Parent Holdings Limited",
+            (
+                "75 to 100% of the shares, 75 to 100% of the votes, "
+                "the right to appoint and remove directors"
+            ),
+        ),
+    ]
     # A map with nothing on it reads as such.
     for number in ALL_COMPANIES:
         _company(entry, number).profile.data = None
@@ -818,8 +952,18 @@ async def test_risk(hass: HomeAssistant, entry: MockConfigEntry) -> None:
         ("SUNSET RETAIL LIMITED", "red"),
     ]
     assert answer["summary"].startswith(
-        "3 red, 0 amber, 3 green. DORMANT HOLDINGS LIMITED is red: strike-off proposed"
+        "3 red, 0 amber, 3 green, of which 1 is red only because it is finished: "
+        "OLD VENTURES LIMITED (dissolved). "
+        "DORMANT HOLDINGS LIMITED is red: strike-off proposed"
     )
+    assert answer["finished"] == [
+        {
+            "company": "OLD VENTURES LIMITED",
+            "number": "23456789",
+            "band": "red",
+            "status": "dissolved",
+        }
+    ]
     assert answer["companies"][0]["reasons"][0] == (
         "strike-off proposed (compulsory) on 25 Aug 2026"
     )
@@ -834,14 +978,27 @@ async def test_risk(hass: HomeAssistant, entry: MockConfigEntry) -> None:
         "unknown": 1,
     }
     assert result["result"]["summary"].startswith(
-        "3 red, 0 amber, 2 green, 1 not rated."
+        "3 red, 0 amber, 2 green, 1 not rated, of which 1 is red only because "
     )
+    # Two finished companies read as "they".
+    gone = _company(entry, "56789012")
+    gone.profile.data = replace(gone.profile.data, company_status="removed")
+    gone.recompute_risk()
+    result = await ask(hass, "risk")
+    assert result["result"]["summary"].startswith(
+        "4 red, 0 amber, 1 green, 1 not rated, of which 2 are red only because "
+        "they are finished: OLD VENTURES LIMITED (dissolved) and "
+        "SUBSIDIARY SERVICES LIMITED (removed). "
+    )
+    gone.profile.data = replace(gone.profile.data, company_status="active")
+    gone.recompute_risk()
     # Nothing red or amber: just the counts.
     for number in ("45678901", "34567890", "23456789"):
         _company(entry, number).profile.data = None
     result = await ask(hass, "risk")
     assert result["result"]["summary"] == "0 red, 0 amber, 2 green, 1 not rated."
     assert result["result"]["companies"] == []
+    assert result["result"]["finished"] == []
 
 
 # ---------------------------------------------------------------- edges
@@ -854,6 +1011,36 @@ def test_due_words() -> None:
     assert _due_words(0) == "due today"
     assert _due_words(1) == "due in 1 day"
     assert _due_words(30) == "due in 30 days"
+
+
+def test_month_words() -> None:
+    """A month of birth reads as "Jun 1978"; nothing when the register gave none."""
+    assert _month_words(DateOfBirth(month=6, year=1978)) == "Jun 1978"
+    assert _month_words(DateOfBirth(year=1978)) == ""
+    assert _month_words(None) == ""
+
+
+@pytest.mark.parametrize(
+    ("today", "text"),
+    [
+        (date(2026, 9, 15), "26 days to object to the strike-off"),
+        (date(2026, 10, 10), "1 day to object to the strike-off"),
+        (date(2026, 10, 11), "last day to object to the strike-off by post"),
+        (date(2026, 10, 20), "object online to the strike-off before 25 Oct 2026"),
+        (date(2026, 10, 25), "could be struck off any day now"),
+        (date(2026, 12, 1), "could be struck off any day now"),
+    ],
+)
+def test_objection_text(today: date, text: str) -> None:
+    """The strike-off deadline reads as one phrase, whatever stage it is at."""
+    countdown = compute_countdown(
+        kind="compulsory",
+        notice_on=date(2026, 8, 25),
+        suspended_on=None,
+        transaction_id=None,
+        today=today,
+    )
+    assert _objection_text(countdown) == text
 
 
 async def test_company_answer_with_less_on_hand(
@@ -927,6 +1114,105 @@ async def test_company_answer_with_less_on_hand(
     )
 
 
+def _year(status: str, **changes: Any) -> AccountsYear:
+    return AccountsYear(
+        transaction_id="tx-1",
+        made_up_to=date(2025, 12, 31),
+        filed_on=date(2026, 3, 1),
+        accounts_type="full",
+        status=status,
+        **changes,
+    )
+
+
+@pytest.mark.parametrize(
+    ("year", "status", "text"),
+    [
+        (
+            _year("pending"),
+            "not read yet",
+            "The full accounts to 31 Dec 2025 have not been read yet.",
+        ),
+        (
+            _year("no_ixbrl", paper_filed=True),
+            "no structured data",
+            (
+                "The full accounts to 31 Dec 2025 were filed without structured data "
+                "(on paper or as a PDF only), so no figures can be read from them."
+            ),
+        ),
+        (
+            _year("parse_error", error="boom"),
+            "could not be read",
+            "The full accounts to 31 Dec 2025 could not be read.",
+        ),
+        (
+            _year("odd"),
+            "odd",
+            "The full accounts to 31 Dec 2025 odd.",
+        ),
+    ],
+)
+async def test_company_answer_accounts_not_read(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    year: AccountsYear,
+    status: str,
+    text: str,
+) -> None:
+    """Accounts still queued, on paper or unreadable say so: nothing is "not disclosed"."""
+    history = _company(entry, "12345678").accounts.data
+    assert history is not None
+    _company(entry, "12345678").accounts.data = replace(history, years=[year])
+    result = await ask(hass, "company", name="example")
+    accounts = result["result"]["accounts"]
+    assert accounts["status"] == status
+    assert accounts["text"] == text
+    assert accounts["figures"] == []
+    assert accounts["not_disclosed"] == []
+    assert accounts["flags"] == []
+    assert accounts["years_read"] == 0
+    assert accounts["link"].endswith(
+        "/filing-history/tx-1/document?format=pdf&download=0"
+    )
+    assert "not disclosed" not in str(accounts)
+    assert "Latest accounts" not in result["result"]["summary"]
+
+
+async def test_company_answer_accounts_from_comparatives(
+    hass: HomeAssistant, entry: MockConfigEntry
+) -> None:
+    """Paper accounts with the next year's comparative column say where the figures came from."""
+    history = _company(entry, "12345678").accounts.data
+    assert history is not None
+    year = _year(
+        "no_ixbrl",
+        paper_filed=True,
+        source="comparative",
+        figures={
+            "turnover": Figure(value=Decimal(16600)),
+            "cash": Figure(value=None, status="not_disclosed"),
+            "net_assets": Figure(value=None, status="conflict"),
+        },
+    )
+    _company(entry, "12345678").accounts.data = replace(history, years=[year])
+    result = await ask(hass, "company", name="example")
+    accounts = result["result"]["accounts"]
+    assert accounts["status"] == "read from the following year's comparatives"
+    assert accounts["text"] == (
+        "Turnover £16.6k. (Figures taken from the following year's comparative column.)"
+    )
+    assert [f["value"] for f in accounts["figures"]] == ["£16.6k"]
+    # Only figures the accounts left out are "not disclosed"; a conflict is not.
+    assert accounts["not_disclosed"] == [
+        "profit before tax",
+        "profit after tax",
+        "cash",
+        "creditors due within a year",
+        "employees",
+    ]
+
+
 async def test_deadlines_with_nothing_overdue(
     hass: HomeAssistant, entry: MockConfigEntry
 ) -> None:
@@ -951,6 +1237,44 @@ async def test_person_with_no_roles(
     assert result["result"]["roles"] == []
     assert result["result"]["summary"].startswith(
         "Jane Elizabeth SMITH holds 0 current roles. Not on the disqualified"
+    )
+
+
+async def test_two_accounts(
+    hass: HomeAssistant,
+    entry: MockConfigEntry,
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A second account's companies are found, and the map spans both."""
+    mock_company(aioclient_mock, "10916685", fixture="company_suspended_strike_off")
+    second = MockConfigEntry(
+        domain=DOMAIN,
+        title="Companies House (second)",
+        data={CONF_API_KEY: TEST_API_KEY + "-2"},
+        unique_id="hashed-key-2",
+        version=1,
+        minor_version=1,
+        subentries_data=[
+            company_subentry(
+                "10916685", name="TRUVAI EXAMPLE LIMITED", subentry_id="sub_10916685"
+            )
+        ],
+        entry_id="entry2",
+    )
+    second.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(second.entry_id)
+    await hass.async_block_till_done()
+    assert find_company(hass, "truvai").company_number == "10916685"
+    result = await ask(hass, "connections")
+    assert result["result"]["summary"]["watched_companies"] == 7
+    result = await ask(hass, "connections", name="truvai")
+    assert result["result"]["name"] == "TRUVAI EXAMPLE LIMITED"
+    assert result["result"]["status"] == "watched"
+    # Each account keeps its own map; the answer is built across both.
+    assert entry.runtime_data.connections is not None
+    assert entry.runtime_data.connections.data is not None
+    assert (
+        entry.runtime_data.connections.data.graph["summary"]["watched_companies"] == 6
     )
 
 

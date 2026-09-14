@@ -38,6 +38,7 @@ import voluptuous as vol
 from .accounts import (
     METRIC_NAMES,
     METRICS,
+    STATUS_WORDS,
     describe_figures,
     format_change,
     format_figure,
@@ -45,7 +46,7 @@ from .accounts import (
     year_summary,
 )
 from .charges import charges_overview
-from .connections import build_connections, trim_for_llm
+from .connections import build_connections, build_graph, trim_for_llm
 from .const import DOMAIN
 from .digest import (
     DEADLINE_HORIZON_DAYS,
@@ -58,15 +59,17 @@ from .digest import (
     _pretty_date,
     _role,
     _sentence,
+    _status_phrase,
     is_finished,
 )
 from .enumerations import COMPANY_STATUS_DETAIL, COMPANY_TYPE
-from .gazette import notice_link
+from .gazette import StrikeOffCountdown, notice_link
 from .models import JsonDict, display_name
 from .risk import BAND_AMBER, BAND_RANK, BAND_RED
 
 if TYPE_CHECKING:
     from .coordinator import CompaniesHouseConfigEntry, CompanyRuntime, OfficerRuntime
+    from .models import DateOfBirth
 
 PROMPT = (
     "The companies_house__ tools answer questions about the UK companies being "
@@ -92,6 +95,16 @@ CANDIDATE_LIMIT = 8
 
 _ABBREVIATIONS = {"limited": "ltd", "incorporated": "inc", "and": "&"}
 _WORD_RE = re.compile(r"[^a-z0-9&]+")
+# Why a year's figures are missing when the accounts themselves were not
+# read: nothing is "not disclosed" until the document has been looked at.
+_UNREAD_WORDS = {
+    "pending": "have not been read yet",
+    "no_ixbrl": (
+        "were filed without structured data (on paper or as a PDF only), so "
+        "no figures can be read from them"
+    ),
+    "parse_error": "could not be read",
+}
 
 
 # ---------------------------------------------------------------- matching
@@ -245,6 +258,27 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
+def _month_words(born: DateOfBirth | None) -> str:
+    """Write a month of birth as "Jun 1978", the register never giving the day."""
+    if born is None or born.month is None or born.year is None:
+        return ""
+    return date(born.year, born.month, 1).strftime("%b %Y")
+
+
+def _objection_text(countdown: StrikeOffCountdown) -> str:
+    """Say what is left to do about a strike-off, as a deadline is read out."""
+    days, until = countdown.days_to_object, countdown.days_to_strike_off
+    if until is None or until <= 0:
+        return "could be struck off any day now"
+    if days is None or days < 0:
+        return (
+            f"object online to the strike-off before {_pretty(countdown.earliest_on)}"
+        )
+    if days == 0:
+        return "last day to object to the strike-off by post"
+    return f"{_plural(days, 'day')} to object to the strike-off"
+
+
 def _list_words(words: list[str]) -> str:
     if len(words) <= 1:
         return "".join(words)
@@ -292,6 +326,7 @@ def _deadline_rows(company: CompanyRuntime, today: date) -> list[JsonDict]:
                 "days": days,
                 "overdue": overdue or days < 0,
                 "status": _due_words(days),
+                "text": f"{what} {_due_words(days)}",
                 "link": _company_link(company.company_number),
             }
         )
@@ -306,6 +341,7 @@ def _deadline_rows(company: CompanyRuntime, today: date) -> list[JsonDict]:
                 "days": countdown.days_to_object,
                 "overdue": False,
                 "status": countdown.objection_phrase(),
+                "text": _objection_text(countdown),
                 "link": notice_link(company.company_number, countdown.transaction_id),
             }
         )
@@ -313,7 +349,12 @@ def _deadline_rows(company: CompanyRuntime, today: date) -> list[JsonDict]:
 
 
 def _accounts_answer(company: CompanyRuntime) -> JsonDict | None:
-    """Return the newest figures read from the accounts, each with its change."""
+    """Return the newest figures read from the accounts, each with its change.
+
+    A year whose accounts were never read (still queued, filed on paper, or
+    unreadable) has no figures to report and says why instead: only once
+    the document was read can a missing figure be "not disclosed".
+    """
     history = company.accounts.data
     if history is None:
         return None
@@ -321,12 +362,31 @@ def _accounts_answer(company: CompanyRuntime) -> JsonDict | None:
     if year is None:
         return None
     summary = year_summary(year)
+    made_up_to = _pretty(year.made_up_to)
+    link = _document_link(company.company_number, year.transaction_id)
+    if not year.is_read and not year.has_figures:
+        words = _UNREAD_WORDS.get(
+            year.status, STATUS_WORDS.get(year.status, year.status)
+        )
+        return {
+            "made_up_to": made_up_to,
+            "filed_on": _pretty(year.filed_on),
+            "type": year.type_words,
+            "status": summary["status_words"],
+            "figures": [],
+            "not_disclosed": [],
+            "flags": [],
+            "text": f"The {year.type_words} to {made_up_to} {words}.",
+            "years_read": len(history.series()),
+            "link": link,
+        }
     figures: list[JsonDict] = []
     undisclosed: list[str] = []
     for metric in METRICS:
         figure = summary["figures"][metric]
         if figure["value"] is None:
-            undisclosed.append(METRIC_NAMES[metric].lower())
+            if str(figure["status"]).startswith("not "):
+                undisclosed.append(METRIC_NAMES[metric].lower())
             continue
         figures.append(
             {
@@ -339,17 +399,23 @@ def _accounts_answer(company: CompanyRuntime) -> JsonDict | None:
                 "change_percent": figure["change_percent"],
             }
         )
+    text = describe_figures(year_payload(year))
+    status = summary["status_words"]
+    if year.source == "comparative":
+        # Paper accounts: the figures are the next year's comparative column.
+        status = "read from the following year's comparatives"
+        text += " (Figures taken from the following year's comparative column.)"
     return {
-        "made_up_to": _pretty(year.made_up_to),
+        "made_up_to": made_up_to,
         "filed_on": _pretty(year.filed_on),
         "type": year.type_words,
-        "status": summary["status_words"],
+        "status": status,
         "figures": figures,
         "not_disclosed": undisclosed,
         "flags": summary["flags"],
-        "text": describe_figures(year_payload(year)),
+        "text": text,
         "years_read": len(history.series()),
-        "link": _document_link(company.company_number, year.transaction_id),
+        "link": link,
     }
 
 
@@ -441,7 +507,8 @@ def _company_summary(
     """Write the one-paragraph answer: status, trouble, rating, next deadline, figures."""
     profile = company.profile.data
     assert profile is not None
-    opening = f"{company.company_name} ({company.company_number}) is {card['status']}"
+    status = _status_phrase(profile.company_status)
+    opening = f"{company.company_name} ({company.company_number}) is {status}"
     if profile.date_of_cessation and is_finished(profile.company_status):
         opening += f" since {_pretty(profile.date_of_cessation)}"
     elif profile.date_of_creation:
@@ -449,10 +516,13 @@ def _company_summary(
     sentences = [f"{opening}."]
     if card["strike_off"]:
         sentences.append(f"{card['strike_off']['summary']}.")
+    # The strike-off and an insolvent status are already in the opening.
     trouble = [
         a["issue"]
         for a in card["attention"]
-        if a.get("kind") != "risk" and not a["issue"].startswith("Strike-off")
+        if a.get("kind") != "risk"
+        and not a["issue"].startswith("Strike-off")
+        and a["issue"].casefold() != status.casefold()
     ]
     if trouble:
         lowered = [trouble[0], *(t[0].lower() + t[1:] for t in trouble[1:])]
@@ -465,9 +535,7 @@ def _company_summary(
     upcoming = [d for d in deadlines if d["days"] is not None and d["days"] >= 0]
     if upcoming:
         soonest = min(upcoming, key=lambda d: d["days"])
-        sentences.append(
-            f"Next deadline: {soonest['what']} {soonest['status']} ({soonest['date']})."
-        )
+        sentences.append(f"Next deadline: {soonest['text']} ({soonest['date']}).")
     accounts = card["accounts"]
     if accounts and any(v is not None for v in accounts["figures"].values()):
         figures = describe_figures(
@@ -629,9 +697,7 @@ def deadlines_answer(hass: HomeAssistant, *, days: int, now: datetime) -> JsonDi
         text = f"{_plural(len(rows), 'deadline')} in the next {_plural(days, 'day')}"
         if overdue:
             text += f", {len(overdue)} already overdue"
-        text += ": " + "; ".join(
-            f"{r['company']} {r['what']} {r['status']}" for r in rows[:8]
-        )
+        text += ": " + "; ".join(f"{r['company']}: {r['text']}" for r in rows[:8])
         text += "."
     return {
         "days": days,
@@ -722,9 +788,7 @@ def _followed_person_answer(officer: OfficerRuntime, now: datetime) -> JsonDict:
         "name": officer.officer_name,
         "followed": True,
         "records": officer.officer_ids,
-        "date_of_birth": officer.known_date_of_birth.display()
-        if officer.known_date_of_birth
-        else "",
+        "date_of_birth": _month_words(officer.known_date_of_birth),
         "summary": text,
         "roles": [
             {
@@ -749,25 +813,41 @@ def _followed_person_answer(officer: OfficerRuntime, now: datetime) -> JsonDict:
     }
 
 
-def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
-    """Return the roles a person not followed holds at the watched companies.
+class _RegisterPeople:
+    """The people at the watched companies whose name fits a query.
 
     Every officer and owner at every watched company is looked at; the
     ones whose name fits are pooled under one name (titles aside, "Mrs
     Sarah White" the owner is "Sarah White" the director), so "Priya"
-    finds Priya Patel wherever she sits.
+    finds Priya Patel wherever she sits. Only the best fits are kept: an
+    exact "Jane Smith" is not made ambiguous by a Jane Smithson.
     """
-    names: dict[str, str] = {}
-    roles: dict[str, list[JsonDict]] = {}
 
-    def add(name: str, register_name: str, row: JsonDict) -> None:
-        if _match_score(query, [name, register_name]) == 0:
+    def __init__(self, hass: HomeAssistant, query: str) -> None:
+        """Look through the officers and owners of every watched company."""
+        self.query = query
+        self.best = 0
+        self.names: dict[str, str] = {}
+        self.roles: dict[str, list[JsonDict]] = {}
+        self._scores: dict[str, int] = {}
+        for company in _companies(hass):
+            self._add_company(company)
+        for key, score in self._scores.items():
+            if score < self.best:
+                del self.names[key]
+                del self.roles[key]
+
+    def _add(self, name: str, register_name: str, row: JsonDict) -> None:
+        score = _match_score(self.query, [name, register_name])
+        if score == 0:
             return
         key = _normalise_person(name)
-        names.setdefault(key, name)
-        roles.setdefault(key, []).append(row)
+        self.best = max(self.best, score)
+        self._scores[key] = max(self._scores.get(key, 0), score)
+        self.names.setdefault(key, name)
+        self.roles.setdefault(key, []).append(row)
 
-    for company in _companies(hass):
+    def _add_company(self, company: CompanyRuntime) -> None:
         link = _company_link(company.company_number)
         officers = (
             company.officers.data.items
@@ -775,7 +855,7 @@ def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
             else []
         )
         for officer in officers:
-            add(
+            self._add(
                 display_name(officer.name),
                 officer.name,
                 {
@@ -790,7 +870,7 @@ def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
             )
         pscs = company.psc.data.items if company.psc and company.psc.data else []
         for psc in pscs:
-            add(
+            self._add(
                 display_name(psc.name),
                 psc.name,
                 {
@@ -804,6 +884,13 @@ def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
                     "link": link + "/persons-with-significant-control",
                 },
             )
+
+
+def _register_person_answer(
+    hass: HomeAssistant, query: str, found: _RegisterPeople
+) -> JsonDict:
+    """Return the roles a person not followed holds at the watched companies."""
+    names, roles = found.names, found.roles
     if not roles:
         followed = sorted(o.officer_name for o in _people(hass))
         hint = f" The followed people are {_list_words(followed)}." if followed else ""
@@ -811,10 +898,10 @@ def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
             f"Nobody called '{query}' is followed or holds a role at a watched company.{hint}"
         )
     if len(roles) > 1:
-        found = sorted(names.values())
+        several = sorted(names.values())
         raise NoAnswerError(
-            f"Several people match '{query}': {_some(found)}. Which one?",
-            candidates=found,
+            f"Several people match '{query}': {_some(several)}. Which one?",
+            candidates=several,
         )
     key, rows = next(iter(roles.items()))
     name = names[key]
@@ -838,9 +925,17 @@ def _register_person_answer(hass: HomeAssistant, query: str) -> JsonDict:
 
 
 def person_answer(hass: HomeAssistant, query: str, now: datetime) -> JsonDict:
-    """Return what is known about a person: followed first, then the register's officers."""
+    """Return what is known about a person: followed first, then the register's officers.
+
+    A followed person wins a tie, being the one the user chose to follow;
+    a closer fit at a watched company wins outright, so asking for the
+    "Jane Smith" on a board is not answered with the followed Jane
+    Elizabeth Smith.
+    """
     followed = [(o, _person_names(o)) for o in _people(hass)]
-    if followed and any(_match_score(query, names) for _, names in followed):
+    best = max((_match_score(query, names) for _, names in followed), default=0)
+    found = _RegisterPeople(hass, query)
+    if best and best >= found.best:
         officer = _resolve(
             query, followed, what="followed person", plural="followed people"
         )
@@ -849,18 +944,40 @@ def person_answer(hass: HomeAssistant, query: str, now: datetime) -> JsonDict:
                 f"{officer.officer_name} has not been read from the register yet."
             )
         return _followed_person_answer(officer, now)
-    return _register_person_answer(hass, query)
+    return _register_person_answer(hass, query, found)
 
 
 def _graph(hass: HomeAssistant) -> JsonDict:
-    """Return the current map: the one kept on the service device, else built now."""
+    """Return the current map: the one kept on the service device, else built now.
+
+    With more than one account set up, each keeps its own map, so one is
+    built here across everything they watch and follow together.
+    """
     entries = _loaded_entries(hass)
     if not entries:
         raise NoAnswerError("No companies are being watched yet.")
+    if len(entries) > 1:
+        return build_graph(
+            [c for e in entries for c in e.runtime_data.companies.values()],
+            [o for e in entries for o in e.runtime_data.officers.values()],
+            include_resigned=True,
+            include_external=True,
+        )
     coordinator = entries[0].runtime_data.connections
     if coordinator is not None and coordinator.data is not None:
         return coordinator.data.graph
     return build_connections(entries[0], include_resigned=True, include_external=True)
+
+
+def _edge_words(edge: JsonDict, *, lender_side: bool) -> str:
+    """Say how an edge joins the node asked about to the other: "Director", "Lender"."""
+    if edge["kind"] == "charge":
+        return "Holds a charge over" if lender_side else "Lender holding a charge"
+    return str(
+        edge.get("role_label")
+        or edge.get("control_label")
+        or str(edge["kind"]).capitalize()
+    )
 
 
 def connections_answer(hass: HomeAssistant, name: str | None) -> JsonDict:
@@ -902,9 +1019,7 @@ def connections_answer(hass: HomeAssistant, name: str | None) -> JsonDict:
         links.append(
             {
                 "with": labels.get(other, other),
-                "how": edge.get("role_label")
-                or edge.get("control_label")
-                or edge["kind"],
+                "how": _edge_words(edge, lender_side=edge["source"] == node["id"]),
                 "since": _pretty(edge.get("since")),
                 "until": _pretty(edge.get("until")),
                 "current": edge["active"],
@@ -937,9 +1052,15 @@ def connections_answer(hass: HomeAssistant, name: str | None) -> JsonDict:
 
 
 def risk_answer(hass: HomeAssistant) -> JsonDict:
-    """Return the red and amber companies, worst first, with the counts."""
+    """Return the red and amber companies, worst first, with the counts.
+
+    A dissolved company is red for being dissolved, as its sensor says, so
+    it stays in the counts; it is named apart rather than listed among the
+    live companies, so the count and the list agree.
+    """
     counts = {"red": 0, "amber": 0, "green": 0, "unknown": 0}
     flagged: list[JsonDict] = []
+    finished: list[JsonDict] = []
     for company in _companies(hass):
         risk = company.risk
         band = risk.band if risk and risk.band else "unknown"
@@ -948,6 +1069,14 @@ def risk_answer(hass: HomeAssistant) -> JsonDict:
             continue
         profile = company.profile.data
         if profile is not None and is_finished(profile.company_status):
+            finished.append(
+                {
+                    "company": company.company_name,
+                    "number": company.company_number,
+                    "band": band,
+                    "status": _status_phrase(profile.company_status),
+                }
+            )
             continue
         flagged.append(
             {
@@ -963,17 +1092,29 @@ def risk_answer(hass: HomeAssistant) -> JsonDict:
     flagged.sort(
         key=lambda r: (-BAND_RANK.get(r["band"], 0), -r["score"], r["company"])
     )
-    text = (
-        f"{counts['red']} red, {counts['amber']} amber, {counts['green']} green"
-        + (f", {counts['unknown']} not rated" if counts["unknown"] else "")
-        + "."
+    text = f"{counts['red']} red, {counts['amber']} amber, {counts['green']} green" + (
+        f", {counts['unknown']} not rated" if counts["unknown"] else ""
     )
+    if finished:
+        # Named apart, so "3 red" and two live names do not look like a gap.
+        n = len(finished)
+        who = _list_words([f"{r['company']} ({r['status']})" for r in finished])
+        text += (
+            f", of which {n} {'is' if n == 1 else 'are'} red only because "
+            f"{'it is' if n == 1 else 'they are'} finished: {who}"
+        )
+    text += "."
     if flagged:
         text += " " + " ".join(
             f"{r['company']} is {r['band']}: {_reason_words(r['reason'])}."
             for r in flagged[:8]
         )
-    return {"counts": counts, "summary": text, "companies": flagged}
+    return {
+        "counts": counts,
+        "summary": text,
+        "companies": flagged,
+        "finished": finished,
+    }
 
 
 # ---------------------------------------------------------------- tools

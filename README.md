@@ -537,8 +537,9 @@ not served until the next restart.
 
 Once one entity of the integration is exposed to Assist, any conversation
 agent with "Assist" selected under *Control Home Assistant* (the default for
-OpenAI, Google, Anthropic and Ollama) gets seven tools that answer from what
-is already on hand: no request to the register, so ask as often as you like.
+OpenAI, Google and Anthropic; tick it yourself for Ollama) gets seven tools
+that answer from what is already on hand: no request to the register, so ask
+as often as you like.
 
 1. Settings → Voice assistants → Expose, and expose one entity of the
    integration to Assist, for example `sensor.example_trading_limited_risk_rating`
@@ -636,7 +637,7 @@ path and filing metadata.
 All read actions return the API resource as response data and are also
 exposed to the "Companies House" LLM API, so an assistant given that API can
 look anything up on the register. For questions about the companies already
-watched, the Assist tools below answer from memory instead.
+watched, the Assist tools (see *Ask Assist* above) answer from memory instead.
 
 `search_companies`, `advanced_search`, `alphabetical_search`,
 `dissolved_search`, `search_officers`, `search_disqualified_officers`,
