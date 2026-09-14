@@ -1173,6 +1173,7 @@ class OfficerRuntime(_Runtime):
         if not self.watch_companies or self.appointments.data is None:
             return
         watched = self._watched_companies()
+        added = False
         for appointment in self.appointments.data.active:
             number = appointment.company_number
             if not number or number in watched:
@@ -1209,6 +1210,10 @@ class OfficerRuntime(_Runtime):
                     _appointment_payload(appointment),
                 )
             )
+            added = True
+        if added:
+            # The "watched" flags on the person's sensors change at once.
+            self.appointments.async_update_listeners()
 
     async def async_add_records(self, officer_ids: list[str]) -> None:
         """Follow more register records as this same person."""
