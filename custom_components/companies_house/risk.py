@@ -17,7 +17,7 @@ record are not monitored, or whose register data is stale, cannot be green.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Final
@@ -55,7 +55,7 @@ from .models import (
 from .store import CompanyState
 
 # Bump when the table below changes, so automations can pin a version.
-SCORING_VERSION: Final = "2"
+SCORING_VERSION: Final = "3"
 
 BAND_GREEN: Final = "green"
 BAND_AMBER: Final = "amber"
@@ -134,12 +134,18 @@ POINTS: Final[dict[str, int]] = {
     "C9": 2,
     "C10": 3,
     "C11": 2,
-    # E. Accounts figures, from the newest accounts read.
-    "E1": 15,  # net liabilities
-    "E2": 6,  # net assets fell by more than a quarter
+    # E. Accounts figures, from the newest accounts read. Scaled to the size
+    # of the hole: £24 under water is a rounding error, £250k is not. The
+    # section is capped (ACCOUNTS_POINTS_CAP) so figures alone never make a
+    # company red; that needs something else on the register too.
+    "E1_large": 12,  # net liabilities of £250k or more
+    "E1_mid": 8,  # net liabilities of £25k or more
+    "E1_small": 4,  # net liabilities of £5k or more
+    "E1_tiny": 1,  # net liabilities under £5k
+    "E2": 4,  # net assets fell by more than a quarter
     "E3": 4,  # cash fell by more than half
-    "E4": 6,  # creditors due within a year exceed cash
-    "E5": 3,  # headcount halved
+    "E4": 4,  # creditors due within a year exceed cash
+    "E5": 2,  # headcount halved
     # D. Uncertainty: unknown is not green.
     "D2": 5,
     "D3_officers": 4,
@@ -265,6 +271,12 @@ TWO_YEARS_DAYS: Final = 2 * 365
 DUE_SOON_DAYS: Final = 30
 # Falls of more than this much year on year score (net assets, cash).
 NET_ASSETS_FALL: Final = Decimal("0.25")
+# Net liabilities are scored by size (E1_*).
+NET_LIABILITIES_LARGE: Final = Decimal(250_000)
+NET_LIABILITIES_MID: Final = Decimal(25_000)
+NET_LIABILITIES_SMALL: Final = Decimal(5_000)
+# The most the accounts figures can add between them.
+ACCOUNTS_POINTS_CAP: Final = 15
 CASH_FALL: Final = Decimal("0.5")
 # A head count only halves from a real one: one person leaving is not that.
 HEADCOUNT_MINIMUM: Final = 2
@@ -1040,20 +1052,31 @@ class _Scorer:
         self.info["accounts_figures_at"] = year.made_up_to.isoformat()
         net_assets = self._figure(year, "net_assets")
         cash = self._figure(year, "cash")
+        before = len(self.items)
         if net_assets is not None and net_assets < 0:
-            self.add(
-                "E1", f"net liabilities of {format_money(abs(net_assets))} at {at}"
-            )
+            hole = abs(net_assets)
+            if hole >= NET_LIABILITIES_LARGE:
+                code = "E1_large"
+            elif hole >= NET_LIABILITIES_MID:
+                code = "E1_mid"
+            elif hole >= NET_LIABILITIES_SMALL:
+                code = "E1_small"
+            else:
+                code = "E1_tiny"
+            self.add(code, f"net liabilities of {format_money(hole)} at {at}")
         fall = self._fall(year, "net_assets", NET_ASSETS_FALL)
         if fall is not None:
-            # Gone negative: the net liabilities line above carries the
-            # figure, and "-£100" reads badly aloud.
-            now = (
-                "now net liabilities"
-                if net_assets is not None and net_assets < 0
-                else f"{format_money(net_assets)} at {at}"
-            )
-            self.add("E2", f"net assets {fall} year on year ({now})")
+            if net_assets is not None and net_assets < 0:
+                # Gone under water: the net liabilities line carries the
+                # figure, and a percentage of a sign change means nothing.
+                prior = self._prior(year, "net_assets")
+                was = format_money(prior) if prior is not None else "positive"
+                self.add("E2", f"net assets fell from {was} to net liabilities")
+            else:
+                self.add(
+                    "E2",
+                    f"net assets {fall} year on year ({format_money(net_assets)} at {at})",
+                )
         fall = self._fall(year, "cash", CASH_FALL)
         if fall is not None:
             self.add("E3", f"cash {fall} year on year ({format_money(cash)} at {at})")
@@ -1072,14 +1095,24 @@ class _Scorer:
             and staff_before >= HEADCOUNT_MINIMUM
             and staff <= staff_before / 2
         ):
-            before = format_count(staff_before)
+            was = format_count(staff_before)
             self.add(
                 "E5",
-                f"no staff left ({before} last year) in the year to {at}"
+                f"no staff left ({was} last year) in the year to {at}"
                 if staff == 0
-                else f"headcount halved ({before} to {format_count(staff)}) "
+                else f"headcount halved ({was} to {format_count(staff)}) "
                 f"in the year to {at}",
             )
+        # Figures alone stop short of red: trim the section to its cap,
+        # last lines first.
+        excess = sum(i.points for i in self.items[before:]) - ACCOUNTS_POINTS_CAP
+        for index in range(len(self.items) - 1, before - 1, -1):
+            if excess <= 0:
+                break
+            item = self.items[index]
+            trim = min(excess, item.points)
+            self.items[index] = replace(item, points=item.points - trim)
+            excess -= trim
 
     def _latest_read_accounts(self) -> AccountsYear | None:
         """Return the newest accounts read from their own structured data."""

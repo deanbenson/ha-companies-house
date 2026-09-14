@@ -556,13 +556,15 @@ async def test_accounts_read_re_rates_the_company(
     await hass.async_block_till_done(wait_background_tasks=True)
     state = hass.states.get(SENSOR)
     assert state.state == "amber"
-    assert state.attributes["score"] == 5 + 15 + 6
-    assert state.attributes["reasons"][:2] == [
-        "net liabilities of £1k at 31 Dec 2025",
-        "creditors due within a year (£186k) exceed cash (£13.6k) at 31 Dec 2025",
-    ]
+    # £1k under water is a tiny hole (1 point); creditors beyond cash add 4.
+    assert state.attributes["score"] == 5 + 1 + 4
+    assert "net liabilities of £1k at 31 Dec 2025" in state.attributes["reasons"]
+    assert (
+        "creditors due within a year (£186k) exceed cash (£13.6k) at 31 Dec 2025"
+        in state.attributes["reasons"]
+    )
     assert state.attributes["info"]["accounts_figures_at"] == "2025-12-31"
     assert company.state.risk_band == "amber"
     rated = [e.data for e in events if e.data["event_type"] == "risk-changed"]
     assert [(r["old_band"], r["new_band"]) for r in rated] == [("green", "amber")]
-    assert rated[0]["reasons"][0] == "net liabilities of £1k at 31 Dec 2025"
+    assert "net liabilities of £1k at 31 Dec 2025" in rated[0]["reasons"]

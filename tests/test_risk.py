@@ -1321,11 +1321,11 @@ def test_cannot_file_is_quiet_information() -> None:
 
 
 def test_net_liabilities_and_creditors_beyond_cash() -> None:
-    """A balance sheet under water is the heaviest accounts line; creditors add to it."""
+    """A balance sheet under water scores by the size of the hole; creditors add to it."""
     history = _history(
         _year(
             "2025-12-31",
-            net_assets=_figure(-1026, -2865),
+            net_assets=_figure(-60_000, -2865),
             cash=_figure(13552, 8398),
             creditors_within_one_year=_figure(186298, 184704),
             employees=_figure(0, 0),
@@ -1333,18 +1333,37 @@ def test_net_liabilities_and_creditors_beyond_cash() -> None:
     )
     result = rate(accounts=history)
     assert result.band == BAND_AMBER
-    assert result.score == POINTS["E1"] + POINTS["E4"]
+    assert result.score == POINTS["E1_mid"] + POINTS["E4"]
     assert codes(result) == ["E1", "E4"]
     assert result.reasons == [
-        "net liabilities of £1k at 31 Dec 2025",
+        "net liabilities of £60k at 31 Dec 2025",
         "creditors due within a year (£186k) exceed cash (£13.6k) at 31 Dec 2025",
     ]
     assert result.reason == (
-        "Amber: net liabilities of £1k at 31 Dec 2025; creditors due within a "
+        "Amber: net liabilities of £60k at 31 Dec 2025; creditors due within a "
         "year (£186k) exceed cash (£13.6k) at 31 Dec 2025"
     )
     assert result.info["accounts_figures_at"] == "2025-12-31"
-    assert result.as_dict()["scoring_version"] == "2"
+    assert result.as_dict()["scoring_version"] == "3"
+    # The hole's size sets the points: a few pounds is a rounding error, a
+    # quarter of a million is not, and the figures alone never reach red.
+    for hole, code in ((24, "E1_tiny"), (7_000, "E1_small"), (900_000, "E1_large")):
+        scored = rate(accounts=_history(_year("2025-12-31", net_assets=_figure(-hole))))
+        assert scored.score == POINTS[code], hole
+    worst = rate(
+        accounts=_history(
+            _year(
+                "2025-12-31",
+                net_assets=_figure(-900_000, 100_000),
+                cash=_figure(1_000, 100_000),
+                creditors_within_one_year=_figure(50_000),
+                employees=_figure(2, 10),
+            )
+        )
+    )
+    assert codes(worst) == ["E1", "E2", "E3", "E4", "E5"]
+    assert worst.score == 15
+    assert worst.band == BAND_AMBER
     # Creditors only count against cash when both figures are there.
     no_cash = _history(
         _year("2025-12-31", creditors_within_one_year=_figure(186298, 184704))
@@ -1405,10 +1424,10 @@ def test_falling_net_assets_cash_and_headcount() -> None:
     # the net liabilities line carries the figure, so the fall does not
     # repeat it as "-£100".
     sunk = _history(_year("2025-12-31", net_assets=_figure(-100, 1000)))
-    assert codes(rate(accounts=sunk)) == ["E1", "E2"]
+    assert sorted(codes(rate(accounts=sunk))) == ["E1", "E2"]
     assert rate(accounts=sunk).reasons == [
+        "net assets fell from £1k to net liabilities",
         "net liabilities of £100 at 31 Dec 2025",
-        "net assets down 110 % year on year (now net liabilities)",
     ]
     # Nobody left is not "halved".
     empty = _history(_year("2025-12-31", employees=_figure(0, 10)))
