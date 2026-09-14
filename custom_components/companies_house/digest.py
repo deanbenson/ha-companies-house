@@ -1221,6 +1221,10 @@ def _risk_counts(companies: list[JsonDict]) -> dict[str, int]:
     return counts
 
 
+# How many amber companies the report lists (reds are always all listed).
+RISK_AMBER_LIMIT = 8
+
+
 def _risk_list(companies: list[JsonDict]) -> list[JsonDict]:
     """List the amber and red companies, worst first, with the one-line reason.
 
@@ -1244,6 +1248,11 @@ def _risk_list(companies: list[JsonDict]) -> list[JsonDict]:
         and not card.get("finished")
     ]
     out.sort(key=lambda r: (-BAND_RANK.get(r["band"], 0), -r["score"], r["company"]))
+    # Every red, and the ambers most worth a look: the rest are on the dashboard.
+    reds = [r for r in out if r["band"] == BAND_RED]
+    ambers = [r for r in out if r["band"] == BAND_AMBER]
+    if len(ambers) > RISK_AMBER_LIMIT:
+        return reds + ambers[:RISK_AMBER_LIMIT]
     return out
 
 
@@ -1433,7 +1442,10 @@ _KIND_LABEL = {
     "accounts": "set of accounts read",
 }
 # Labels that do not pluralise by adding an s.
-_PLURALS = {"set of accounts read": "sets of accounts read"}
+_PLURALS = {
+    "set of accounts read": "sets of accounts read",
+    "more amber company": "more amber companies",
+}
 
 
 def _e(value: Any) -> str:
@@ -1716,6 +1728,23 @@ def _risk_rows(items: list[JsonDict]) -> str:
     )
 
 
+def _risk_more(digest: JsonDict) -> str:
+    """Say how many amber companies the list left out."""
+    left_out = _risk_left_out(digest)
+    if not left_out:
+        return ""
+    return (
+        f'<p style="margin:8px 0 0 0;font-size:12px;{_MUTED}{_FONT}">'
+        f"and {_plural(left_out, 'more amber company')} on the dashboard.</p>"
+    )
+
+
+def _risk_left_out(digest: JsonDict) -> int:
+    listed = sum(1 for r in digest.get("risk") or [] if r["band"] == BAND_AMBER)
+    total = ((digest.get("summary") or {}).get("risk") or {}).get("amber", 0)
+    return max(int(total) - listed, 0)
+
+
 def _deadline_rows(deadlines: list[JsonDict]) -> str:
     rows = []
     for d in deadlines:
@@ -1934,7 +1963,7 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
         parts.append(
             _section(
                 "Risk",
-                _risk_rows(digest["risk"]),
+                _risk_rows(digest["risk"]) + _risk_more(digest),
                 icon="🚦",
                 intro="Companies rated amber or red from the register alone: "
                 "filing compliance, status, board, ownership and charges. Not a "
@@ -2061,6 +2090,8 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             f"  - {r['band'].upper()} {r['company']} — {r['reason'].split(': ', 1)[-1]}"
             for r in digest["risk"]
         ]
+        if left_out := _risk_left_out(digest):
+            lines.append(f"  - and {_plural(left_out, 'more amber company')}")
         lines.append("")
     if digest.get("new_companies"):
         lines.append("New companies:")

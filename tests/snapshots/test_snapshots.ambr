@@ -14458,13 +14458,12 @@
       ]),
       'overrides': list([
       ]),
-      'reason': 'Green: Jane Elizabeth SMITH has been a director of 3 dissolved companies; an all-assets debenture is outstanding (trade creditors rank behind); 1 outstanding charge',
+      'reason': 'Green: an all-assets debenture is outstanding (trade creditors rank behind); 1 outstanding charge',
       'reasons': list([
-        'Jane Elizabeth SMITH has been a director of 3 dissolved companies',
         'an all-assets debenture is outstanding (trade creditors rank behind)',
         '1 outstanding charge',
       ]),
-      'score': 8,
+      'score': 5,
       'scoring_version': '3',
     }),
     'context': <ANY>,

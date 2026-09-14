@@ -280,6 +280,8 @@ ACCOUNTS_POINTS_CAP: Final = 15
 CASH_FALL: Final = Decimal("0.5")
 # A head count only halves from a real one: one person leaving is not that.
 HEADCOUNT_MINIMUM: Final = 2
+# Dissolved companies on a followed person's record before it is mentioned.
+DISSOLVED_TRAIL: Final = 5
 # When a year's accounts carry no comparative column, the previous year's
 # own figures stand in, provided it really is the year before (the accounts
 # coordinator allows the same gap when it borrows comparatives).
@@ -896,8 +898,10 @@ class _Scorer:
                         f"{appointment.company_name or appointment.company_number}, "
                         f"now {_in_status(appointment.company_status)}",
                     )
-            if dissolved >= 3:
-                self.add(
+            # A director who has closed a few old companies is normal; a
+            # long trail of dissolutions is worth a quiet word.
+            if dissolved >= DISSOLVED_TRAIL:
+                self.add_quiet(
                     "B8_dissolved",
                     f"{person.name} has been a director of {dissolved} dissolved "
                     "companies",

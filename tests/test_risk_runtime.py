@@ -324,16 +324,14 @@ async def test_followers_failed_companies_count_against_this_one(
     await hass.async_block_till_done()
     state = hass.states.get(SENSOR)
     assert state.state == "amber"
-    # Two liquidations (6 each), three dissolved companies (3), one charge (2)
-    # that is an all-assets debenture (3).
-    assert state.attributes["score"] == 20
+    # Two liquidations (6 each), one charge (2) that is an all-assets
+    # debenture (3); three dissolved companies are too few to mention.
+    assert state.attributes["score"] == 17
     reasons = state.attributes["reasons"]
     assert reasons[0].startswith("Jane Elizabeth SMITH is a director of ")
     assert reasons[0].endswith(", now in liquidation")
     assert reasons[1].endswith(", now in liquidation")
-    assert "Jane Elizabeth SMITH has been a director of 3 dissolved companies" in (
-        reasons
-    )
+    assert not any("dissolved companies" in r for r in reasons)
 
 
 async def test_rerate_skips_companies_without_a_profile(

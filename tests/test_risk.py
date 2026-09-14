@@ -1077,6 +1077,8 @@ def test_connected_parties_through_followed_people() -> None:
                 _appointment("55555555", "dissolved"),
                 _appointment("66666666", "dissolved"),
                 _appointment("77777777", "dissolved"),
+                _appointment("88888888", "dissolved"),
+                _appointment("99999999", "dissolved"),
             ],
         ),
     )
@@ -1088,10 +1090,21 @@ def test_connected_parties_through_followed_people() -> None:
     assert "Jane Smith is a director of 22222222 LTD, now in administration" in (
         result.reasons
     )
-    assert "Jane Smith has been a director of 3 dissolved companies" in result.reasons
+    assert "Jane Smith has been a director of 5 dissolved companies" in result.reasons
     assert result.band == BAND_AMBER
     no_data = TrackedPerson(name="Jane Smith", officer_ids=["officer-jane"])
     assert "B8" not in codes(rate(people=[no_data]))
+    # Closing a few old companies is normal: under five is not mentioned.
+    tidy = TrackedPerson(
+        name="Jane Smith",
+        officer_ids=["officer-jane"],
+        appointments=AppointmentList(
+            officer_id="officer-jane",
+            name="SMITH, Jane",
+            items=[_appointment(str(n) * 8, "dissolved") for n in range(1, 5)],
+        ),
+    )
+    assert "B8" not in codes(rate(people=[tidy]))
 
 
 # ---------------------------------------------------------------- C security
