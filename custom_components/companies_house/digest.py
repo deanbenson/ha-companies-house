@@ -85,7 +85,16 @@ def company_pages(number: str, *, insolvency: bool = False) -> list[JsonDict]:
     return pages
 
 
-def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
+def _charge_pdf_known(event_type: str, payload: JsonDict) -> bool:
+    """Whether a charge change opens a filing's PDF rather than the charges page."""
+    if event_type in ("satisfied", "part-satisfied"):
+        return bool(payload.get("satisfied_transaction_id"))
+    return bool(payload.get("created_transaction_id"))
+
+
+def _more_links(
+    kind: str, payload: JsonDict, number: str, event_type: str = ""
+) -> list[JsonDict]:
     """Return further register pages worth a click for one change."""
     company_number = number or str(payload.get("company_number") or "")
     if not company_number:
@@ -103,9 +112,7 @@ def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
                 "href": company + "/persons-with-significant-control",
             }
         )
-    elif kind == "charge" and (
-        payload.get("created_transaction_id") or payload.get("satisfied_transaction_id")
-    ):
+    elif kind == "charge" and _charge_pdf_known(event_type, payload):
         # The change itself opens the filing's PDF; this is the page behind it.
         links.append({"text": "Charges", "href": company + "/charges"})
     elif kind == "status":
@@ -138,6 +145,11 @@ def _role(role: str | None) -> str:
     return (role or "officer").replace("-", " ")
 
 
+def _sentence(text: str) -> str:
+    """End a sentence with a full stop, unless it already trails off with "…"."""
+    return text if text.endswith(("…", ".")) else f"{text}."
+
+
 def _describe_charge(
     event_type: str, p: JsonDict, *, subject: str, number: str
 ) -> tuple[str, str, str]:
@@ -145,7 +157,8 @@ def _describe_charge(
 
     The link opens the filing's PDF (the MR01 that created the charge, the
     MR04 that satisfied it) when the register gave its id, else the charges
-    page.
+    page. A satisfaction the register has not yet listed a filing for links
+    to the charges page rather than to the deed that created the charge.
     """
     who = (
         str(p.get("lender") or "")
@@ -161,26 +174,28 @@ def _describe_charge(
         charge_filing_link(number, p.get("created_transaction_id")) if number else ""
     )
     satisfaction_pdf = (
-        charge_filing_link(
-            number, p.get("satisfied_transaction_id") or p.get("created_transaction_id")
-        )
-        if number
-        else ""
+        charge_filing_link(number, p.get("satisfied_transaction_id")) if number else ""
     )
     if event_type == "created":
         return (
             f"{subject}: new charge registered",
-            f"A charge in favour of {who} was registered"
-            + (f" on {_pretty_date(p['created_on'])}" if p.get("created_on") else "")
-            + f"{detail}.",
+            _sentence(
+                f"A charge in favour of {who} was registered"
+                + (
+                    f" on {_pretty_date(p['created_on'])}"
+                    if p.get("created_on")
+                    else ""
+                )
+                + detail
+            ),
             creation_pdf,
         )
     if event_type == "acquired":
         return (
             f"{subject}: charge acquired with property",
-            (
+            _sentence(
                 f"Property acquired on {_on(p.get('acquired_on'))} came with a "
-                f"charge in favour of {who}{created}{detail}."
+                f"charge in favour of {who}{created}{detail}"
             ),
             creation_pdf,
         )
@@ -198,8 +213,9 @@ def _describe_charge(
         )
     return (
         f"{subject}: charge part satisfied",
-        f"The charge in favour of {who}{created} has been partly satisfied"
-        + (f"{detail}." if detail else "."),
+        _sentence(
+            f"The charge in favour of {who}{created} has been partly satisfied{detail}"
+        ),
         satisfaction_pdf,
     )
 
@@ -517,7 +533,7 @@ def _change_entry(
         "score": score_change(kind, event_type, weight=weight),
         "document_id": payload.get("document_id"),
         "transaction_id": payload.get("transaction_id"),
-        "links": _more_links(kind, payload, number),
+        "links": _more_links(kind, payload, number, event_type),
     }
 
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import date
+import re
 from typing import TYPE_CHECKING
 
 from .const import FIND_AND_UPDATE_BASE
@@ -24,6 +25,114 @@ CHARGE_LIST_CAP = 25
 # The longest a free-text field (particulars, what is secured) gets in an
 # attribute or an alert; the register has the full wording.
 TEXT_LIMIT = 80
+
+# Classification wording that says nothing about the kind of charge: every
+# charge registered since April 2013 is "A registered charge".
+_GENERIC_CLASSIFICATIONS = frozenset({"", "charge", "a charge", "a registered charge"})
+# The register's standard wording for what a charge secures, in its many
+# variants ("All monies due or to become due from the company to the chargee
+# on any account whatsoever", "All sums now or hereafter due ..."): say
+# "all monies due" rather than cutting a legal clause in half.
+_ALL_MONIES = re.compile(
+    r"^all (?:monies|moneys|sums)(?: now)?(?: or (?:hereafter|at any time hereafter))?"
+    r" (?:due|owing)",
+    re.IGNORECASE,
+)
+# Particulars that already say what kind of charge it is ("Fixed and floating
+# charges over the undertaking ...", "Legal charge over ...", "Standard
+# security over ...") — the shape of most charges registered before 2013.
+_SELF_DESCRIBING = re.compile(
+    r"^(?:(?:a|an|the|by way of) )?"
+    r"(?:(?:first|second|third|fixed|floating|specific|general|legal|equitable"
+    r"|standard|supplemental|composite|further) (?:and )?)*"
+    r"(?:charges?|debentures?|mortgages?|securit(?:y|ies)|assignments?|pledge"
+    r"|lien|bond|trust deed|deed)\b",
+    re.IGNORECASE,
+)
+# Words that open legal wording rather than a name; lowered when the clause
+# runs on from "charge over" or "secures". A property or lender name at the
+# start ("Wellington House, 1 High Street", "Lloyds Bank plc's premises") is
+# left as the register wrote it.
+_COMMON_STARTS = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "all",
+        "any",
+        "each",
+        "every",
+        "certain",
+        "various",
+        "such",
+        "those",
+        "these",
+        "this",
+        "that",
+        "its",
+        "their",
+        "by",
+        "part",
+        "parts",
+        "property",
+        "properties",
+        "land",
+        "lands",
+        "freehold",
+        "leasehold",
+        "premises",
+        "unit",
+        "units",
+        "plot",
+        "plots",
+        "flat",
+        "flats",
+        "everything",
+        "goodwill",
+        "plant",
+        "machinery",
+        "equipment",
+        "stock",
+        "shares",
+        "book",
+        "monies",
+        "moneys",
+        "sums",
+        "amounts",
+        "obligations",
+        "liabilities",
+        "indebtedness",
+        "fixed",
+        "floating",
+        "first",
+        "second",
+        "third",
+        "specific",
+        "general",
+        "legal",
+        "equitable",
+        "standard",
+        "supplemental",
+        "composite",
+        "further",
+        "charge",
+        "charges",
+        "debenture",
+        "debentures",
+        "mortgage",
+        "mortgages",
+        "security",
+        "securities",
+        "assignment",
+        "assignments",
+        "pledge",
+        "lien",
+        "bond",
+        "trust",
+        "deed",
+        "rent",
+    }
+)
 
 
 def charges_page(number: str) -> str:
@@ -65,8 +174,10 @@ def lender(charge: Charge) -> str:
 def charge_words(charge: Charge) -> str:
     """Say what kind of charge it is: "fixed and floating charge over all the company's assets".
 
-    Built from the particulars flags; empty when the register did not
-    record any (older charges and some paper filings).
+    Built from the particulars flags. Charges registered before April 2013
+    carry no flags but a classification that names the kind ("Debenture",
+    "Legal charge", "Rent deposit deed"), which is used instead; empty when
+    the register recorded neither.
     """
     kinds = [
         word
@@ -77,7 +188,10 @@ def charge_words(charge: Charge) -> str:
         if present
     ]
     if not kinds:
-        return ""
+        classification = " ".join((charge.classification or "").split()).lower()
+        if classification in _GENERIC_CLASSIFICATIONS:
+            return ""
+        return shorten(classification)
     words = f"{' and '.join(kinds)} charge"
     if charge.floating_charge_covers_all and "floating" in kinds:
         words += " over all the company's assets"
@@ -90,13 +204,37 @@ def particulars(charge: Charge) -> str:
 
 
 def secured(charge: Charge) -> str:
-    """Return a short version of what the charge secures."""
-    return shorten(charge.secured_description)
+    """Return a short version of what the charge secures.
+
+    The register's standard wording for an all-monies charge becomes
+    "All monies due"; anything else is the register's own words, cut short.
+    """
+    text = " ".join((charge.secured_description or "").split())
+    # Standard wording only: a figure in it ("... not exceeding £500,000")
+    # is worth keeping.
+    if _ALL_MONIES.match(text) and not re.search(r"[£$€\d]", text):
+        return "All monies due"
+    return shorten(text)
 
 
 def _lower_first(text: str) -> str:
-    """Lower the first letter of legal wording unless it starts with a name or code."""
-    if len(text) > 1 and text[1].isupper():
+    """Lower the first letter of legal wording so it runs on from "charge over".
+
+    Only a common opening word ("The", "All", "Land", "Fixed") is lowered; a
+    name or code at the start ("Wellington House, 1 High Street", "HSBC's
+    premises", "Lloyds Bank plc") keeps the register's capitals.
+    """
+    words = text.split()
+    if not words:
+        return text
+    first = words[0]
+    if len(first) > 1 and first[1].isupper():
+        return text
+    if first.lower().rstrip(",.;:") in _COMMON_STARTS:
+        return text[:1].lower() + text[1:]
+    if len(words) > 1 and words[1][:1].isupper():
+        return text
+    if len(words) == 1:
         return text
     return text[:1].lower() + text[1:]
 
@@ -105,13 +243,17 @@ def security_words(charge: Charge) -> str:
     """Describe the security in one clause: kind, what it is over, what it secures.
 
     Examples: "fixed and floating charge over all the company's assets; secures
-    all monies due", "charge over the property at 1 High Street". Empty when
-    the register recorded none of it.
+    all monies due", "charge over the property at 1 High Street". Particulars
+    that already name the kind ("Fixed and floating charges over the
+    undertaking ...") stand on their own. Empty when the register recorded
+    none of it.
     """
     kind = charge_words(charge)
     over = particulars(charge)
     parts: list[str] = []
-    if kind:
+    if over and _SELF_DESCRIBING.match(over):
+        parts.append(_lower_first(over))
+    elif kind:
         parts.append(
             kind
             if charge.floating_charge_covers_all or not over

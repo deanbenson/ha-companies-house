@@ -136,10 +136,7 @@ async def test_charge_sensors_list_the_charges(
         "status": "outstanding",
         "created_on": "2022-05-06",
         "satisfied_on": None,
-        "secured": (
-            "All monies due or to become due from the company to the chargee on any "
-            "account…"
-        ),
+        "secured": "All monies due",
         "particulars": "",
         "kind": "fixed and floating charge over all the company's assets",
         "link": (

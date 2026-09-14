@@ -10971,7 +10971,7 @@
           'link': 'https://find-and-update.company-information.service.gov.uk/company/12345678/filing-history/MzM0MDAwMDAwMGFkaXF6a2N4/document?format=pdf&download=0',
           'particulars': '',
           'satisfied_on': None,
-          'secured': 'All monies due or to become due from the company to the chargee on any account…',
+          'secured': 'All monies due',
           'status': 'outstanding',
         }),
         dict({
@@ -12865,7 +12865,7 @@
           'link': 'https://find-and-update.company-information.service.gov.uk/company/12345678/filing-history/MzM0MDAwMDAwMGFkaXF6a2N4/document?format=pdf&download=0',
           'particulars': '',
           'satisfied_on': None,
-          'secured': 'All monies due or to become due from the company to the chargee on any account…',
+          'secured': 'All monies due',
           'status': 'outstanding',
         }),
       ]),

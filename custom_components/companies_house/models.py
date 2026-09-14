@@ -812,10 +812,20 @@ def _object(value: Any) -> JsonDict:
     return _dict(value)
 
 
-# Filing types on a charge's transactions that created it (MR01 and kin)
-# and that satisfied or released it (MR04 / MR05), by keyword.
-_CHARGE_CREATION_WORDS = ("create", "acquire", "debenture")
-_CHARGE_SATISFACTION_WORDS = ("satisf", "cease", "release")
+# Filing types on a charge's transactions, by prefix (the register's
+# mortgage_descriptions enumeration): those that registered the charge (MR01
+# to MR03, MR08 to MR10 and their pre-2013 forms) and those that satisfied or
+# released it, wholly or partly (MR04 / MR05 and kin). Anything else on the
+# list — an alteration (MR07), a trustee statement (MR06), supporting evidence,
+# a receiver's appointment or ceasing to act (RM01 / RM02, "liquidation-*") —
+# is neither, even where its name contains "create" or "cease".
+_CHARGE_CREATION_PREFIXES = ("create-", "acquire-", "debenture-")
+_CHARGE_SATISFACTION_PREFIXES = (
+    "charge-satisfaction",
+    "charge-part",
+    "charge-whole",
+    "charge-release",
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -844,12 +854,12 @@ class ChargeTransaction(StorableModel):
     @property
     def is_creation(self) -> bool:
         """Whether this filing registered the charge."""
-        return any(w in (self.filing_type or "") for w in _CHARGE_CREATION_WORDS)
+        return (self.filing_type or "").startswith(_CHARGE_CREATION_PREFIXES)
 
     @property
     def is_satisfaction(self) -> bool:
         """Whether this filing satisfied or released the charge, wholly or partly."""
-        return any(w in (self.filing_type or "") for w in _CHARGE_SATISFACTION_WORDS)
+        return (self.filing_type or "").startswith(_CHARGE_SATISFACTION_PREFIXES)
 
 
 @dataclass(frozen=True, kw_only=True)
