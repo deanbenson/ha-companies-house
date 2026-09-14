@@ -107,6 +107,9 @@ class CompanyState:
     # the Gazette notice appeared in the filings; the notice, when it comes,
     # fills in the countdown without announcing the proposal again.
     strike_off_awaiting_notice: bool = False
+    # The last risk rating, so a restart does not announce it again.
+    risk_band: str | None = None
+    risk_score: int | None = None
     not_found: bool = False
     # Every change detected, newest first, so a report can look back.
     changes: list[JsonDict] = field(default_factory=list)
@@ -135,6 +138,8 @@ class CompanyState:
             "strike_off_transaction_id": self.strike_off_transaction_id,
             "strike_off_discontinued_on": _iso(self.strike_off_discontinued_on),
             "strike_off_awaiting_notice": self.strike_off_awaiting_notice,
+            "risk_band": self.risk_band,
+            "risk_score": self.risk_score,
             "changes": self.changes[:CHANGE_LOG_CAP],
         }
 
@@ -170,6 +175,11 @@ class CompanyState:
                 data.get("strike_off_discontinued_on")
             ),
             strike_off_awaiting_notice=data.get("strike_off_awaiting_notice") is True,
+            risk_band=band if isinstance(band := data.get("risk_band"), str) else None,
+            risk_score=score
+            if isinstance(score := data.get("risk_score"), int)
+            and not isinstance(score, bool)
+            else None,
             changes=_changes(data),
         )
 

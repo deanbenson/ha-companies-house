@@ -253,6 +253,14 @@
   },
   "entity": {
     "sensor": {
+      "risk_rating": {
+        "name": "Risk rating",
+        "state": {
+          "green": "Green",
+          "amber": "Amber",
+          "red": "Red"
+        }
+      },
       "next_deadline": {
         "name": "Next deadline"
       },
@@ -693,7 +701,8 @@
               "strike-off-proposed": "Strike off proposed",
               "strike-off-suspended": "Strike off suspended",
               "strike-off-discontinued": "Strike off discontinued",
-              "dissolved": "Dissolved"
+              "dissolved": "Dissolved",
+              "risk-changed": "Risk rating changed"
             }
           }
         }

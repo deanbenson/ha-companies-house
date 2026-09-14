@@ -65,6 +65,7 @@ TIERS = {
 }
 
 COMPANY_SENSORS = {
+    "risk_rating": "Risk rating",
     "next_deadline": "Next deadline",
     "next_deadline_type": "Next deadline type",
     "days_to_next_deadline": "Days to next deadline",
@@ -220,6 +221,7 @@ EVENTS = {
             "strike-off-suspended": "Strike off suspended",
             "strike-off-discontinued": "Strike off discontinued",
             "dissolved": "Dissolved",
+            "risk-changed": "Risk rating changed",
         },
     ),
     "profile_change": (
@@ -272,6 +274,7 @@ def build() -> dict:
         "accounts": "Accounts",
         "confirmation_statement": "Confirmation statement",
     }
+    sensors["risk_rating"]["state"] = {"green": "Green", "amber": "Amber", "red": "Red"}
 
     events = {}
     for key, (name, types) in EVENTS.items():

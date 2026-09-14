@@ -41,8 +41,10 @@ from .coordinator import (
     CompaniesHouseConfigEntry,
     CompanyRuntime,
     OfficerRuntime,
+    signal_changes,
     signal_new_company,
     signal_new_officer,
+    signal_risk,
     signal_tier,
 )
 from .entity import CompanyEntity, OfficerEntity, ServiceEntity, service_device_info
@@ -55,6 +57,7 @@ from .enumerations import (
 )
 from .gazette import countdown_attributes
 from .models import Appointment, CompanyProfile
+from .risk import BANDS
 from .scheduler import days_until, probe_interval
 
 PARALLEL_UPDATES = 0
@@ -205,8 +208,27 @@ def _strike_off_attrs(company: CompanyRuntime) -> Attrs:
     )
 
 
+def _risk_attrs(company: CompanyRuntime) -> Attrs:
+    """Everything behind the rating: score, reasons, coverage and its basis."""
+    risk = company.risk
+    if risk is None:
+        return {}
+    data = risk.as_dict()
+    data["reason"] = _truncate(data["reason"])
+    return data
+
+
 COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     # Default on
+    CompanySensorDescription(
+        key="risk_rating",
+        device_class=SensorDeviceClass.ENUM,
+        options=BANDS,
+        value_fn=lambda c: (
+            c.risk.band if c.risk is not None and c.risk.band in BANDS else None
+        ),
+        attrs_fn=_risk_attrs,
+    ),
     CompanySensorDescription(
         key="next_deadline",
         device_class=SensorDeviceClass.DATE,
@@ -704,6 +726,41 @@ class PollingTierSensor(CompanySensor):
         self.async_write_ha_state()
 
 
+class RiskRatingSensor(CompanySensor):
+    """The rating is bound to the profile but re-renders when anything moves.
+
+    Every dataset feeds the score, so the sensor also listens to the other
+    coordinators, to change events and to the runtime's own re-rating signal.
+    """
+
+    @property
+    def available(self) -> bool:
+        """Available whenever there is a rating, even while refreshes are failing.
+
+        Stale data is one of the things the rating reports, so a run of
+        failed refreshes must not take the rating away as well.
+        """
+        return self.coordinator.data is not None
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to re-ratings, change events and every dataset."""
+        await super().async_added_to_hass()
+        subentry_id = self.company.subentry.subentry_id
+        for signal in (signal_risk(subentry_id), signal_changes(subentry_id)):
+            self.async_on_remove(
+                async_dispatcher_connect(self.hass, signal, self._rerender)
+            )
+        for coordinator in self.company.coordinators.values():
+            if coordinator is not self.coordinator:
+                self.async_on_remove(
+                    coordinator.async_add_listener(self.async_write_ha_state)
+                )
+
+    @callback
+    def _rerender(self, *_: Any) -> None:
+        self.async_write_ha_state()
+
+
 # ---------------------------------------------------------------- officers
 
 
@@ -1095,6 +1152,7 @@ class ConnectionsSensor(CoordinatorEntity[ConnectionsCoordinator], SensorEntity)
 # Sensors that need more than the plain class, by key.
 _SENSOR_CLASSES: dict[str, type[CompanySensor]] = {
     "polling_tier": PollingTierSensor,
+    "risk_rating": RiskRatingSensor,
     "charges_outstanding": ChargesSensor,
     "charges_total": ChargesSensor,
 }

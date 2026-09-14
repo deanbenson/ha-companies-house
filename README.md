@@ -16,6 +16,9 @@ It answers three questions without anyone having to remember to look:
 3. **What is this person doing?** Every appointment a tracked director holds
    across every company, plus an honest check of the disqualified directors
    register.
+4. **Should I be worried about this counterparty?** A green, amber or red
+   **risk rating** per company, built from the register alone, with every
+   reason spelled out.
 
 > **Domain clash.** An older HACS integration, `YukariChiba/hass_companieshouse`,
 > uses the same `companies_house` domain with a handful of YAML sensors. This
@@ -161,7 +164,8 @@ the diagnostic section keeps the rarely-needed rows out of the way.
 
 ### Company
 
-Sensors on by default: next deadline, next deadline type, days to next
+Sensors on by default: **risk rating** (green, amber or red; see below), next
+deadline, next deadline type, days to next
 deadline, accounts next due, confirmation statement next due, company status,
 earliest strike-off date, days to object to strike-off (both unknown unless a
 strike-off is live; see below), last filing date, last filing (rendered
@@ -247,6 +251,46 @@ a strike-off: the discontinuation filing or the status detail clearing,
 whichever comes first, and a company struck off is announced as dissolved,
 not as a strike-off dropped.
 
+#### Risk rating
+
+`sensor.<company>_risk_rating` is a traffic light: **green**, **amber** or
+**red**, with the workings in the attributes: `score` (0 to 100, higher is
+worse), `reasons` (one short line each, heaviest first), `reason` (the
+one-liner: "Amber: accounts 2 months overdue; sole director"), `overrides`,
+`coverage` (which datasets were checked and when), `data_age_days`,
+`computed_at`, `scoring_version` and `basis`. It is recomputed whenever any of
+the company's datasets refreshes, and a `status` / `risk-changed` event fires
+only when the band moves, so a score drifting inside a band stays quiet. A
+followed person's disqualification or failed companies count against the
+companies they sit on, and the rating waits for every company and person to
+start before it is computed, so a restart never drops a band or announces one.
+
+It is a **register health** rating, not a credit check. Points add up; a
+formal status event is a band on its own:
+
+| | What | Points |
+|---|---|---|
+| Red regardless | dissolved or removed; in liquidation, administration, receivership or a voluntary arrangement; an open insolvency case; a sanctioned person with significant control | 100 |
+| | strike-off proposed (Gazette notice or a DS01 not withdrawn) | 60 |
+| | registered office moved to the Companies House default address; a followed director disqualified; accounts more than 6 months overdue | 40 |
+| Filing | accounts overdue: up to 1 month 10, 1 to 3 months 18, 3 to 6 months 28; confirmation statement overdue: 6 / 10 / 16; both at once +6; each late set of accounts in the last 3 years (from the recent filings) 4, up to 12; no accounts ever at a company past 21 months 6; dormant accounts 8; nothing filed for 15 months 2 | |
+| Board and owners | under a year old 8, 1 to 3 years 5, 3 to 9 years 2; no directors 15, sole director 4 (7 when it is a company); 1 / 2 / 3+ resignations in a year 3 / 6 / 10, board shrank by 2+ 4, whole board replaced 8; owner not identified 6, no PSC recorded 3, control changed this year 4, every PSC ceased 5; a followed director still serving at a company now insolvent 6 each (max 12), or at 3+ dissolved ones 3 | |
+| Charges and office | 1 to 2 outstanding charges 2, 3 to 5 4, 6+ 6; a new charge this half year 4, two or more this year 8; a charge in favour of HMRC 10; all-assets debenture 3; insolvency history 10 (5 once over 5 years old); undeliverable registered office 12, in dispute 8, moved 2+ times this year 3; renamed twice in two years 2, renamed after a change of control 3 | |
+| Not checked | directors, charges or insolvency record not monitored or never fetched 4 each, ownership 2 (one line: "directors, charges, insolvency record and ownership not checked"); register data over 14 days old, or refreshes failing for over a week, 5; partial data 4 | |
+
+Bands: **green** 0 to 9, **amber** 10 to 29, **red** 30 or more or any
+override. Anything unknown counts as risk, never as safety: a company watched
+with the optional datasets switched off is amber ("Amber: directors, charges,
+insolvency record and ownership not checked") until they are switched on, and
+a company the register has not answered for is "unknown". Data more than a
+day old is always mentioned last ("Green: no concerns on the register;
+register data 3 days old"). The rating cannot see county court judgments,
+winding-up petitions before an order, trade payment behaviour, bank data or
+accounts figures, which every commercial credit score relies on, so treat red
+as "look now" and green as "nothing on the register", not as a credit limit.
+The table is versioned (`scoring_version`) so an automation can pin what it
+expects.
+
 ### Officer
 
 Current companies (the companies they hold a role at today, newest first,
@@ -317,13 +361,18 @@ important changes. A charge change reads as who lent and what secures it
 ("A charge in favour of Lloyds Bank plc was registered on 3 Jul 2026 — fixed
 and floating charge over all the company's assets; secures all monies due")
 and opens the filing's PDF; a company's card says how many charges are
-outstanding and to whom. Problems are split into **new this week** (a
+outstanding and to whom, and carries an amber or red pill when the risk rating
+says so. Problems are split into **new this week** (a
 strike-off or status change seen in the period, or a deadline that passed in
 it) and **still open** (known before, listed quietly at the bottom until they
 clear); a live strike-off reads "Strike-off proposed (compulsory) — 41 days to
 object" with a link to the Gazette notice. It also lists deadlines in the
-next 30 days (including the last day to object to a strike-off), **new
-companies** (recently
+next 30 days (including the last day to object to a strike-off), a **Risk**
+section (every company rated amber or red, worst first, with its one-line
+reason; a band that got worse this week counts as needing attention, an
+unchanged one as still open, and the counts sit in the stats line; dissolved
+companies are counted but never listed, since red for being dissolved is not
+news), **new companies** (recently
 incorporated, with the followed people at them) and, when ownership changed,
 **who controls what** across every watched company. It returns the report as
 data, as email-safe HTML (inline styles, logos, links to the register and to
@@ -469,7 +518,7 @@ Event types by kind:
 | officer | appointed, resigned, details-changed | name, role, appointed_on, resigned_on, officer_id, appointment_id |
 | psc | notified, ceased, statement-added, details-changed | name, psc_kind, natures_of_control, notified_on, ceased_on |
 | charge | created, satisfied, part-satisfied, acquired | charge_code, charge_id, lender, persons_entitled, created_on, delivered_on, satisfied_on, acquired_on, status, charge_kind, particulars, secured, security (the kind, what it is over and what it secures, in one clause), negative_pledge, created_transaction_id and satisfied_transaction_id (the filing-history ids of the MR01 / MR04: pass one to `get_filing` for its `links.document_metadata` document id, which `download_document` takes; the alert event's `link` is the register's PDF), transaction_ids |
-| status | status-changed, strike-off-proposed, strike-off-suspended, strike-off-discontinued, dissolved | old_status, new_status, detail; strike-off events seen from a filing add strike_off_kind, notice_on, suspended_on, earliest_on, objection_deadline, transaction_id (a strike-off-proposed from the status detail alone has none of these) |
+| status | status-changed, strike-off-proposed, strike-off-suspended, strike-off-discontinued, dissolved, risk-changed | old_status, new_status, detail; strike-off events seen from a filing add strike_off_kind, notice_on, suspended_on, earliest_on, objection_deadline, transaction_id (a strike-off-proposed from the status detail alone has none of these); `risk-changed` carries old_band, new_band, score, reasons, reason |
 | profile | name-changed, address-changed, sic-changed, accounting-reference-date-changed | old_value, new_value |
 | appointment (officer) | appointed, resigned, company-status-changed, disqualified, new-record, company-now-watched | company_number, company_name, company_status, role, appointed_on, resigned_on; `new-record` carries officer_id and name |
 
@@ -704,6 +753,10 @@ HACS if you no longer want the files.
   nobody follows appears with their watched roles only, so "also runs a
   company in liquidation" can only be spotted for followed people and for
   companies that are themselves watched.
+* The risk rating sees only the register: no county court judgments, no
+  winding-up petitions until the order is filed, no payment or bank data, and
+  no accounts figures yet. Late-filing history looks back over the newest 25
+  filings only. Connected-party rules apply only to directors you follow.
 
 ## Troubleshooting
 

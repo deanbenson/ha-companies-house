@@ -52,7 +52,16 @@ def _company(entry: Any, number: str) -> CompanyRuntime:
 
 
 def _status_events(events: list[Any]) -> list[dict[str, Any]]:
-    return [e.data for e in events if e.data["kind"] == "status"]
+    """Return the strike-off status events; the rating a strike-off moves is a separate story."""
+    return [
+        e.data
+        for e in events
+        if e.data["kind"] == "status" and e.data["event_type"] != "risk-changed"
+    ]
+
+
+def _risk_events(events: list[Any]) -> list[dict[str, Any]]:
+    return [e.data for e in events if e.data["event_type"] == "risk-changed"]
 
 
 async def _add_company(
@@ -117,6 +126,10 @@ async def test_notice_suspension_and_discontinuation(
     assert proposed["detail"] == "First Gazette notice for voluntary strike-off"
     assert proposed["strike_off_kind"] == "voluntary"
     assert proposed["notice_on"] == "2026-09-14"
+    # The notice alone turns the rating red, with the countdown's own words.
+    (rated,) = _risk_events(events)
+    assert rated["new_band"] == "red"
+    assert "strike-off proposed (voluntary) on 14 Sep 2026" in rated["reasons"]
     assert proposed["earliest_on"] == "2026-11-14"
     assert proposed["objection_deadline"] == "2026-10-31"
     assert proposed["suspended_on"] is None
@@ -190,7 +203,16 @@ async def test_notice_suspension_and_discontinuation(
         "Strike-off proposed (voluntary) — 46 days to object"
     )
     assert card["strike_off"]["link"] == notice_link(ACTIVE, "NEWTRANSACTION0001")
-    (attention,) = card["attention"]
+    # The strike-off, then the red rating it earned (new this week too).
+    attention, rated = card["attention"]
+    assert rated == {
+        "issue": "Risk rating red",
+        "new": True,
+        "since": None,
+        "short": "Risk rating red",
+        "links": [],
+        "kind": "risk",
+    }
     assert attention["issue"] == "Strike-off proposed (voluntary) — 46 days to object"
     assert attention["short"] == "Strike-off proposed"
     assert attention["new"] is True
@@ -268,7 +290,11 @@ async def test_notice_suspension_and_discontinuation(
     assert link == notice_link(ACTIVE, None)
     digest = build_digest(entry, days=7)
     (card,) = [c for c in digest["companies"] if c["number"] == ACTIVE]
-    (attention,) = card["attention"]
+    attention, rated = card["attention"]
+    # Still red: a suspended strike-off is held off, not dropped. The band
+    # did not move this period, so it is still open rather than new.
+    assert rated["issue"] == "Risk rating red"
+    assert rated["new"] is False
     assert attention["issue"] == (
         "Strike-off suspended (voluntary) — earliest strike-off 1 Apr 2027"
     )
@@ -414,7 +440,8 @@ async def test_profile_flags_strike_off_before_any_notice_is_seen(
     assert hass.states.get(DAYS).attributes["caveat"] == CAVEAT_UNKNOWN
     digest = build_digest(entry, days=7)
     (card,) = digest["companies"]
-    (attention,) = card["attention"]
+    attention, rated = card["attention"]
+    assert rated["issue"] == "Risk rating red"
     assert attention["issue"] == "Strike-off proposed — notice date unknown"
     assert attention["new"] is True
     assert attention["links"] == [
@@ -495,7 +522,11 @@ async def test_profile_flip_finds_the_notice_the_probe_has_not_seen(
     )
     await company.profile.async_refresh()
     await hass.async_block_till_done()
-    assert [e.data["event_type"] for e in events] == ["gazette", "strike-off-proposed"]
+    assert [e.data["event_type"] for e in events] == [
+        "gazette",
+        "strike-off-proposed",
+        "risk-changed",
+    ]
     (proposed,) = _status_events(events)
     assert proposed["detail"] == "First Gazette notice for compulsory strike-off"
     assert proposed["notice_on"] == "2026-09-14"

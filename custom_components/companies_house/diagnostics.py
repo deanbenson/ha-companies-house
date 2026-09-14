@@ -45,6 +45,9 @@ def _coordinator_info(coordinator: CompaniesHouseCoordinator[Any]) -> dict[str, 
         else None,
         "next_run": coordinator.next_run.isoformat() if coordinator.next_run else None,
         "last_reason": coordinator.last_reason,
+        "failing_since": coordinator.failing_since.isoformat()
+        if coordinator.failing_since
+        else None,
         "has_data": coordinator.data is not None,
     }
 
@@ -63,6 +66,7 @@ def _company_info(company: CompanyRuntime, *, include_data: bool) -> dict[str, A
         if company.state.strike_off_discontinued_on
         else None,
         "strike_off_awaiting_notice": company.state.strike_off_awaiting_notice,
+        "risk": company.risk.as_dict() if company.risk is not None else None,
         "state": {
             "filings_total_count": company.state.filings_total_count,
             "newest_transaction_id": company.state.newest_transaction_id,

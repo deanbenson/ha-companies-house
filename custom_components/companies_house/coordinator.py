@@ -54,6 +54,9 @@ from .const import (
     LOGGER,
     OPTIONAL_DATASETS,
     STATUS_DETAIL_STRIKE_OFF,
+    STRIKE_OFF_DISCONTINUED_DESCRIPTIONS,
+    STRIKE_OFF_NOTICE_DESCRIPTIONS,
+    STRIKE_OFF_SUSPENDED_DESCRIPTIONS,
     SUBENTRY_TYPE_COMPANY,
     SUBENTRY_TYPE_OFFICER,
     Dataset,
@@ -89,6 +92,7 @@ from .repairs import (
     async_raise_rate_limited,
     async_raise_subentry_issue,
 )
+from .risk import RiskResult, TrackedPerson, compute_risk
 from .scheduler import (
     appointments_next_run,
     compute_tier,
@@ -119,28 +123,6 @@ PROBE_CATCH_UP_MAX = 25
 # recent history stays available (for the report) without another request.
 PROBE_KEEP_ITEMS = 25
 ACCOUNT_INTERVAL = timedelta(seconds=60)
-STRIKE_OFF_NOTICE_DESCRIPTIONS = frozenset(
-    {
-        "gazette-notice-voluntary",
-        "gazette-notice-compulsory",
-        "gazette-notice-compulsary",
-    }
-)
-# A successful objection: the strike-off is held off for six months, not dropped.
-STRIKE_OFF_SUSPENDED_DESCRIPTIONS = frozenset(
-    {
-        "dissolution-voluntary-strike-off-suspended",
-        "dissolved-compulsory-strike-off-suspended",
-    }
-)
-STRIKE_OFF_DISCONTINUED_DESCRIPTIONS = frozenset(
-    {
-        "gazette-filings-brought-up-to-date",
-        "dissolution-voluntary-strike-off-discontinued",
-        "dissolution-withdrawal-application-strike-off-company",
-        "dissolution-withdrawal-application-strike-off-limited-liability-partnership",
-    }
-)
 
 
 def find_strike_off(
@@ -173,6 +155,11 @@ def signal_changes(subentry_id: str) -> str:
 def signal_tier(subentry_id: str) -> str:
     """Dispatcher signal fired when a company's tier or schedule changes."""
     return f"{DOMAIN}_tier_{subentry_id}"
+
+
+def signal_risk(subentry_id: str) -> str:
+    """Dispatcher signal fired when a company's risk rating has been recomputed."""
+    return f"{DOMAIN}_risk_{subentry_id}"
 
 
 def signal_new_company(entry_id: str) -> str:
@@ -321,6 +308,8 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
         self.fetched_at: datetime | None = None
         self.next_run: datetime | None = None
         self.last_reason = "not run"
+        # When the current run of failed refreshes began; None while healthy.
+        self.failing_since: datetime | None = None
         self._first_run = True
         self._force_fetch = False
 
@@ -447,6 +436,7 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             ) from err
         except CompaniesHouseBudgetError as err:
             if self.data is None:
+                self.failing_since = self.failing_since or now
                 raise UpdateFailed(
                     translation_domain=DOMAIN,
                     translation_key="budget_exhausted",
@@ -457,17 +447,20 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             LOGGER.debug("%s deferred: %s", self.name, err)
             return self.data
         except CompaniesHouseRateLimitError as err:
+            self.failing_since = self.failing_since or now
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="rate_limited",
                 retry_after=err.retry_after,
             ) from err
         except CompaniesHouseNotFoundError as err:
+            self.failing_since = self.failing_since or now
             self._on_not_found()
             raise UpdateFailed(
                 translation_domain=DOMAIN, translation_key="not_found"
             ) from err
         except CompaniesHouseConnectionError as err:
+            self.failing_since = self.failing_since or now
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="cannot_connect",
@@ -475,6 +468,7 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             ) from err
         previous = self.data
         self.fetched_at = now
+        self.failing_since = None
         self.last_reason = "fetched"
         if previous is not None:
             self._detect_changes(previous, current)
@@ -524,6 +518,8 @@ class CompanyRuntime(_Runtime):
         self.state: CompanyState = store.company(company_number)
         self.tier = Tier.NORMAL
         self.tier_reason = "not evaluated"
+        # The last risk rating; None until the profile has been read.
+        self.risk: RiskResult | None = None
         self.probe = ProbeCoordinator(hass, entry, client, store, self)
         self.profile = ProfileCoordinator(hass, entry, client, store, self)
         self.officers = (
@@ -600,7 +596,10 @@ class CompanyRuntime(_Runtime):
         """Refresh every coordinator once at setup, tolerating failures.
 
         Snapshots are loaded first so a fresh one costs no request, and so
-        changes since the last run are detected rather than replayed.
+        changes since the last run are detected rather than replayed. The
+        risk rating is not computed here: it depends on the followed people,
+        who may not have started yet, so the entry rates every company once
+        all of its subentries are up (see ``recompute_risk``).
         """
         for coordinator in self.coordinators.values():
             coordinator.load_snapshot()
@@ -646,6 +645,91 @@ class CompanyRuntime(_Runtime):
             await self.coordinators[dataset].async_refresh_now(on_demand=on_demand)
         if Dataset.PROFILE in wanted:
             self.recompute_tier()
+
+    def _tracked_people(self) -> list[TrackedPerson]:
+        """Return the followed people, for the disqualification and connected-party rules."""
+        runtime = getattr(self.entry, "runtime_data", None)
+        if runtime is None:
+            return []
+        return [
+            TrackedPerson(
+                name=officer.officer_name,
+                officer_ids=list(officer.officer_ids),
+                disqualification=officer.disqualification.data,
+                appointments=officer.appointments.data,
+            )
+            for officer in runtime.officers.values()
+        ]
+
+    @callback
+    def recompute_risk(self) -> None:
+        """Re-rate the company from the data on hand.
+
+        Called after every refresh that lands once the company is live, and
+        once by the entry when every company and person has started, so the
+        first rating after a restart already sees the followed people. The
+        band is remembered in the store and a ``risk-changed`` event fires
+        only when it moves, never for the score alone and never on the first
+        rating after setup.
+        """
+        coverage = {
+            dataset.value: coordinator.fetched_at
+            for dataset, coordinator in self.coordinators.items()
+            if coordinator.data is not None
+        }
+        result = compute_risk(
+            profile=self.profile.data,
+            officers=self.officers.data if self.officers else None,
+            psc=self.psc.data if self.psc else None,
+            charges=self.charges.data if self.charges else None,
+            insolvency=self.insolvency.data if self.insolvency else None,
+            filings=self.probe.data.items if self.probe.data else (),
+            state=self.state,
+            coverage=coverage,
+            people=self._tracked_people(),
+            profile_failing_since=self.profile.failing_since,
+            today=dt_util.now().date(),
+        )
+        result = replace(result, computed_at=dt_util.utcnow())
+        previous = self.risk
+        self.risk = result
+        LOGGER.debug(
+            "%s (%s) risk %s %d: %s",
+            self.company_name,
+            self.company_number,
+            result.band,
+            result.score,
+            "; ".join(result.reasons) or "no concerns",
+        )
+        old_band = self.state.risk_band
+        if result.band is not None and result.band != old_band:
+            self.state.risk_band = result.band
+            self.state.risk_score = result.score
+            self.store.save()
+            if old_band is not None:
+                self.dispatch(
+                    ChangeEvent(
+                        "status",
+                        "risk-changed",
+                        {
+                            "old_band": old_band,
+                            "new_band": result.band,
+                            "score": result.score,
+                            "reasons": list(result.reasons),
+                            "reason": result.reason,
+                        },
+                    )
+                )
+        elif result.band is not None and result.score != self.state.risk_score:
+            self.state.risk_score = result.score
+            self.store.save()
+        if previous is None or (
+            previous.band,
+            previous.score,
+            previous.reasons,
+            previous.info,
+        ) != (result.band, result.score, result.reasons, result.info):
+            async_dispatcher_send(self.hass, signal_risk(self.subentry.subentry_id))
 
     @property
     def strike_off_proposed(self) -> bool:
@@ -898,6 +982,19 @@ class _CompanyCoordinator[DataT: StorableModel](CompaniesHouseCoordinator[DataT]
     def company_number(self) -> str:
         """Return the company number."""
         return self.company.company_number
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Re-rate the company once a refresh has landed.
+
+        Every dataset feeds the rating. Refreshes before the first rating are
+        skipped: the entry rates once after every company and person has
+        started, so a new company is never announced as amber for want of
+        data that is still on its way. Anything landing after that first
+        rating, ready or not, is rated (events wait in the buffer).
+        """
+        if self.company.risk is not None:
+            self.company.recompute_risk()
 
 
 def _iso(value: date | None) -> str | None:
@@ -1217,23 +1314,29 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
     def _async_refresh_finished(self) -> None:
         """Re-evaluate the tier once the new profile is in place, and manage issues."""
         self.company.recompute_tier()
-        if not self.last_update_success or self.data is None:
-            return
-        if self._strike_off_flip is not None:
-            flip, self._strike_off_flip = self._strike_off_flip, None
-            assert self.config_entry is not None
-            self.config_entry.async_create_background_task(
-                self.hass,
-                self.company.async_confirm_strike_off(flip),
-                name=f"{self.name} strike-off",
-            )
-        else:
-            self.company.reconcile_strike_off()
-        if self.company.state.not_found:
+        found = self.last_update_success and self.data is not None
+        if found and self.company.state.not_found:
             self.company.state.not_found = False
             async_clear_subentry_issue(
                 self.hass, "company_not_found", self.company_number
             )
+        if found and self.data is not None:
+            # Settle the strike-off first so the rating sees where it stands.
+            if self._strike_off_flip is not None:
+                flip, self._strike_off_flip = self._strike_off_flip, None
+                assert self.config_entry is not None
+                self.config_entry.async_create_background_task(
+                    self.hass,
+                    self.company.async_confirm_strike_off(flip),
+                    name=f"{self.name} strike-off",
+                )
+            else:
+                self.company.reconcile_strike_off()
+        # Rate before the early return so a company gone from the register
+        # honestly shows "unknown" rather than its last band.
+        super()._async_refresh_finished()
+        if not found or self.data is None:
+            return
         if self.data.company_status in FINISHED_STATUSES:
             async_raise_subentry_issue(
                 self.hass,
@@ -1605,6 +1708,16 @@ class OfficerRuntime(_Runtime):
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
 
+    @callback
+    def rerate_companies(self) -> None:
+        """Re-rate every watched company: this person's record feeds their ratings."""
+        runtime = getattr(self.entry, "runtime_data", None)
+        if runtime is None:
+            return
+        for company in runtime.companies.values():
+            if company.profile.data is not None:
+                company.recompute_risk()
+
     async def async_shutdown(self) -> None:
         """Stop both coordinators."""
         for coordinator in self.coordinators.values():
@@ -1710,6 +1823,8 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
             )
         if self.last_update_success and self.officer.watch_companies:
             self.hass.async_create_task(self.officer.async_watch_companies())
+        if self.last_update_success and self.officer.ready:
+            self.officer.rerate_companies()
 
     def _detect_changes(
         self, previous: AppointmentList, current: AppointmentList
@@ -1858,6 +1973,12 @@ class DisqualificationCoordinator(_OfficerCoordinator[DisqualificationResult]):
                 company_names=[str(n) for n in latest.get("company_names") or []],
             )
         return result
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Re-rate the companies this person sits on: disqualification is scored."""
+        if self.last_update_success and self.officer.ready:
+            self.officer.rerate_companies()
 
     def _detect_changes(
         self, previous: DisqualificationResult, current: DisqualificationResult
@@ -2079,5 +2200,6 @@ __all__ = [
     "signal_changes",
     "signal_new_company",
     "signal_new_officer",
+    "signal_risk",
     "signal_tier",
 ]

@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.setup import async_setup_component
+from homeassistant.util import dt as dt_util
 from pytest_homeassistant_custom_component.components.diagnostics import (
     get_diagnostics_for_config_entry,
     get_diagnostics_for_device,
@@ -41,9 +42,20 @@ async def test_config_entry_diagnostics(
     assert companies["12345678"]["tier"] == "quiet"
     assert companies["34567890"]["tier"] == "deadline"
     assert companies["12345678"]["coordinators"]["profile"]["last_reason"] == "fetched"
+    assert companies["12345678"]["coordinators"]["profile"]["failing_since"] is None
     assert companies["12345678"]["state"]["filings_total_count"] == 6
+    assert companies["12345678"]["risk"]["band"] == "green"
+    assert companies["34567890"]["risk"]["band"] == "red"
     assert "data" not in companies["12345678"]
     assert diagnostics["officers"][0]["officer_id"] == "officer-jane"
+    # A run of failed refreshes is dated, so stale ratings can be explained.
+    company = entry.runtime_data.companies["sub_12345678"]
+    company.profile.failing_since = dt_util.utcnow()
+    diagnostics = await get_diagnostics_for_config_entry(hass, hass_client, entry)
+    companies = {c["company_number"]: c for c in diagnostics["companies"]}
+    assert companies["12345678"]["coordinators"]["profile"]["failing_since"] == (
+        company.profile.failing_since.isoformat()
+    )
 
 
 async def test_device_diagnostics(

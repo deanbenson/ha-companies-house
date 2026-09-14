@@ -265,14 +265,23 @@ async def test_officer_and_charge_changes_fire_events(
         ("psc", "ceased"),
         ("psc", "notified"),
         ("psc", "statement-added"),
+        ("status", "risk-changed"),
     ]
+    # A resignation and a change of control move the rating from green to
+    # amber, once, after the refreshes have settled.
+    rated = next(e.data for e in events if e.data["event_type"] == "risk-changed")
+    assert (rated["old_band"], rated["new_band"]) == ("green", "amber")
+    assert "1 director resigned in the last year" in rated["reasons"]
+    assert rated["reason"].startswith("Amber: ")
+    assert company.state.risk_band == "amber"
+    assert company.state.risk_score == rated["score"]
     # Every change is remembered, newest first, for the report.
     logged = company.state.changes
-    assert len(logged) == 8
+    assert len(logged) == 9
     assert {(c["kind"], c["event_type"]) for c in logged} == set(kinds)
     assert logged[0]["at"]
     assert logged[0]["payload"]
-    assert len(entry.runtime_data.store.company(ACTIVE).changes) == 8
+    assert len(entry.runtime_data.store.company(ACTIVE).changes) == 9
     # Charge events say who lent, what secures it and which filing to open,
     # and the payload's own words never clobber the event's kind.
     satisfied = next(e.data for e in events if e.data["event_type"] == "satisfied")
@@ -347,7 +356,10 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
     mock_company(aioclient_mock, ACTIVE, overrides={"officers": officers})
     await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
     await hass.async_block_till_done()
-    assert len(alerts) == 1
+    # The resignation itself, then the rating it pushed from amber (a sole
+    # director, after the first resignation) to red: no directors left in
+    # office, on top of the all-assets debenture the charges fixture carries.
+    assert len(alerts) == 2
     data = alerts[0].data
     assert data["company_number"] == ACTIVE
     assert data["kind"] == "officer"
@@ -357,6 +369,11 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
         "Jane Elizabeth Smith resigned as director on 13 Sep 2026"
     )
     assert data["link"].endswith(f"/company/{ACTIVE}/officers")
+    rated = alerts[1].data
+    assert rated["event_type"] == "risk-changed"
+    assert rated["title"] == "EXAMPLE TRADING LIMITED: risk now red"
+    assert rated["message"].startswith("Red: no directors in office")
+    assert rated["link"].endswith(f"/company/{ACTIVE}")
 
 
 def test_describe_change_covers_every_kind() -> None:
@@ -450,9 +467,11 @@ async def test_status_and_profile_changes(
         "accounting-reference-date-changed",
         "address-changed",
         "name-changed",
+        "risk-changed",
         "sic-changed",
         "strike-off-proposed",
     ]
+    assert hass.states.get("sensor.example_trading_limited_risk_rating").state == "red"
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"
@@ -500,8 +519,19 @@ async def test_gazette_filing_flags_strike_off(
     mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
     await company.probe.async_refresh()
     await hass.async_block_till_done()
-    assert [e.data["event_type"] for e in events] == ["gazette", "strike-off-proposed"]
+    assert [e.data["event_type"] for e in events] == [
+        "gazette",
+        "strike-off-proposed",
+        "risk-changed",
+    ]
     assert company.state.strike_off_notice_on is not None
+    rating = hass.states.get("sensor.example_trading_limited_risk_rating")
+    assert rating is not None
+    assert rating.state == "red"
+    assert rating.attributes["overrides"] == ["R4"]
+    assert rating.attributes["reasons"][0].startswith(
+        "strike-off proposed (compulsory) on "
+    )
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"
@@ -524,7 +554,11 @@ async def test_gazette_filing_flags_strike_off(
     assert [e.data["event_type"] for e in events] == [
         "gazette",
         "strike-off-discontinued",
+        "risk-changed",
     ]
+    assert (
+        hass.states.get("sensor.example_trading_limited_risk_rating").state == "green"
+    )
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"
@@ -587,7 +621,9 @@ async def test_stale_snapshot_is_refetched_and_diffed(
     mock_company(aioclient_mock, ACTIVE, overrides={"officers": officers})
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
-    assert [e.data["event_type"] for e in events] == ["resigned"]
+    # The resignation once, and the rating it moved (green to amber: a sole
+    # director now, one resignation this year) since the band was stored.
+    assert [e.data["event_type"] for e in events] == ["resigned", "risk-changed"]
 
 
 async def test_reconciliation_refreshes_everything_weekly(
@@ -654,6 +690,7 @@ async def test_errors_mark_unavailable_and_recover(
     """Connection errors, 429s and 404s are translated; recovery restores the state."""
     entry = await setup_entry([ACTIVE])
     company = _company(entry)
+    assert company.profile.failing_since is None
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{API_BASE}/company/{ACTIVE}", status=500)
     await company.profile.async_refresh()
@@ -662,6 +699,9 @@ async def test_errors_mark_unavailable_and_recover(
         hass.states.get("sensor.example_trading_limited_company_status").state
         == "unavailable"
     )
+    # The run of failures is dated from the first one, whatever follows.
+    failing_since = company.profile.failing_since
+    assert failing_since is not None
     aioclient_mock.clear_requests()
     aioclient_mock.get(
         f"{API_BASE}/company/{ACTIVE}", status=429, headers={"Retry-After": "7"}
@@ -669,6 +709,7 @@ async def test_errors_mark_unavailable_and_recover(
     await company.profile.async_refresh()
     assert company.profile.next_run is not None
     assert company.profile.next_run - dt_util.utcnow() <= timedelta(seconds=8)
+    assert company.profile.failing_since == failing_since
     # The limiter is blocked for those 7 seconds; scheduled work defers.
     await company.profile.async_refresh()
     assert company.profile.last_reason.startswith("deferred")
@@ -677,10 +718,12 @@ async def test_errors_mark_unavailable_and_recover(
     aioclient_mock.get(f"{API_BASE}/company/{ACTIVE}", status=404)
     await company.profile.async_refresh()
     assert company.state.not_found
+    assert company.profile.failing_since == failing_since
     aioclient_mock.clear_requests()
     mock_company(aioclient_mock, ACTIVE)
     await company.profile.async_refresh()
     assert company.profile.last_update_success
+    assert company.profile.failing_since is None
     assert (
         hass.states.get("sensor.example_trading_limited_company_status").state
         == "active"
@@ -1105,3 +1148,4 @@ async def test_budget_error_on_first_fetch_fails_update(
     company.structure._fetch = _boom  # type: ignore[method-assign]
     await company.structure.async_refresh()
     assert not company.structure.last_update_success
+    assert company.structure.failing_since is not None

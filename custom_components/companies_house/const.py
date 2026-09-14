@@ -165,6 +165,34 @@ INSOLVENT_STATUSES: Final = frozenset(
 )
 STATUS_DETAIL_STRIKE_OFF: Final = "active-proposal-to-strike-off"
 
+# Filing description keys that start a strike-off (a first Gazette notice),
+# that hold one off (a successful objection suspends the countdown for six
+# months, not drops it) and that end one (the registrar stands it down or
+# the directors withdraw their application). The probe, the countdown and
+# the risk rating read the same lists, so they never disagree about a
+# strike-off.
+STRIKE_OFF_NOTICE_DESCRIPTIONS: Final = frozenset(
+    {
+        "gazette-notice-voluntary",
+        "gazette-notice-compulsory",
+        "gazette-notice-compulsary",
+    }
+)
+STRIKE_OFF_SUSPENDED_DESCRIPTIONS: Final = frozenset(
+    {
+        "dissolution-voluntary-strike-off-suspended",
+        "dissolved-compulsory-strike-off-suspended",
+    }
+)
+STRIKE_OFF_DISCONTINUED_DESCRIPTIONS: Final = frozenset(
+    {
+        "gazette-filings-brought-up-to-date",
+        "dissolution-voluntary-strike-off-discontinued",
+        "dissolution-withdrawal-application-strike-off-company",
+        "dissolution-withdrawal-application-strike-off-limited-liability-partnership",
+    }
+)
+
 # Filing category -> datasets to refresh on a probe hit (section 6.3)
 FILING_CATEGORY_REFRESH: Final[dict[str, tuple[Dataset, ...]]] = {
     "officers": (Dataset.PROFILE, Dataset.OFFICERS),
@@ -232,6 +260,7 @@ STATUS_CHANGE_EVENT_TYPES: Final = [
     "strike-off-suspended",
     "strike-off-discontinued",
     "dissolved",
+    "risk-changed",
 ]
 PROFILE_CHANGE_EVENT_TYPES: Final = [
     "name-changed",
