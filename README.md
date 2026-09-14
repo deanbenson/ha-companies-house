@@ -260,14 +260,20 @@ not as a strike-off dropped.
 worse), `reasons` (one short line each, heaviest first), `reason` (the
 one-liner: "Amber: accounts 2 months overdue; sole director"), `overrides`,
 `coverage` (which datasets were checked and when), `data_age_days`,
-`computed_at`, `scoring_version` and `basis`. It is recomputed whenever any of
-the company's datasets refreshes (an accounts read included, so a band can
-move the moment net liabilities are read), and a `status` / `risk-changed`
-event fires only when the band moves, so a score drifting inside a band stays
-quiet. A
-followed person's disqualification or failed companies count against the
-companies they sit on, and the rating waits for every company and person to
-start before it is computed, so a restart never drops a band or announces one.
+`computed_at`, `scoring_version`, `basis` and `info` (small extras:
+`accounts_figures_at`, the made-up date of the accounts that were scored;
+`accounts_disclosure`; `due_soon`; `cannot_file`; `refresh_failing_days`). It
+is recomputed whenever any of the company's datasets refreshes (an accounts
+read included, so a band can move the moment net liabilities are read), and
+a `status` / `risk-changed` event fires only when the band moves, so a score
+drifting inside a band stays quiet. A followed person's disqualification or
+failed companies count against the companies they sit on, and the rating
+waits for every company and person to start before it is computed, so a
+restart never drops a band or announces one. Nor does an upgrade: the first
+rating under a new scoring table updates the band quietly (the new band is in
+the sensor and the report straight away), because a band the new table reads
+differently is not news about the company, and announcing it for every
+company at once would drown the real changes.
 
 It is a **register health** rating, not a credit check. Points add up; a
 formal status event is a band on its own:
@@ -618,7 +624,9 @@ flags), `years` (up to six, newest first, each with its status and source)
 and `series` (one row of plain numbers per year, oldest first).
 `read_accounts` reads again: with a `company_number` it reads that company now
 and returns its figures; without one it queues every watched company that
-still has unread accounts; `force: true` reads even the years already read.
+still has unread accounts; `force: true` reads even the years already read,
+keeping the figures on hand (and the rating built on them) until the new read
+lands.
 
 `download_document` writes to the document directory as
 `{company_number} {company_name}/YYYY-MM-DD - Companies House - {description} ({company_name}).pdf`

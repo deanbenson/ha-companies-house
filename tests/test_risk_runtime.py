@@ -123,7 +123,49 @@ async def test_old_store_files_without_a_band_are_tolerated(
     await hass.async_block_till_done()
     company = _company(entry)
     assert company.state.risk_band == "green"
+    assert company.state.risk_version == SCORING_VERSION
     assert events == []
+
+
+async def test_a_new_scoring_table_moves_bands_without_announcing_them(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    hass_storage: dict[str, Any],
+) -> None:
+    """A band read differently by a new table is updated quietly; a real move is not."""
+    from custom_components.companies_house.store import CompanyState
+
+    assert CompanyState.from_dict({"risk_version": 2}).risk_version is None
+    assert CompanyState.from_dict({"risk_version": "1"}).risk_version == "1"
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    entry = await setup_entry([ACTIVE])
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]["companies"][ACTIVE]
+    assert stored["risk_version"] == SCORING_VERSION
+    # As rated by the previous table (which had no accounts lines).
+    stored["risk_band"] = "amber"
+    stored["risk_score"] = 12
+    stored["risk_version"] = "1"
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    company = _company(entry)
+    assert hass.states.get(SENSOR).state == "green"
+    assert company.state.risk_band == "green"
+    assert company.state.risk_score == 5
+    assert company.state.risk_version == SCORING_VERSION
+    assert [e for e in events if e.data["event_type"] == "risk-changed"] == []
+
+    # The same band under the same table moving is news, restart or not.
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    stored = hass_storage[f"{DOMAIN}.{entry.entry_id}"]["data"]["companies"][ACTIVE]
+    stored["risk_band"] = "amber"
+    stored["risk_score"] = 12
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    rated = [e.data for e in events if e.data["event_type"] == "risk-changed"]
+    assert [(e["old_band"], e["new_band"]) for e in rated] == [("amber", "green")]
 
 
 async def test_score_changes_are_remembered_without_an_event(

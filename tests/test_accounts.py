@@ -763,9 +763,78 @@ async def test_probe_read_that_fails_is_retried_by_the_queue(
         blocking=True,
         return_response=True,
     )
-    assert response["companies"][0]["latest"]["status"] == "pending"
+    # The figures on hand stay until the new read lands.
+    assert response["companies"][0]["latest"]["status"] == "ok"
+    assert company.accounts.data.latest.reread
+    assert company.accounts.wants_reading
     assert not company.accounts.last_update_success
     assert queue.queued == [ACTIVE]
+
+
+async def test_forced_reread_keeps_the_figures_and_the_rating_until_it_lands(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A forced re-read that stalls neither drops the figures nor moves the band."""
+    freezer.move_to(NOW)
+    mock_accounts(aioclient_mock)
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    queue = entry.runtime_data.accounts_backfill
+    await run_backfill(hass, freezer)
+    assert company.state.risk_band == "amber"
+    assert company.risk is not None
+    assert company.risk.info["accounts_figures_at"] == "2025-12-31"
+
+    # The newest accounts cannot be fetched this time; the older ones can.
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock, documents={**DOCUMENTS, "doc-2025": 500})
+    mock_company(aioclient_mock, ACTIVE)
+    response = await hass.services.async_call(
+        DOMAIN,
+        "read_accounts",
+        {"company_number": ACTIVE, "force": True},
+        blocking=True,
+        return_response=True,
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert response["companies"][0]["latest"]["status"] == "ok"
+    by_year = {y.made_up_to.year: y for y in company.accounts.data.years}
+    assert by_year[2025].status == "ok"
+    assert by_year[2025].reread
+    assert "HTTP 500" in (by_year[2025].error or "")
+    assert by_year[2025].value("net_assets") == Decimal(-1026)
+    assert by_year[2023].status == "ok"
+    assert not by_year[2023].reread
+    assert company.accounts.wants_reading
+    assert company.state.risk_band == "amber"
+    assert company.risk.info["accounts_figures_at"] == "2025-12-31"
+    assert queue.queued == [ACTIVE]
+    # Same filing, same figures: nothing to announce.
+    rated = [e for e in events if e.data["event_type"] == "risk-changed"]
+    assert [(e.data["old_band"], e.data["new_band"]) for e in rated] == [
+        ("green", "amber")
+    ]
+    assert len([e for e in events if e.data["kind"] == "accounts"]) == 1
+
+    # The queue's retry reads it; still amber, still nothing new to say.
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock)
+    mock_company(aioclient_mock, ACTIVE)
+    await run_backfill(hass, freezer, BACKFILL_RETRY_GAP)
+    latest = company.accounts.data.latest
+    assert latest.status == "ok"
+    assert not latest.reread
+    assert latest.error is None
+    assert not company.accounts.wants_reading
+    assert queue.queued == []
+    assert company.state.risk_band == "amber"
+    assert len([e for e in events if e.data["event_type"] == "risk-changed"]) == 1
+    assert len([e for e in events if e.data["kind"] == "accounts"]) == 1
+    assert company.accounts.read_count == 4
 
 
 async def test_amended_accounts_are_read_and_announced(

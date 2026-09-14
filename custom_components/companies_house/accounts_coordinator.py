@@ -172,6 +172,13 @@ def _with(year: AccountsYear, **changes: Any) -> AccountsYear:
     return replace(year, **changes)
 
 
+def _unread(year: AccountsYear, status: str = "pending") -> AccountsYear:
+    """Return a copy of a year with nothing read (an earlier read forgotten)."""
+    return replace(
+        year, status=status, source="none", figures={}, error=None, reread=False
+    )
+
+
 class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
     """The figures read from a company's filed accounts.
 
@@ -205,14 +212,17 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
 
     @callback
     def mark_unread(self) -> None:
-        """Forget what was read so the next read starts again from the register."""
+        """Ask for every readable year to be read again from the register.
+
+        The figures on hand are kept until the new read replaces them: the
+        rating scores them, and a read that stalls (a document out of reach,
+        a spent budget) must not drop a band it will put back later.
+        """
         if self.data is None:
             return
         self.data = AccountsHistory(
             years=[
-                _with(y, status="pending", source="none", figures={}, error=None)
-                if y.document_id and not y.paper_filed
-                else y
+                _with(y, reread=True) if y.document_id and not y.paper_filed else y
                 for y in self.data.years
             ],
             checked=self.data.checked,
@@ -249,7 +259,7 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
         newest_read = max(read_before, default=None)
         read_now: list[AccountsYear] = []
         for index, year in enumerate(years):
-            if year.status != "pending":
+            if year.status != "pending" and not year.reread:
                 continue
             try:
                 years[index] = await self._read_year(year, priority)
@@ -320,14 +330,17 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
 
     async def _read_year(self, year: AccountsYear, priority: Priority) -> AccountsYear:
         """Fetch and parse one set of accounts. Budget errors propagate."""
-        assert year.document_id is not None
+        document_id = year.document_id
+        assert document_id is not None
         try:
             content = await self.client.download_document(
-                year.document_id, content_type=XHTML, priority=priority
+                document_id, content_type=XHTML, priority=priority
             )
         except CompaniesHouseNotFoundError:
             # 406: the document exists, but only as a PDF.
-            return _with(year, status="no_ixbrl")
+            return _unread(year, "no_ixbrl")
+        # From here the answer replaces whatever an earlier read left.
+        year = _unread(year)
         if len(content) > MAX_BYTES:
             return _with(
                 year,
@@ -339,7 +352,7 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
             # metadata says for sure whether a structured version exists.
             try:
                 metadata = await self.client.get_document_metadata(
-                    year.document_id, priority=priority
+                    document_id, priority=priority
                 )
             except CompaniesHouseNotFoundError:
                 return _with(year, status="no_ixbrl")

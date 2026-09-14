@@ -1401,12 +1401,21 @@ def test_falling_net_assets_cash_and_headcount() -> None:
         )
     )
     assert codes(rate(accounts=fine)) == []
-    # Falling from positive to negative is both a fall and net liabilities.
+    # Falling from positive to negative is both a fall and net liabilities;
+    # the net liabilities line carries the figure, so the fall does not
+    # repeat it as "-£100".
     sunk = _history(_year("2025-12-31", net_assets=_figure(-100, 1000)))
     assert codes(rate(accounts=sunk)) == ["E1", "E2"]
-    assert rate(accounts=sunk).reasons[1] == (
-        "net assets down 110 % year on year (-£100 at 31 Dec 2025)"
-    )
+    assert rate(accounts=sunk).reasons == [
+        "net liabilities of £100 at 31 Dec 2025",
+        "net assets down 110 % year on year (now net liabilities)",
+    ]
+    # Nobody left is not "halved".
+    empty = _history(_year("2025-12-31", employees=_figure(0, 10)))
+    assert codes(rate(accounts=empty)) == ["E5"]
+    assert rate(accounts=empty).reasons == [
+        "no staff left (10 last year) in the year to 31 Dec 2025"
+    ]
 
 
 def test_prior_figures_come_from_the_previous_year_when_needed() -> None:

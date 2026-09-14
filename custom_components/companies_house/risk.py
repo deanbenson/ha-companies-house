@@ -1046,10 +1046,14 @@ class _Scorer:
             )
         fall = self._fall(year, "net_assets", NET_ASSETS_FALL)
         if fall is not None:
-            self.add(
-                "E2",
-                f"net assets {fall} year on year ({format_money(net_assets)} at {at})",
+            # Gone negative: the net liabilities line above carries the
+            # figure, and "-£100" reads badly aloud.
+            now = (
+                "now net liabilities"
+                if net_assets is not None and net_assets < 0
+                else f"{format_money(net_assets)} at {at}"
             )
+            self.add("E2", f"net assets {fall} year on year ({now})")
         fall = self._fall(year, "cash", CASH_FALL)
         if fall is not None:
             self.add("E3", f"cash {fall} year on year ({format_money(cash)} at {at})")
@@ -1068,10 +1072,13 @@ class _Scorer:
             and staff_before >= HEADCOUNT_MINIMUM
             and staff <= staff_before / 2
         ):
+            before = format_count(staff_before)
             self.add(
                 "E5",
-                f"headcount halved ({format_count(staff_before)} to "
-                f"{format_count(staff)}) in the year to {at}",
+                f"no staff left ({before} last year) in the year to {at}"
+                if staff == 0
+                else f"headcount halved ({before} to {format_count(staff)}) "
+                f"in the year to {at}",
             )
 
     def _latest_read_accounts(self) -> AccountsYear | None:
