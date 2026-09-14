@@ -15,7 +15,8 @@ from homeassistant.util import dt as dt_util
 
 from .charges import charge_filing_link, charges_overview
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
-from .enumerations import COMPANY_STATUS
+from .enumerations import COMPANY_STATUS, COMPANY_STATUS_DETAIL
+from .gazette import notice_link
 from .models import JsonDict, display_name
 from .scheduler import days_until
 
@@ -254,13 +255,40 @@ def describe_change(
 
     if kind == "status":
         if event_type == "strike-off-proposed":
+            detail = str(p.get("detail") or "").rstrip(".")
+            if not detail or detail in COMPANY_STATUS_DETAIL:
+                # Seen in the register's status detail, not in a Gazette
+                # notice filing: never echo the register's key.
+                detail = "Companies House has proposed to strike the company off"
+                if not p.get("earliest_on"):
+                    detail += "; the Gazette notice has not appeared in the filings yet"
+            if p.get("earliest_on"):
+                # The probe saw the Gazette notice itself, so the clock is known.
+                detail += (
+                    f" on {_pretty_date(p.get('notice_on'))}. The company can be "
+                    f"struck off from {_pretty_date(p['earliest_on'])}; object "
+                    f"by {_pretty_date(p.get('objection_deadline'))}"
+                )
             return (
                 f"{subject}: strike-off proposed",
-                str(
-                    p.get("detail")
-                    or "Companies House has proposed to strike the company off."
-                ),
-                link,
+                detail + ".",
+                notice_link(number, str(p["transaction_id"]))
+                if number and p.get("transaction_id")
+                else link,
+            )
+        if event_type == "strike-off-suspended":
+            detail = str(p.get("detail") or "The strike-off has been suspended").rstrip(
+                "."
+            )
+            if p.get("earliest_on"):
+                detail += (
+                    f" on {_pretty_date(p.get('suspended_on'))}. The company "
+                    f"cannot be struck off before {_pretty_date(p['earliest_on'])}"
+                )
+            return (
+                f"{subject}: strike-off suspended",
+                detail + ".",
+                notice_link(number, None) if number else link,
             )
         if event_type == "strike-off-discontinued":
             return (
@@ -416,6 +444,7 @@ _KIND_WEIGHT: dict[tuple[str, str], int] = {
     ("status", "strike-off-proposed"): 10,
     ("status", "dissolved"): 10,
     ("status", "status-changed"): 9,
+    ("status", "strike-off-suspended"): 8,
     ("status", "strike-off-discontinued"): 6,
     ("filing", "gazette"): 9,
     ("charge", "created"): 8,
@@ -613,16 +642,47 @@ def _attention(
     events = {(c["kind"], c["event_type"]) for c in changes}
     out: list[JsonDict] = []
 
-    def add(issue: str, *, new: bool, since_date: date | None = None) -> None:
-        out.append({"issue": issue, "new": new, "since": _iso(since_date)})
+    def add(
+        issue: str,
+        *,
+        new: bool,
+        since_date: date | None = None,
+        short: str | None = None,
+        links: list[JsonDict] | None = None,
+    ) -> None:
+        out.append(
+            {
+                "issue": issue,
+                "new": new,
+                "since": _iso(since_date),
+                "short": short or issue,
+                "links": links or [],
+            }
+        )
 
-    if profile.company_status_detail == "active-proposal-to-strike-off":
+    countdown = company.strike_off_countdown(today)
+    if countdown is not None:
         # Logged as a status change when noticed; a Gazette notice dated this
         # period says the same thing when read from the register.
         add(
-            "Strike-off proposed",
+            countdown.attention_line(),
             new=("status", "strike-off-proposed") in events
+            or ("status", "strike-off-suspended") in events
             or ("filing", "gazette") in events,
+            since_date=countdown.suspended_on or countdown.notice_on,
+            short="Strike-off suspended"
+            if countdown.suspended
+            else "Strike-off proposed",
+            links=[
+                {
+                    "text": "Gazette notice"
+                    if countdown.transaction_id
+                    else "Gazette notices",
+                    "href": notice_link(
+                        company.company_number, countdown.transaction_id
+                    ),
+                }
+            ],
         )
     if profile.company_status in _ONGOING_STATUSES:
         add(
@@ -689,6 +749,7 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         for c in logged + filed
     ]
     changes.sort(key=lambda c: (-c["score"], str(c["at"])))
+    countdown = company.strike_off_countdown(today)
     return {
         "name": company.company_name,
         "number": company.company_number,
@@ -717,6 +778,16 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
             "days": days,
         }
         if deadline
+        else None,
+        # A live strike-off: the countdown, and the summary line the report
+        # and the Assist tools use ("Strike-off proposed (compulsory) — 41
+        # days to object").
+        "strike_off": {
+            **countdown.as_dict(),
+            "summary": countdown.attention_line(),
+            "link": notice_link(company.company_number, countdown.transaction_id),
+        }
+        if countdown is not None
         else None,
         "attention": _attention(company, changes, since, today),
         "charges": _charges_meta(company),
@@ -875,6 +946,45 @@ def _new_companies(
     return out
 
 
+def _has_issue(card: JsonDict, *, new: bool) -> bool:
+    return any(a["new"] is new for a in card["attention"])
+
+
+def _issue_row(card: JsonDict, *, new: bool) -> JsonDict:
+    """Return a company's new (or ongoing) problems with the links worth a click."""
+    issues = [a for a in card["attention"] if a["new"] is new]
+    return {
+        "company": card["name"],
+        "number": card["number"],
+        "link": card["link"],
+        "issues": [a["issue"] for a in issues],
+        "links": [link for a in issues for link in a.get("links") or []],
+    }
+
+
+def _objection_deadlines(companies: list[JsonDict]) -> list[JsonDict]:
+    """Return the last days to object to a strike-off inside the horizon."""
+    out: list[JsonDict] = []
+    for card in companies:
+        countdown = card.get("strike_off")
+        if not countdown or countdown["days_to_object"] is None:
+            continue
+        if not 0 <= countdown["days_to_object"] <= DEADLINE_HORIZON_DAYS:
+            continue
+        out.append(
+            {
+                "what": "object to strike-off",
+                "date": countdown["objection_deadline"],
+                "days": countdown["days_to_object"],
+                "company": card["name"],
+                "number": card["number"],
+                "link": card["link"],
+                "document": countdown["link"],
+            }
+        )
+    return out
+
+
 def build_digest(
     entry: CompaniesHouseConfigEntry, *, days: int, now: datetime | None = None
 ) -> JsonDict:
@@ -896,7 +1006,7 @@ def build_digest(
     companies.sort(key=lambda c: (-c["score"], -c["weight"], c["name"]))
     people.sort(key=lambda p: (-p["score"], p["name"]))
     deadlines = sorted(
-        (
+        [
             {
                 **c["next_deadline"],
                 "company": c["name"],
@@ -907,28 +1017,13 @@ def build_digest(
             if c["next_deadline"]
             and c["next_deadline"]["days"] is not None
             and 0 <= c["next_deadline"]["days"] <= DEADLINE_HORIZON_DAYS
-        ),
+        ]
+        + _objection_deadlines(companies),
         key=lambda d: (d["date"], d["company"]),
     )
-    new_issues = [
-        {
-            "company": c["name"],
-            "number": c["number"],
-            "link": c["link"],
-            "issues": [a["issue"] for a in c["attention"] if a["new"]],
-        }
-        for c in companies
-        if any(a["new"] for a in c["attention"])
-    ]
+    new_issues = [_issue_row(c, new=True) for c in companies if _has_issue(c, new=True)]
     still_open = [
-        {
-            "company": c["name"],
-            "number": c["number"],
-            "link": c["link"],
-            "issues": [a["issue"] for a in c["attention"] if not a["new"]],
-        }
-        for c in companies
-        if any(not a["new"] for a in c["attention"])
+        _issue_row(c, new=False) for c in companies if _has_issue(c, new=False)
     ]
     changed_companies = [c for c in companies if c["changes"]]
     changed_people = [p for p in people if p["changes"]]
@@ -1184,7 +1279,8 @@ def _company_block(card: JsonDict) -> str:
     if charges_line := _charges_line(card.get("charges")):
         meta.append(_link(charges_line, (card.get("charges") or {}).get("link", "")))
     badges = "".join(
-        _badge(a["issue"], new=a["new"]) for a in card.get("attention") or []
+        _badge(a.get("short") or a["issue"], new=a["new"])
+        for a in card.get("attention") or []
     )
     heading = _link(card["name"], card["link"], "#111827") + badges
     return _card(
@@ -1234,13 +1330,17 @@ def _top_block(top: list[JsonDict]) -> str:
 def _issues_list(items: list[JsonDict], colour: str) -> str:
     rows = []
     for a in items:
-        pages = [
+        pages: list[JsonDict] = []
+        for page in [
+            *(a.get("links") or []),
             {"text": "Filing history", "href": a["link"] + "/filing-history"},
             {
                 "text": "Gazette notices",
                 "href": a["link"] + "/filing-history?category=gazette",
             },
-        ]
+        ]:
+            if page["href"] not in {p["href"] for p in pages}:
+                pages.append(page)
         rows.append(
             f'<li style="margin:4px 0">{_link(a["company"], a["link"], colour)} — '
             f"{_e(', '.join(a['issues']))}{_link_row(pages)}</li>"
@@ -1262,7 +1362,12 @@ def _deadline_rows(deadlines: list[JsonDict]) -> str:
             f'<td style="padding:5px 0;font-size:13px;{_FONT}white-space:nowrap">{_e(_pretty_date(d["date"]))}</td>'
             f'<td style="padding:5px 0 5px 8px;font-size:13px;{_FONT}{due_style}white-space:nowrap">{_e(due_text)}</td>'
             f'<td style="padding:5px 0 5px 8px;font-size:12px;{_FONT}white-space:nowrap">'
-            f"{_link('Filing history', d['link'] + '/filing-history')}</td></tr>"
+            + (
+                _link("Gazette notice", d["document"])
+                if d.get("document")
+                else _link("Filing history", d["link"] + "/filing-history")
+            )
+            + "</td></tr>"
         )
     return (
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'

@@ -470,7 +470,8 @@ async def test_status_and_profile_changes(
     await company.profile.async_refresh()
     await hass.async_block_till_done()
     types = sorted(e.data["event_type"] for e in events)
-    assert types == ["dissolved", "status-changed", "strike-off-discontinued"]
+    # Struck off is dissolved, not "strike-off dropped".
+    assert types == ["dissolved", "status-changed"]
     assert company.tier is Tier.DISSOLVED
     assert not company.strike_off_proposed
     assert (

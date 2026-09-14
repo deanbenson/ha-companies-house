@@ -50,6 +50,7 @@ from .enumerations import (
     REGISTER_TYPES,
     SIC_DESCRIPTIONS,
 )
+from .gazette import countdown_attributes
 from .models import Appointment, CompanyProfile
 from .scheduler import days_until, probe_interval
 
@@ -195,6 +196,12 @@ def _count_roles(company: CompanyRuntime, roles: tuple[str, ...]) -> int:
     )
 
 
+def _strike_off_attrs(company: CompanyRuntime) -> Attrs:
+    return countdown_attributes(
+        company.strike_off_countdown(_today()), company.company_number
+    )
+
+
 COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     # Default on
     CompanySensorDescription(
@@ -238,6 +245,25 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
             s if (s := _profile(c).company_status) in COMPANY_STATUS_OPTIONS else None
         ),
         attrs_fn=lambda c: {"detail": _profile(c).company_status_detail},
+    ),
+    # Only meaningful while a strike-off is live; unknown otherwise.
+    CompanySensorDescription(
+        key="strike_off_earliest_on",
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda c: (
+            d.earliest_on if (d := c.strike_off_countdown(_today())) else None
+        ),
+        attrs_fn=_strike_off_attrs,
+    ),
+    CompanySensorDescription(
+        key="days_to_object",
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.DAYS,
+        suggested_display_precision=0,
+        value_fn=lambda c: (
+            d.days_to_object if (d := c.strike_off_countdown(_today())) else None
+        ),
+        attrs_fn=_strike_off_attrs,
     ),
     CompanySensorDescription(
         key="last_filing_date",

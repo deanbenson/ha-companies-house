@@ -163,8 +163,9 @@ the diagnostic section keeps the rarely-needed rows out of the way.
 
 Sensors on by default: next deadline, next deadline type, days to next
 deadline, accounts next due, confirmation statement next due, company status,
-last filing date, last filing (rendered description), officers active, PSC
-active, charges outstanding. Diagnostic: company name, status detail, type,
+earliest strike-off date, days to object to strike-off (both unknown unless a
+strike-off is live; see below), last filing date, last filing (rendered
+description), officers active, PSC active, charges outstanding. Diagnostic: company name, status detail, type,
 subtype, jurisdiction, date of creation, date of cessation, registered office
 address (structured in attributes), polling tier.
 
@@ -190,7 +191,9 @@ capped at 25 and kept out of the recorder.
 
 Binary sensors (problem class, on by default): accounts overdue, confirmation
 statement overdue, accounts due soon, confirmation statement due soon,
-**proposed strike off** (from `company_status_detail` and from GAZ1 filings),
+**proposed strike off** (from `company_status_detail` and from GAZ1 filings;
+off again as soon as a later filing discontinues the strike-off, with
+`discontinued_on` saying so while the register's status detail lags),
 **insolvent** (liquidation, receivership, administration, voluntary
 arrangement, insolvency proceedings), registered office in dispute,
 undeliverable registered office. Plus *is active*, can file, has outstanding
@@ -198,7 +201,51 @@ charges, has insolvency history, has officers with protected details, has
 exemptions.
 
 A **calendar** per company with accounts due, confirmation statement due,
-accounts period end and the accounting reference date as all day events.
+accounts period end and the accounting reference date as all day events, plus
+*Objection deadline* and *Earliest strike-off* while a strike-off is live.
+
+### Strike-off countdown
+
+When a company is under a first Gazette notice, two sensors count it down
+using the GOV.UK rules: the registrar strikes a company off not less than
+**two months** after the notice, a postal objection must arrive at least
+**two weeks** before that, and an online objection is taken any time before
+the company goes. So **Earliest strike-off date** is the notice date plus two
+months (same day, clamped to the month end) and **Days to object to
+strike-off** counts down to two weeks before it, going negative once passed.
+Both carry `kind` (voluntary or compulsory, from the notice's filing
+description), `notice_on`, `earliest_on`, `objection_deadline`,
+`suspended_on`, `transaction_id`, a `link` to the Gazette notice PDF and a
+`caveat`; the *Proposed strike off* binary sensor carries the same.
+
+Two honest limits. The 28-day rule for false registrations cannot be told
+from the filings, so two months is always assumed and the caveat says so. And
+the register's status detail is not trusted on its own: a company can read
+"active proposal to strike off" a year after its last notice was suspended.
+The countdown keys off the newest first-notice filing kept for the company.
+A later **discontinuation** filing (`gazette-filings-brought-up-to-date`,
+withdrawal) ends it outright: the binary sensor goes off, the countdown
+sensors go unknown and the report shows "strike-off dropped" rather than a
+live problem, however long the status detail takes to catch up. A
+**suspension** filing (a successful objection) keeps the notice and moves the
+earliest date to six months after it, firing a `strike-off-suspended` status
+event; once that hold has run out the line reads "hold ended 7 Feb 2025,
+could be struck off any day now". A company already under a notice when it
+is added has its notice recovered from the filings kept (so is one recorded
+by an earlier version without its filing); when no notice is there the
+sensors stay unknown and say "notice date unknown" rather than guess.
+
+One notice is announced once, whichever side sees it first. The probe
+announces a Gazette notice the moment it is filed, with the countdown. When
+the status detail flips first, the filings kept are checked, then the filing
+history is read once more on demand (the notice is normally filed the same
+day) so the probe can announce it with the countdown; only when no notice can
+be found does the profile announce "Companies House has proposed to strike
+the company off; the Gazette notice has not appeared in the filings yet",
+and the notice then fills the clock in quietly. The same goes for the end of
+a strike-off: the discontinuation filing or the status detail clearing,
+whichever comes first, and a company struck off is announced as dissolved,
+not as a strike-off dropped.
 
 ### Officer
 
@@ -272,8 +319,10 @@ and opens the filing's PDF; a company's card says how many charges are
 outstanding and to whom. Problems are split into **new this week** (a
 strike-off or status change seen in the period, or a deadline that passed in
 it) and **still open** (known before, listed quietly at the bottom until they
-clear).
-It also lists deadlines in the next 30 days, **new companies** (recently
+clear); a live strike-off reads "Strike-off proposed (compulsory) — 41 days to
+object" with a link to the Gazette notice. It also lists deadlines in the
+next 30 days (including the last day to object to a strike-off), **new
+companies** (recently
 incorporated, with the followed people at them) and, when ownership changed,
 **who controls what** across every watched company. It returns the report as
 data, as email-safe HTML (inline styles, logos, links to the register and to
@@ -340,7 +389,7 @@ Event types by kind:
 | officer | appointed, resigned, details-changed | name, role, appointed_on, resigned_on, officer_id, appointment_id |
 | psc | notified, ceased, statement-added, details-changed | name, psc_kind, natures_of_control, notified_on, ceased_on |
 | charge | created, satisfied, part-satisfied, acquired | charge_code, charge_id, lender, persons_entitled, created_on, delivered_on, satisfied_on, acquired_on, status, charge_kind, particulars, secured, security (the kind, what it is over and what it secures, in one clause), negative_pledge, created_transaction_id and satisfied_transaction_id (the filing-history ids of the MR01 / MR04: pass one to `get_filing` for its `links.document_metadata` document id, which `download_document` takes; the alert event's `link` is the register's PDF), transaction_ids |
-| status | status-changed, strike-off-proposed, strike-off-discontinued, dissolved | old_status, new_status, detail |
+| status | status-changed, strike-off-proposed, strike-off-suspended, strike-off-discontinued, dissolved | old_status, new_status, detail; strike-off events seen from a filing add strike_off_kind, notice_on, suspended_on, earliest_on, objection_deadline, transaction_id (a strike-off-proposed from the status detail alone has none of these) |
 | profile | name-changed, address-changed, sic-changed, accounting-reference-date-changed | old_value, new_value |
 | appointment (officer) | appointed, resigned, company-status-changed, disqualified, new-record, company-now-watched | company_number, company_name, company_status, role, appointed_on, resigned_on; `new-record` carries officer_id and name |
 

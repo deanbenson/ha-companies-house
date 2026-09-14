@@ -31,6 +31,8 @@ DEADLINE_LABELS = {
     "confirmation_statement_due": "Confirmation statement due",
     "accounts_period_end": "Accounts period end",
     "accounting_reference_date": "Accounting reference date",
+    "objection_deadline": "Objection deadline",
+    "strike_off_earliest": "Earliest strike-off",
 }
 
 
@@ -62,6 +64,12 @@ def company_events(
         _event("confirmation_statement_due", profile.confirmation_statement.next_due),
         _event("accounts_period_end", profile.accounts.next_period_end),
     ]
+    # A live strike-off: the last day to object by post, and the earliest
+    # day the company can go.
+    countdown = company.strike_off_countdown()
+    if countdown is not None:
+        events.append(_event("objection_deadline", countdown.objection_deadline))
+        events.append(_event("strike_off_earliest", countdown.earliest_on))
     ard = profile.accounts
     if ard.reference_day and ard.reference_month:
         today = dt_util.now().date()

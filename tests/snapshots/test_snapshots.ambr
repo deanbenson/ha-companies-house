@@ -601,10 +601,19 @@
 # name: test_entities[binary_sensor][binary_sensor.dormant_holdings_limited_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': "Assumes the usual two months' notice; the register does not say when the 28-day rule for false registrations applies. Postal objections must arrive two weeks before the earliest date; online objections are taken until the company is struck off.",
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': '2026-10-25',
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Proposed strike off',
-      'gazette_notice_on': None,
+      'gazette_notice_on': '2026-08-25',
+      'kind': 'compulsory',
+      'link': 'https://find-and-update.company-information.service.gov.uk/company/45678901/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx/document?format=pdf&download=0',
+      'notice_on': '2026-08-25',
+      'objection_deadline': '2026-10-11',
       'status_detail': 'active-proposal-to-strike-off',
+      'suspended_on': None,
+      'transaction_id': 'MzUwMDAwMDAwMDAwMDAwMDAx',
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.dormant_holdings_limited_proposed_strike_off',
@@ -1319,10 +1328,19 @@
 # name: test_entities[binary_sensor][binary_sensor.example_trading_limited_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Proposed strike off',
       'gazette_notice_on': None,
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
       'status_detail': None,
+      'suspended_on': None,
+      'transaction_id': None,
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.example_trading_limited_proposed_strike_off',
@@ -2036,10 +2054,19 @@
 # name: test_entities[binary_sensor][binary_sensor.historic_partners_llp_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Proposed strike off',
       'gazette_notice_on': None,
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
       'status_detail': None,
+      'suspended_on': None,
+      'transaction_id': None,
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.historic_partners_llp_proposed_strike_off',
@@ -2864,10 +2891,19 @@
 # name: test_entities[binary_sensor][binary_sensor.old_ventures_limited_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Proposed strike off',
       'gazette_notice_on': None,
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
       'status_detail': None,
+      'suspended_on': None,
+      'transaction_id': None,
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.old_ventures_limited_proposed_strike_off',
@@ -3581,10 +3617,19 @@
 # name: test_entities[binary_sensor][binary_sensor.subsidiary_services_limited_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Proposed strike off',
       'gazette_notice_on': None,
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
       'status_detail': None,
+      'suspended_on': None,
+      'transaction_id': None,
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.subsidiary_services_limited_proposed_strike_off',
@@ -4298,10 +4343,19 @@
 # name: test_entities[binary_sensor][binary_sensor.sunset_retail_limited_proposed_strike_off-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
+      'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
+      'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Proposed strike off',
       'gazette_notice_on': None,
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
       'status_detail': None,
+      'suspended_on': None,
+      'transaction_id': None,
     }),
     'context': <ANY>,
     'entity_id': 'binary_sensor.sunset_retail_limited_proposed_strike_off',
@@ -4510,12 +4564,12 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       <CalendarEntityStateAttribute.ALL_DAY: 'all_day'>: True,
-      <CalendarEntityStateAttribute.DESCRIPTION: 'description'>: 'DORMANT HOLDINGS LIMITED (45678901): accounting reference date on 2027-05-31',
-      <CalendarEntityStateAttribute.END_TIME: 'end_time'>: '2027-06-01 00:00:00',
+      <CalendarEntityStateAttribute.DESCRIPTION: 'description'>: 'DORMANT HOLDINGS LIMITED (45678901): objection deadline on 2026-10-11',
+      <CalendarEntityStateAttribute.END_TIME: 'end_time'>: '2026-10-12 00:00:00',
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Deadlines',
       <CalendarEntityStateAttribute.LOCATION: 'location'>: '',
-      <CalendarEntityStateAttribute.MESSAGE: 'message'>: 'Accounting reference date',
-      <CalendarEntityStateAttribute.START_TIME: 'start_time'>: '2027-05-31 00:00:00',
+      <CalendarEntityStateAttribute.MESSAGE: 'message'>: 'Objection deadline',
+      <CalendarEntityStateAttribute.START_TIME: 'start_time'>: '2026-10-11 00:00:00',
     }),
     'context': <ANY>,
     'entity_id': 'calendar.dormant_holdings_limited_deadlines',
@@ -5155,6 +5209,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -5196,6 +5251,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -5559,6 +5615,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -5600,6 +5657,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -5963,6 +6021,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -6004,6 +6063,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -6435,6 +6495,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -6476,6 +6537,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -6839,6 +6901,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -6880,6 +6943,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -7243,6 +7307,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -7284,6 +7349,7 @@
       <EventEntityCapabilityAttribute.EVENT_TYPES: 'event_types'>: list([
         'status-changed',
         'strike-off-proposed',
+        'strike-off-suspended',
         'strike-off-discontinued',
         'dissolved',
       ]),
@@ -9112,6 +9178,69 @@
     'state': '-212',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_45678901_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': "Assumes the usual two months' notice; the register does not say when the 28-day rule for false registrations applies. Postal objections must arrive two weeks before the earliest date; online objections are taken until the company is struck off.",
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': '2026-10-25',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Days to object to strike-off',
+      'kind': 'compulsory',
+      'link': 'https://find-and-update.company-information.service.gov.uk/company/45678901/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx/document?format=pdf&download=0',
+      'notice_on': '2026-08-25',
+      'objection_deadline': '2026-10-11',
+      'suspended_on': None,
+      'transaction_id': 'MzUwMDAwMDAwMDAwMDAwMDAx',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '26',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -9160,6 +9289,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_45678901_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': "Assumes the usual two months' notice; the register does not say when the 28-day rule for false registrations applies. Postal objections must arrive two weeks before the earliest date; online objections are taken until the company is struck off.",
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': '2026-10-25',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Earliest strike-off date',
+      'kind': 'compulsory',
+      'link': 'https://find-and-update.company-information.service.gov.uk/company/45678901/filing-history/MzUwMDAwMDAwMDAwMDAwMDAx/document?format=pdf&download=0',
+      'notice_on': '2026-08-25',
+      'objection_deadline': '2026-10-11',
+      'suspended_on': None,
+      'transaction_id': 'MzUwMDAwMDAwMDAwMDAwMDAx',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2026-10-25',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_filings_last_12_months-entry]
@@ -11927,6 +12115,69 @@
     'state': '107',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_12345678_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Days to object to strike-off',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -11975,6 +12226,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_12345678_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Earliest strike-off date',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_filings_last_12_months-entry]
@@ -14756,6 +15066,69 @@
     'state': '220',
   })
 # ---
+# name: test_entities[sensor][sensor.historic_partners_llp_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_OC123456_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Days to object to strike-off',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -14804,6 +15177,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_OC123456_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Earliest strike-off date',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_filings_last_12_months-entry]
@@ -18550,6 +18982,69 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_23456789_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Days to object to strike-off',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -18598,6 +19093,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_23456789_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Earliest strike-off date',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.old_ventures_limited_filings_last_12_months-entry]
@@ -21350,6 +21904,69 @@
     'state': '107',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_56789012_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Days to object to strike-off',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -21398,6 +22015,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_56789012_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Earliest strike-off date',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_filings_last_12_months-entry]
@@ -24151,6 +24827,69 @@
     'state': '-92',
   })
 # ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_days_to_object_to_strike_off-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_days_to_object_to_strike_off',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Days to object to strike-off',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DURATION: 'duration'>,
+    'original_icon': None,
+    'original_name': 'Days to object to strike-off',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'days_to_object',
+    'unique_id': 'companies_house_34567890_days_to_object',
+    'unit_of_measurement': <UnitOfTime.DAYS: 'd'>,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_days_to_object_to_strike_off-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'duration',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Days to object to strike-off',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: <UnitOfTime.DAYS: 'd'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_days_to_object_to_strike_off',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_directors_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -24199,6 +24938,65 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '1',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_earliest_strike_off_date-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_earliest_strike_off_date',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Earliest strike-off date',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Earliest strike-off date',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'strike_off_earliest_on',
+    'unique_id': 'companies_house_34567890_strike_off_earliest_on',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_earliest_strike_off_date-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'caveat': None,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      'earliest_on': None,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Earliest strike-off date',
+      'kind': None,
+      'link': None,
+      'notice_on': None,
+      'objection_deadline': None,
+      'suspended_on': None,
+      'transaction_id': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_earliest_strike_off_date',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_filings_last_12_months-entry]

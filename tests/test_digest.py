@@ -72,7 +72,18 @@ DIGEST = {
             "company": "ACME LTD",
             "number": "12345678",
             "link": "https://example.invalid/company/12345678",
-            "issues": ["Strike-off proposed"],
+            "issues": ["Strike-off proposed (compulsory) — 41 days to object"],
+            "links": [
+                {
+                    "text": "Gazette notice",
+                    "href": "https://example.invalid/company/12345678/filing-history/gaz1/document?format=pdf&download=0",
+                },
+                # Already one of the standard pages: shown once, not twice.
+                {
+                    "text": "Gazette notices",
+                    "href": "https://example.invalid/company/12345678/filing-history?category=gazette",
+                },
+            ],
         }
     ],
     "still_open": [
@@ -99,6 +110,15 @@ DIGEST = {
             "company": "NEW CO LTD",
             "number": "17000001",
             "link": "https://example.invalid/company/17000001",
+        },
+        {
+            "what": "object to strike-off",
+            "date": "2026-10-25",
+            "days": 41,
+            "company": "ACME LTD",
+            "number": "12345678",
+            "link": "https://example.invalid/company/12345678",
+            "document": "https://example.invalid/company/12345678/filing-history/gaz1/document?format=pdf&download=0",
         },
     ],
     "new_companies": [
@@ -135,8 +155,27 @@ DIGEST = {
             "weight": 3,
             "incorporated": "2015-01-01",
             "next_deadline": {"what": "accounts", "date": "2026-09-30", "days": 16},
+            "strike_off": {
+                "kind": "compulsory",
+                "notice_on": "2026-09-08",
+                "earliest_on": "2026-11-08",
+                "objection_deadline": "2026-10-25",
+                "days_to_object": 41,
+                "days_to_strike_off": 55,
+                "suspended_on": None,
+                "transaction_id": "gaz1",
+                "caveat": "Assumes two months.",
+                "summary": "Strike-off proposed (compulsory) — 41 days to object",
+                "link": "https://example.invalid/company/12345678/filing-history/gaz1/document?format=pdf&download=0",
+            },
             "attention": [
-                {"issue": "Strike-off proposed", "new": True, "since": None},
+                {
+                    "issue": "Strike-off proposed (compulsory) — 41 days to object",
+                    "new": True,
+                    "since": "2026-09-08",
+                    "short": "Strike-off proposed",
+                    "links": [],
+                },
                 {"issue": "Accounts overdue", "new": False, "since": "2026-01-01"},
             ],
             "charges": {
@@ -263,9 +302,17 @@ def test_render_html_covers_every_section() -> None:
         "Gazette notices",
         'href="https://example.invalid/company/17000001/officers" style="color:#1d4ed8;text-decoration:none">Officers',
         "persons-with-significant-control",
+        # The strike-off countdown: the full line in the list, the short badge
+        # on the card, the objection row in the deadlines with the notice PDF.
+        "Strike-off proposed (compulsory) — 41 days to object",
+        "Strike-off proposed</span>",
+        "object to strike-off",
+        'gaz1/document?format=pdf&amp;download=0" style="color:#1d4ed8;text-decoration:none">Gazette notice</a>',
     ):
         assert expected in html, expected
     assert "A quiet week" not in html
+    assert html.count("filing-history?category=gazette") == 2  # once per company
+    assert "41 days to object</span>" not in html  # the badge is the short form
 
     text = render_text(DIGEST, title="Your Companies House week", summary="Summary.")
     assert text.startswith("Your Companies House week\n\nSummary.\n\n")
@@ -275,6 +322,8 @@ def test_render_html_covers_every_section() -> None:
     assert "NEW CO LTD (set up 1 Sep 2026): Jane Smith" in text
     assert "Due in the next 30 days:" in text
     assert "ACME LTD\n  2 outstanding charges · Lloyds Bank plc, HSBC UK\n" in text
+    assert "  - 25 Oct 2026 ACME LTD: object to strike-off (in 41 days)" in text
+    assert "  - ACME LTD: Strike-off proposed (compulsory) — 41 days to object" in text
     assert "Still open (known before this week):" in text
 
 

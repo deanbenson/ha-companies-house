@@ -229,6 +229,7 @@ CHARGE_CHANGE_EVENT_TYPES: Final = [
 STATUS_CHANGE_EVENT_TYPES: Final = [
     "status-changed",
     "strike-off-proposed",
+    "strike-off-suspended",
     "strike-off-discontinued",
     "dissolved",
 ]
