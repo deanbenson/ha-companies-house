@@ -11022,9 +11022,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'red',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -11056,7 +11057,7 @@
         'sole director',
       ]),
       'score': 100,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.dormant_holdings_limited_risk_rating',
@@ -14433,9 +14434,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'green',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -14463,7 +14465,7 @@
         '1 outstanding charge',
       ]),
       'score': 8,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.example_trading_limited_risk_rating',
@@ -17793,9 +17795,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'green',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -17819,7 +17822,7 @@
       'reasons': list([
       ]),
       'score': 0,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.historic_partners_llp_risk_rating',
@@ -22135,9 +22138,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'red',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -22163,7 +22167,7 @@
         'dissolved on 13 Aug 2024',
       ]),
       'score': 100,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.old_ventures_limited_risk_rating',
@@ -25490,9 +25494,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'green',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -25519,7 +25524,7 @@
         'nothing filed for 7 years',
       ]),
       'score': 6,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.subsidiary_services_limited_risk_rating',
@@ -28856,9 +28861,10 @@
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'band': 'red',
-      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges, the register's own flags and the figures in the filed accounts. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
       'computed_at': '2026-09-15T09:00:00+00:00',
       'coverage': dict({
+        'accounts': None,
         'charges': '2026-09-15T09:00:00+00:00',
         'filings': '2026-09-15T09:00:00+00:00',
         'insolvency': '2026-09-15T09:00:00+00:00',
@@ -28890,7 +28896,7 @@
         'sole director',
       ]),
       'score': 100,
-      'scoring_version': '1',
+      'scoring_version': '2',
     }),
     'context': <ANY>,
     'entity_id': 'sensor.sunset_retail_limited_risk_rating',

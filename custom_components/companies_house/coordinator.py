@@ -694,6 +694,7 @@ class CompanyRuntime(_Runtime):
             coverage=coverage,
             people=self._tracked_people(),
             profile_failing_since=self.profile.failing_since,
+            accounts=self.accounts.data,
             today=dt_util.now().date(),
         )
         result = replace(result, computed_at=dt_util.utcnow())

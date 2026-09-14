@@ -32,7 +32,7 @@ from custom_components.companies_house.coordinator import (
     CompanyRuntime,
     match_disqualification,
 )
-from custom_components.companies_house.models import DateOfBirth
+from custom_components.companies_house.models import DateOfBirth, FilingHistoryItem
 from custom_components.companies_house.scheduler import LONDON
 
 from .conftest import load_fixture, mock_company, mock_officer
@@ -125,6 +125,53 @@ async def test_first_setup_seeds_silently_then_one_filing_fires_one_event(
         hass.states.get("sensor.example_trading_limited_last_filing_date").state
         == "2026-09-14"
     )
+
+
+def test_filing_event_payload_carries_the_dates_it_was_made_up_to() -> None:
+    """Accounts and confirmation statements say what date they cover, as ISO dates.
+
+    An automation can then say "accounts to 31 December 2025" without
+    parsing the description; filings without the dates carry nulls.
+    """
+    accounts = FilingHistoryItem.from_api(
+        {
+            "transaction_id": "tx-aa",
+            "category": "accounts",
+            "type": "AA",
+            "date": "2026-09-10",
+            "description": "accounts-with-accounts-type-full",
+            "description_values": {"made_up_date": "2025-12-31"},
+            "action_date": "2025-12-31",
+        }
+    )
+    assert accounts.made_up_date == accounts.action_date
+    payload = accounts.event_payload()
+    assert payload["made_up_date"] == "2025-12-31"
+    assert payload["action_date"] == "2025-12-31"
+    assert payload["rendered_description"] == (
+        "Full accounts made up to 31 December 2025"
+    )
+    notice = FilingHistoryItem.from_api(
+        {
+            "transaction_id": "tx-gaz",
+            "category": "gazette",
+            "type": "GAZ1",
+            "date": "2026-09-01",
+            "description": "gazette-notice-compulsory",
+        }
+    )
+    assert notice.made_up_date is None
+    payload = notice.event_payload()
+    assert payload["made_up_date"] is None
+    assert payload["action_date"] is None
+    # The register's own words are never mistaken for a date.
+    odd = FilingHistoryItem.from_api(
+        {
+            "transaction_id": "tx-odd",
+            "description_values": {"made_up_date": "last year"},
+        }
+    )
+    assert odd.event_payload()["made_up_date"] is None
 
 
 async def test_unchanged_probe_issues_no_further_requests(

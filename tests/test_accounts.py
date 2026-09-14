@@ -313,8 +313,16 @@ async def test_backfill_reads_five_years_after_setup(
         "Net liabilities",
         "Creditors exceed cash and debtors",
     ]
-    assert company.state.changes[0]["kind"] == "accounts"
     assert company.state.snapshots["accounts"].data is not None
+    # The figures feed the risk rating: net liabilities and creditors beyond
+    # the cash took the company from green to amber, logged after the read.
+    assert [c["kind"] for c in company.state.changes[:2]] == ["status", "accounts"]
+    rated = [e for e in events if e.data["event_type"] == "risk-changed"]
+    assert [(e.data["old_band"], e.data["new_band"]) for e in rated] == [
+        ("green", "amber")
+    ]
+    assert company.risk is not None
+    assert company.risk.info["accounts_figures_at"] == "2025-12-31"
 
 
 async def test_sensors_show_the_latest_figures(

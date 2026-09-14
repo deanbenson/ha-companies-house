@@ -2,8 +2,9 @@
 
 Everything here is a pure function of the data the integration already holds
 (profile, officers, PSCs, charges, insolvency, the probe's recent filings,
-the stored state and the followed people), so the scoring table can be tested
-exhaustively without Home Assistant and costs no API requests.
+the figures read from the filed accounts, the stored state and the followed
+people), so the scoring table can be tested exhaustively without Home
+Assistant and costs no API requests.
 
 The rating is a *register health* rating built from Companies House data
 alone. It cannot see county court judgments, winding-up petitions before an
@@ -18,8 +19,17 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from decimal import Decimal
 from typing import Any, Final
 
+from .accounts import (
+    AccountsHistory,
+    AccountsYear,
+    format_change,
+    format_count,
+    format_money,
+    percent_change,
+)
 from .const import (
     FINISHED_STATUSES,
     INSOLVENT_STATUSES,
@@ -41,12 +51,11 @@ from .models import (
     OfficerList,
     PscData,
     display_name,
-    parse_date,
 )
 from .store import CompanyState
 
 # Bump when the table below changes, so automations can pin a version.
-SCORING_VERSION: Final = "1"
+SCORING_VERSION: Final = "2"
 
 BAND_GREEN: Final = "green"
 BAND_AMBER: Final = "amber"
@@ -60,9 +69,10 @@ SCORE_CAP: Final = 100
 
 BASIS: Final = (
     "Companies House data only: filing compliance, status, board, ownership, "
-    "charges and the register's own flags. It cannot see county court "
-    "judgments, winding-up petitions, payment behaviour or bank data, so it "
-    "is a register health rating, not a credit limit."
+    "charges, the register's own flags and the figures in the filed accounts. "
+    "It cannot see county court judgments, winding-up petitions, payment "
+    "behaviour or bank data, so it is a register health rating, not a credit "
+    "limit."
 )
 
 # Every point value in one place, so tuning the table is a data change.
@@ -124,6 +134,12 @@ POINTS: Final[dict[str, int]] = {
     "C9": 2,
     "C10": 3,
     "C11": 2,
+    # E. Accounts figures, from the newest accounts read.
+    "E1": 15,  # net liabilities
+    "E2": 6,  # net assets fell by more than a quarter
+    "E3": 4,  # cash fell by more than half
+    "E4": 6,  # creditors due within a year exceed cash
+    "E5": 3,  # headcount halved
     # D. Uncertainty: unknown is not green.
     "D2": 5,
     "D3_officers": 4,
@@ -133,7 +149,7 @@ POINTS: Final[dict[str, int]] = {
     "D4": 4,
 }
 
-_SECTION_ORDER: Final = {"R": 0, "A": 1, "B": 2, "C": 3, "D": 4}
+_SECTION_ORDER: Final = {"R": 0, "A": 1, "B": 2, "C": 3, "E": 4, "D": 5}
 
 DIRECTOR_ROLES: Final = frozenset(
     {
@@ -247,6 +263,15 @@ NOTHING_FILED_DAYS: Final = 456
 YEAR_DAYS: Final = 365
 TWO_YEARS_DAYS: Final = 2 * 365
 DUE_SOON_DAYS: Final = 30
+# Falls of more than this much year on year score (net assets, cash).
+NET_ASSETS_FALL: Final = Decimal("0.25")
+CASH_FALL: Final = Decimal("0.5")
+# A head count only halves from a real one: one person leaving is not that.
+HEADCOUNT_MINIMUM: Final = 2
+# When a year's accounts carry no comparative column, the previous year's
+# own figures stand in, provided it really is the year before (the accounts
+# coordinator allows the same gap when it borrows comparatives).
+PRIOR_YEAR_MAX_GAP_DAYS: Final = 548
 COVERED_DATASETS: Final = (
     "profile",
     "filings",
@@ -254,6 +279,7 @@ COVERED_DATASETS: Final = (
     "psc",
     "charges",
     "insolvency",
+    "accounts",
 )
 
 
@@ -418,6 +444,7 @@ class _Scorer:
         coverage: Mapping[str, datetime | None],
         people: Sequence[TrackedPerson],
         profile_failing_since: datetime | None,
+        accounts: AccountsHistory | None,
         today: date,
     ) -> None:
         self.profile = profile
@@ -430,6 +457,7 @@ class _Scorer:
         self.coverage = coverage
         self.people = people
         self.profile_failing_since = profile_failing_since
+        self.accounts = accounts
         self.today = today
         self.items: list[RiskItem] = []
         self.overrides: list[str] = []
@@ -712,7 +740,7 @@ class _Scorer:
                 or (self.today - item.date).days > LATE_FILING_LOOKBACK_DAYS
             ):
                 continue
-            made_up_to = parse_date(item.description_values.get("made_up_date"))
+            made_up_to = item.made_up_date
             if made_up_to is None:
                 continue
             due = add_months(made_up_to, deadline_months)
@@ -994,6 +1022,96 @@ class _Scorer:
         if self._board_changed and any(d >= half_year_ago for d in renames):
             self.add("C10", "renamed after a change of control")
 
+    # -- E: accounts figures ------------------------------------------------
+
+    def accounts_section(self) -> None:
+        """Score what the newest accounts read say about the balance sheet.
+
+        Only figures the accounts disclose are scored: a line the accounts
+        leave out (micro-entity and filleted accounts omit most of them) is
+        never held against the company. The year before comes from the
+        accounts' own comparative column, or failing that from the previous
+        year's accounts.
+        """
+        year = self._latest_read_accounts()
+        if year is None:
+            return
+        at = _pretty_date(year.made_up_to)
+        self.info["accounts_figures_at"] = year.made_up_to.isoformat()
+        net_assets = self._figure(year, "net_assets")
+        cash = self._figure(year, "cash")
+        if net_assets is not None and net_assets < 0:
+            self.add(
+                "E1", f"net liabilities of {format_money(abs(net_assets))} at {at}"
+            )
+        fall = self._fall(year, "net_assets", NET_ASSETS_FALL)
+        if fall is not None:
+            self.add(
+                "E2",
+                f"net assets {fall} year on year ({format_money(net_assets)} at {at})",
+            )
+        fall = self._fall(year, "cash", CASH_FALL)
+        if fall is not None:
+            self.add("E3", f"cash {fall} year on year ({format_money(cash)} at {at})")
+        creditors = self._figure(year, "creditors_within_one_year")
+        if creditors is not None and cash is not None and creditors > cash:
+            self.add(
+                "E4",
+                f"creditors due within a year ({format_money(creditors)}) exceed "
+                f"cash ({format_money(cash)}) at {at}",
+            )
+        staff = self._figure(year, "employees")
+        staff_before = self._prior(year, "employees")
+        if (
+            staff is not None
+            and staff_before is not None
+            and staff_before >= HEADCOUNT_MINIMUM
+            and staff <= staff_before / 2
+        ):
+            self.add(
+                "E5",
+                f"headcount halved ({format_count(staff_before)} to "
+                f"{format_count(staff)}) in the year to {at}",
+            )
+
+    def _latest_read_accounts(self) -> AccountsYear | None:
+        """Return the newest accounts read from their own structured data."""
+        if self.accounts is None:
+            return None
+        return next((y for y in self.accounts.years if y.is_read), None)
+
+    @staticmethod
+    def _figure(year: AccountsYear, metric: str) -> Decimal | None:
+        """Return a figure the accounts disclose, or None."""
+        figure = year.figure(metric)
+        return figure.value if figure.status == "ok" else None
+
+    def _prior(self, year: AccountsYear, metric: str) -> Decimal | None:
+        """Return last year's figure: the comparative column, else last year's accounts."""
+        figure = year.figure(metric)
+        if figure.status == "ok" and figure.prior is not None:
+            return figure.prior
+        assert self.accounts is not None
+        years = self.accounts.years
+        index = years.index(year) + 1
+        if index >= len(years):
+            return None
+        before = years[index]
+        gap = (year.made_up_to - before.made_up_to).days
+        if gap <= 0 or gap > PRIOR_YEAR_MAX_GAP_DAYS:
+            return None
+        return self._figure(before, metric)
+
+    def _fall(self, year: AccountsYear, metric: str, by: Decimal) -> str | None:
+        """Say how far a figure fell when it fell by more than ``by``, else None."""
+        value = self._figure(year, metric)
+        prior = self._prior(year, metric)
+        if value is None or prior is None or prior <= 0:
+            return None
+        if value >= prior * (1 - by):
+            return None
+        return format_change(percent_change(value, prior))
+
     # -- D: uncertainty -----------------------------------------------------
 
     def uncertainty_section(self) -> int:
@@ -1090,7 +1208,7 @@ def compute_risk(
     people: Sequence[TrackedPerson] = (),
     profile_failing_since: datetime | None = None,
     today: date,
-    accounts: object | None = None,
+    accounts: AccountsHistory | None = None,
 ) -> RiskResult:
     """Rate a company from the register data on hand.
 
@@ -1099,12 +1217,11 @@ def compute_risk(
     checked. ``people`` are the followed people, for disqualification and
     connected-party rules. ``profile_failing_since`` is when the profile's
     refreshes started failing, if they are: a copy that will not refresh
-    counts as stale after a week however recent it is. ``accounts`` is
-    reserved for the structured accounts feature (net liabilities, falling
-    cash and the like); it is accepted and ignored until that lands, so
-    callers can pass it now.
+    counts as stale after a week however recent it is. ``accounts`` is what
+    has been read from the filed accounts; the newest year read from its own
+    structured data is scored (net liabilities, falling net assets or cash,
+    creditors beyond the cash, a halved headcount).
     """
-    del accounts  # Hook for the accounts feature: not scored yet.
     state = state or CompanyState()
     coverage = coverage or {}
     if profile is None or state.not_found:
@@ -1135,6 +1252,7 @@ def compute_risk(
         coverage=coverage,
         people=people,
         profile_failing_since=profile_failing_since,
+        accounts=accounts,
         today=today,
     )
     if profile.company_status in FINISHED_STATUSES:
@@ -1154,6 +1272,7 @@ def compute_risk(
         scorer.compliance_section()
         scorer.board_section()
         scorer.security_section()
+        scorer.accounts_section()
         uncertainty = scorer.uncertainty_section()
     items = _order(scorer.items)
     score = min(SCORE_CAP, sum(i.points for i in items))

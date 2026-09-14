@@ -45,7 +45,7 @@ from .coordinator import (
     _CompanyCoordinator,
 )
 from .ixbrl import MAX_BYTES, Figure, IxbrlError, looks_like_ixbrl, parse_accounts
-from .models import FilingHistoryItem, parse_date
+from .models import FilingHistoryItem
 
 # The filing history page listed: accounts filings only, newest first.
 ACCOUNTS_HISTORY_ITEMS = 20
@@ -76,7 +76,7 @@ def _is_accounts(item: FilingHistoryItem) -> bool:
 
 
 def _made_up_to(item: FilingHistoryItem) -> date | None:
-    return parse_date(item.description_values.get("made_up_date")) or item.action_date
+    return item.made_up_date or item.action_date
 
 
 def merge_filings(
@@ -294,13 +294,16 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
 
     @callback
     def _async_refresh_finished(self) -> None:
-        """Hand an unfinished read back to the queue.
+        """Re-rate the company, then hand an unfinished read back to the queue.
 
-        A read asked for by the probe or an action has no timer of its own,
-        so when it stopped early (budget spent, a document out of reach, the
-        listing failed) the queue takes it from here. The queue's own reads
-        decide for themselves.
+        The figures feed the risk rating, so a read that landed re-rates the
+        company at once (a band can move on net liabilities alone). A read
+        asked for by the probe or an action has no timer of its own, so when
+        it stopped early (budget spent, a document out of reach, the listing
+        failed) the queue takes it from here. The queue's own reads decide
+        for themselves.
         """
+        super()._async_refresh_finished()
         if not self._force_fetch:
             return
         queue = self.company.entry.runtime_data.accounts_backfill

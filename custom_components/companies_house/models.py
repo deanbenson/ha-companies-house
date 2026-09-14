@@ -527,8 +527,23 @@ class FilingHistoryItem(StorableModel):
         event_type = FILING_CATEGORY_EVENT_TYPE.get(category, category)
         return event_type if event_type in FILING_EVENT_TYPES else "other"
 
+    @property
+    def made_up_date(self) -> dt.date | None:
+        """The date the filing was made up to, when the register says so.
+
+        Accounts and confirmation statements carry it in their description
+        values; most other filings do not.
+        """
+        return parse_date(self.description_values.get("made_up_date"))
+
     def event_payload(self) -> JsonDict:
-        """Return the payload of a filing change event."""
+        """Return the payload of a filing change event.
+
+        ``made_up_date`` and ``action_date`` are ISO dates or null, so an
+        automation can say "accounts to 31 December 2025" without parsing
+        the description.
+        """
+        made_up_date = self.made_up_date
         return {
             "transaction_id": self.transaction_id,
             "date": self.date.isoformat() if self.date else None,
@@ -541,6 +556,8 @@ class FilingHistoryItem(StorableModel):
             "document_id": self.document_id,
             "paper_filed": self.paper_filed,
             "pages": self.pages,
+            "made_up_date": made_up_date.isoformat() if made_up_date else None,
+            "action_date": self.action_date.isoformat() if self.action_date else None,
         }
 
 

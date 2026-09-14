@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 import pytest
 
+from custom_components.companies_house.accounts import (
+    AccountsHistory,
+    AccountsYear,
+    Figure,
+)
 from custom_components.companies_house.models import (
     Appointment,
     AppointmentList,
@@ -39,7 +45,8 @@ from .conftest import load_fixture
 TODAY = date(2026, 9, 15)
 NOW = datetime(2026, 9, 15, 9, tzinfo=UTC)
 FULL_COVERAGE = dict.fromkeys(
-    ("profile", "filings", "officers", "psc", "charges", "insolvency"), NOW
+    ("profile", "filings", "officers", "psc", "charges", "insolvency", "accounts"),
+    NOW,
 )
 
 
@@ -153,6 +160,39 @@ def _case(case_type: str, **dates: str) -> dict[str, Any]:
         "type": case_type,
         "dates": [{"type": k.replace("_", "-"), "date": v} for k, v in dates.items()],
     }
+
+
+def _figure(
+    value: int | None, prior: int | None = None, status: str | None = None
+) -> Figure:
+    """A read figure, or an undisclosed one when there is no value."""
+    return Figure(
+        value=None if value is None else Decimal(value),
+        prior=None if prior is None else Decimal(prior),
+        status=status or ("ok" if value is not None else "not_disclosed"),
+    )
+
+
+def _year(
+    made_up_to: str,
+    *,
+    status: str = "ok",
+    source: str = "ixbrl",
+    **figures: Figure,
+) -> AccountsYear:
+    return AccountsYear(
+        transaction_id=f"tx-{made_up_to}",
+        made_up_to=date.fromisoformat(made_up_to),
+        accounts_type="full",
+        status=status,
+        source=source,
+        figures=figures,
+    )
+
+
+def _history(*years: AccountsYear) -> AccountsHistory:
+    """Accounts as the coordinator keeps them: newest first."""
+    return AccountsHistory(years=list(years), checked=True)
 
 
 def rate(
@@ -298,9 +338,32 @@ def test_reason_line_caps_at_four_and_orders_by_points() -> None:
     assert len(result.reasons) == 7
 
 
-def test_accounts_hook_is_accepted_and_ignored() -> None:
-    """The structured accounts hook changes nothing until that feature lands."""
-    assert rate(accounts=object()).score == rate().score
+def test_no_accounts_read_changes_nothing() -> None:
+    """With no accounts, unread accounts or figures not disclosed, nothing scores."""
+    assert rate(accounts=None).score == rate().score
+    assert rate(accounts=AccountsHistory()).score == rate().score
+    pending = _history(_year("2025-12-31", status="pending", source="none"))
+    assert rate(accounts=pending).score == rate().score
+    paper = _history(_year("2025-12-31", status="no_ixbrl", source="none"))
+    assert rate(accounts=paper).score == rate().score
+    # Micro-entity accounts leave most lines out: never a mark against them.
+    micro = _history(
+        _year(
+            "2025-12-31",
+            net_assets=_figure(None),
+            cash=_figure(None),
+            creditors_within_one_year=_figure(None),
+            employees=_figure(None),
+        )
+    )
+    result = rate(accounts=micro)
+    assert result.score == rate().score
+    assert result.info["accounts_figures_at"] == "2025-12-31"
+    # A figure that could not be trusted (two values tagged) is not scored either.
+    conflict = _history(
+        _year("2025-12-31", net_assets=_figure(-5000, status="conflict"))
+    )
+    assert rate(accounts=conflict).score == rate().score
 
 
 # ---------------------------------------------------------------- R overrides
@@ -1252,6 +1315,131 @@ def test_cannot_file_is_quiet_information() -> None:
     amber = rate(_profile(can_file=False, undeliverable_registered_office_address=True))
     assert "the company cannot file online" in amber.reasons
     assert "C11" not in codes(rate(_profile(can_file=False, company_status="open")))
+
+
+# ---------------------------------------------------------------- E accounts
+
+
+def test_net_liabilities_and_creditors_beyond_cash() -> None:
+    """A balance sheet under water is the heaviest accounts line; creditors add to it."""
+    history = _history(
+        _year(
+            "2025-12-31",
+            net_assets=_figure(-1026, -2865),
+            cash=_figure(13552, 8398),
+            creditors_within_one_year=_figure(186298, 184704),
+            employees=_figure(0, 0),
+        )
+    )
+    result = rate(accounts=history)
+    assert result.band == BAND_AMBER
+    assert result.score == POINTS["E1"] + POINTS["E4"]
+    assert codes(result) == ["E1", "E4"]
+    assert result.reasons == [
+        "net liabilities of £1k at 31 Dec 2025",
+        "creditors due within a year (£186k) exceed cash (£13.6k) at 31 Dec 2025",
+    ]
+    assert result.reason == (
+        "Amber: net liabilities of £1k at 31 Dec 2025; creditors due within a "
+        "year (£186k) exceed cash (£13.6k) at 31 Dec 2025"
+    )
+    assert result.info["accounts_figures_at"] == "2025-12-31"
+    assert result.as_dict()["scoring_version"] == "2"
+    # Creditors only count against cash when both figures are there.
+    no_cash = _history(
+        _year("2025-12-31", creditors_within_one_year=_figure(186298, 184704))
+    )
+    assert codes(rate(accounts=no_cash)) == []
+    covered = _history(
+        _year(
+            "2025-12-31",
+            cash=_figure(200000),
+            creditors_within_one_year=_figure(186298),
+        )
+    )
+    assert codes(rate(accounts=covered)) == []
+    # Net liabilities that were worse last year still count (the sign is the point).
+    assert codes(rate(accounts=_history(_year("2025-12-31", net_assets=_figure(-1)))))
+
+
+def test_falling_net_assets_cash_and_headcount() -> None:
+    """Falls of more than a quarter, a half and a half score; smaller ones do not."""
+    history = _history(
+        _year(
+            "2025-12-31",
+            net_assets=_figure(700_000, 1_200_000),
+            cash=_figure(40_000, 100_000),
+            employees=_figure(4, 10),
+        )
+    )
+    result = rate(accounts=history)
+    assert codes(result) == ["E2", "E3", "E5"]
+    assert result.score == POINTS["E2"] + POINTS["E3"] + POINTS["E5"]
+    assert result.reasons == [
+        "net assets down 41.7 % year on year (£700k at 31 Dec 2025)",
+        "cash down 60 % year on year (£40k at 31 Dec 2025)",
+        "headcount halved (10 to 4) in the year to 31 Dec 2025",
+    ]
+    assert result.band == BAND_AMBER
+    # Exactly a quarter and exactly a half are not "more than".
+    edge = _history(
+        _year(
+            "2025-12-31",
+            net_assets=_figure(75, 100),
+            cash=_figure(50, 100),
+            employees=_figure(5, 10),
+        )
+    )
+    assert codes(rate(accounts=edge)) == ["E5"]
+    # A rise, or a fall from nothing, never scores; nor does one person going.
+    fine = _history(
+        _year(
+            "2025-12-31",
+            net_assets=_figure(120, 100),
+            cash=_figure(10, 0),
+            employees=_figure(0, 1),
+        )
+    )
+    assert codes(rate(accounts=fine)) == []
+    # Falling from positive to negative is both a fall and net liabilities.
+    sunk = _history(_year("2025-12-31", net_assets=_figure(-100, 1000)))
+    assert codes(rate(accounts=sunk)) == ["E1", "E2"]
+    assert rate(accounts=sunk).reasons[1] == (
+        "net assets down 110 % year on year (-£100 at 31 Dec 2025)"
+    )
+
+
+def test_prior_figures_come_from_the_previous_year_when_needed() -> None:
+    """Without a comparative column the year before's own accounts stand in."""
+    latest = _year("2025-12-31", cash=_figure(40_000), net_assets=_figure(50))
+    before = _year("2024-12-31", cash=_figure(100_000), net_assets=_figure(40))
+    result = rate(accounts=_history(latest, before))
+    assert codes(result) == ["E3"]
+    # A borrowed comparative column counts as the year before too.
+    borrowed = _year(
+        "2024-12-31", status="no_ixbrl", source="comparative", cash=_figure(100_000)
+    )
+    assert codes(rate(accounts=_history(latest, borrowed))) == ["E3"]
+    # Not when the previous accounts are too far back to be last year's.
+    long_ago = _year("2023-06-30", cash=_figure(100_000))
+    assert codes(rate(accounts=_history(latest, long_ago))) == []
+    # Nor when the previous year is unread, or missing altogether.
+    unread = _year("2024-12-31", status="pending", source="none")
+    assert codes(rate(accounts=_history(latest, unread))) == []
+    assert codes(rate(accounts=_history(latest))) == []
+    # The newest year read is scored, not a newer one still pending.
+    pending = _year("2026-12-31", status="pending", source="none")
+    result = rate(accounts=_history(pending, latest, before))
+    assert codes(result) == ["E3"]
+    assert result.info["accounts_figures_at"] == "2025-12-31"
+
+
+def test_accounts_figures_are_not_scored_for_a_dead_company() -> None:
+    """A dissolved company is red for that alone; its old figures are not listed."""
+    history = _history(_year("2025-12-31", net_assets=_figure(-1000)))
+    result = rate(_profile(company_status="dissolved"), accounts=history)
+    assert codes(result) == ["R1"]
+    assert "accounts_figures_at" not in result.info
 
 
 # ---------------------------------------------------------------- D uncertainty

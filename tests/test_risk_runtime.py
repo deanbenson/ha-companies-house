@@ -471,3 +471,56 @@ async def test_people_and_companies_added_later_are_rated_at_once(
     assert _company(entry, "34567890").state.risk_band == "red"
     # The company already rated was left alone: still one announcement.
     assert len([e for e in events if e.data["event_type"] == "risk-changed"]) == 1
+
+
+async def test_accounts_read_re_rates_the_company(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """The figures read from the accounts move the band, by the queue or the probe.
+
+    The first read (small filleted accounts, £11 in the bank and nothing
+    owed) changes nothing; the newer full accounts show net liabilities and
+    creditors beyond the cash, and the rating follows at once.
+    """
+    from .test_accounts import FILINGS, mock_accounts, run_backfill
+
+    freezer.move_to("2026-09-15T09:00:00+00:00")
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    mock_accounts(aioclient_mock, items=FILINGS[1:])
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    state = hass.states.get(SENSOR)
+    assert state.state == "green"
+    assert state.attributes["coverage"]["accounts"] is None
+    await run_backfill(hass, freezer)
+    state = hass.states.get(SENSOR)
+    assert state.state == "green"
+    assert state.attributes["score"] == 5
+    assert state.attributes["coverage"]["accounts"] == "2026-09-15T09:01:01+00:00"
+    assert state.attributes["info"]["accounts_figures_at"] == "2023-12-31"
+    assert state.attributes["basis"] == BASIS
+
+    # The probe sees the new accounts and reads them: amber, announced once.
+    history = load_fixture("company_active/filing_history")
+    history["items"].insert(0, FILINGS[0])
+    history["total_count"] += 1
+    aioclient_mock.clear_requests()
+    mock_accounts(aioclient_mock)
+    mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
+    await company.probe.async_refresh()
+    await hass.async_block_till_done(wait_background_tasks=True)
+    state = hass.states.get(SENSOR)
+    assert state.state == "amber"
+    assert state.attributes["score"] == 5 + 15 + 6
+    assert state.attributes["reasons"][:2] == [
+        "net liabilities of £1k at 31 Dec 2025",
+        "creditors due within a year (£186k) exceed cash (£13.6k) at 31 Dec 2025",
+    ]
+    assert state.attributes["info"]["accounts_figures_at"] == "2025-12-31"
+    assert company.state.risk_band == "amber"
+    rated = [e.data for e in events if e.data["event_type"] == "risk-changed"]
+    assert [(r["old_band"], r["new_band"]) for r in rated] == [("green", "amber")]
+    assert rated[0]["reasons"][0] == "net liabilities of £1k at 31 Dec 2025"
