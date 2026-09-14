@@ -41,6 +41,7 @@ from .const import (
     CONF_COMPANY_NUMBER,
     CONF_DATASETS,
     CONF_LABEL,
+    CONF_OFFICER_ID,
     CONF_OFFICER_IDS,
     DEFAULT_CADENCE_MULTIPLIER,
     DOMAIN,
@@ -54,6 +55,7 @@ from .const import (
     OPTIONAL_DATASETS,
     STATUS_DETAIL_STRIKE_OFF,
     SUBENTRY_TYPE_COMPANY,
+    SUBENTRY_TYPE_OFFICER,
     Dataset,
     OfficerDataset,
     Tier,
@@ -1148,6 +1150,20 @@ class OfficerRuntime(_Runtime):
             if s.subentry_type == SUBENTRY_TYPE_COMPANY
         }
 
+    def followed_records(self) -> set[str]:
+        """Return every register record followed by any person, not just this one.
+
+        Two people set up from two records of the same person must not pool
+        each other's records, or every appointment would count twice.
+        """
+        followed: set[str] = set(self.officer_ids)
+        for sub in self.entry.subentries.values():
+            if sub.subentry_type != SUBENTRY_TYPE_OFFICER:
+                continue
+            followed.add(str(sub.data.get(CONF_OFFICER_ID, sub.unique_id or "")))
+            followed.update(str(i) for i in sub.data.get(CONF_OFFICER_IDS) or [])
+        return followed
+
     async def async_watch_companies(self) -> None:
         """Add every company the person currently holds a role at.
 
@@ -1611,7 +1627,7 @@ class RecordsCoordinator(_OfficerCoordinator[RecordSearch]):
         found, possible = match_records(
             self.officer.register_name,
             self.officer.known_date_of_birth,
-            self.officer.officer_ids,
+            self.officer.followed_records(),
             search,
         )
         return RecordSearch(
@@ -1625,7 +1641,8 @@ class RecordsCoordinator(_OfficerCoordinator[RecordSearch]):
         """Follow any record found, then refresh the appointments."""
         if not self.last_update_success or self.data is None:
             return
-        new = [i for i in self.data.found if i not in self.officer.officer_ids]
+        followed = self.officer.followed_records()
+        new = [i for i in self.data.found if i not in followed]
         if not new:
             return
         for officer_id in new:

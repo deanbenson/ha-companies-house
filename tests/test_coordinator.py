@@ -841,6 +841,37 @@ async def test_new_register_record_is_followed_automatically(
     await hass.async_block_till_done()
     assert len([e for e in events if e.data["event_type"] == "new-record"]) == 1
 
+    # A record already followed as a separate person is never pooled in.
+    from types import MappingProxyType
+
+    from homeassistant.config_entries import ConfigSubentry
+
+    search["items"].append(
+        {
+            **search["items"][0],
+            "links": {"self": "/officers/officer-jane-3/appointments"},
+        }
+    )
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType(
+                {"officer_id": "officer-jane-3", "officer_name": "Jane (other)"}
+            ),
+            subentry_type="officer",
+            title="Jane (other)",
+            unique_id="officer-jane-3",
+            subentry_id="sub_jane_3",
+        ),
+    )
+    aioclient_mock.clear_requests()
+    mock_officer(aioclient_mock, records_search=search)
+    mock_officer(aioclient_mock, "officer-jane-3")
+    await hass.async_block_till_done()
+    await officer.records.async_refresh()
+    await hass.async_block_till_done()
+    assert officer.officer_ids == ["officer-jane", "officer-jane-2"]
+
 
 def test_match_records_rules() -> None:
     """Records already followed are skipped; names must agree exactly."""
