@@ -136,6 +136,8 @@ On top of the probe:
 * **Weekly reconciliation** of every dataset, staggered by a hash of the
   company number, so a clever optimisation is never the only path to correctness.
 * **Structure** (registers, exemptions, UK establishments) monthly.
+* **Accounts** are read once, from the accounts themselves, and again only
+  when a new set is filed (see *Accounts figures* below).
 * **Officer appointments** daily, at a time of day derived from a hash of the
   officer id so thirty officers spread across the day. **Disqualification** weekly.
 
@@ -291,6 +293,67 @@ as "look now" and green as "nothing on the register", not as a credit limit.
 The table is versioned (`scoring_version`) so an automation can pin what it
 expects.
 
+### Accounts figures
+
+Accounts filed electronically are on the register as structured data (iXBRL)
+as well as a PDF. The integration reads them: **Latest accounts** (the date
+the newest accounts were made up to, with every figure, last year's figure
+and the change in the attributes, plus a `series` of up to six years and a
+`flags` list), and five figure sensors: **Turnover**, **Profit before tax**,
+**Cash**, **Net assets** (in GBP) and **Employees**. A figure sensor shows the
+newest year that has figures; its attributes say which year, last year's
+value, the change and why a figure may be missing.
+
+Missing figures are normal, not errors. Micro-entity, small (filleted) and
+abridged accounts leave out the profit and loss account, and a micro balance
+sheet has no cash line, so most small companies disclose net assets, creditors
+and employees and nothing else; the attributes say `not disclosed
+(micro-entity accounts)` in that case. Accounts filed on paper, or as a PDF
+only, have no structured data (`no structured data`); for those years the
+year-before column of the next accounts stands in, marked `comparative`, but
+only when that column really is about that year (a year missing from the
+register's list never gets another year's figures).
+
+Reading is gentle on the allowance. A minute after setup a single queue reads
+one company at a time with a pause between them: one request lists the
+accounts filings, then each of the last five years costs one request (plus
+a fetch from the register's document store that is not rate limited), and
+the result is kept in the store so a restart reads nothing again. When the
+scheduled budget is spent the queue waits for the window to roll over,
+however many times it takes; a document the register cannot serve is left
+for a later go (three goes, a quarter of an hour apart) without holding up
+the company's other years. A new accounts filing seen by the probe is read
+on its own, and goes back on the queue if that read could not finish. Each
+year's figures come from its own accounts; an amended set replaces the year
+it restates and is announced like any other read. The `read_accounts` action
+reads again on request.
+
+When the recorder is running the figures are also written to **long-term
+statistics** (`companies_house:<number>_<metric>`, one row per financial year,
+never purged), so a five-year chart is one card:
+
+```yaml
+type: statistics-graph
+entities:
+  - companies_house:12345678_turnover
+  - companies_house:12345678_net_assets
+stat_types: [mean]
+period: year
+chart_type: bar
+days_to_show: 1830
+```
+
+Each read of a company's newest accounts fires an `accounts` / `read` change
+(with the figures, the percentage changes and plain-English **flags**: *Net
+liabilities*, *Cash halved*, *Turnover down 20 %+*, *Net assets down 25 %+*,
+*Creditors exceed cash and debtors*, *Headcount halved*, each only when the
+figures it needs are present). It reaches the change log, the
+`companies_house_event` bus event, alerts and the report; there is no event
+entity for it. The weekly report gets an **Accounts read this week** section:
+a compact this year / last year / change table per company, the flags in
+amber, a note when the accounts type explains what is missing, and links to
+the accounts PDF and the company.
+
 ### Officer
 
 Current companies (the companies they hold a role at today, newest first,
@@ -332,6 +395,9 @@ recorder:
       - sensor.*_psc_active
       - sensor.*_charges_outstanding
 ```
+
+The accounts `series`, `figures` and `statistics` attributes are never
+recorded (the statistics tables hold the history instead).
 
 ## Reports and alerts
 
@@ -540,6 +606,14 @@ Companies House API.
 `get_charge`, `get_psc`, `get_psc_detail`, `get_psc_statements`,
 `get_insolvency`, `get_exemptions`, `get_registers`, `get_uk_establishments`,
 `get_document_metadata`.
+
+`accounts` returns what was read from a watched company's accounts, from
+memory: `latest` (every figure with text, prior, change and status, plus the
+flags), `years` (up to six, newest first, each with its status and source)
+and `series` (one row of plain numbers per year, oldest first).
+`read_accounts` reads again: with a `company_number` it reads that company now
+and returns its figures; without one it queues every watched company that
+still has unread accounts; `force: true` reads even the years already read.
 
 `download_document` writes to the document directory as
 `{company_number} {company_name}/YYYY-MM-DD - Companies House - {description} ({company_name}).pdf`
@@ -757,6 +831,12 @@ HACS if you no longer want the files.
   winding-up petitions until the order is filed, no payment or bank data, and
   no accounts figures yet. Late-filing history looks back over the newest 25
   filings only. Connected-party rules apply only to directors you follow.
+* Accounts figures depend on what was filed. Filleted, abridged, micro-entity
+  and dormant accounts omit most lines; paper and PDF-only filings have no
+  structured data at all. Group accounts are read at the consolidated level
+  when one is tagged, figures in a currency other than sterling are left out
+  (`unit mismatch`), and a figure tagged twice with different values keeps
+  the visible one and is marked `conflict`.
 
 ## Troubleshooting
 

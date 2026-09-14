@@ -8180,6 +8180,63 @@
     'state': '2024-06-01',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_45678901_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Cash',
+      'statistic_id': 'companies_house:45678901_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_cash',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_charges_part_satisfied-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -9435,6 +9492,61 @@
     'state': '2026-10-25',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_45678901_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Employees',
+      'statistic_id': 'companies_house:45678901_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -9940,6 +10052,70 @@
     'state': '2026-08-25',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_45678901_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:45678901_cash',
+        'creditors_within_one_year': 'companies_house:45678901_creditors_within_one_year',
+        'employees': 'companies_house:45678901_employees',
+        'net_assets': 'companies_house:45678901_net_assets',
+        'profit_after_tax': 'companies_house:45678901_profit_after_tax',
+        'profit_before_tax': 'companies_house:45678901_profit_before_tax',
+        'turnover': 'companies_house:45678901_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -9988,6 +10164,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_45678901_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Net assets',
+      'statistic_id': 'companies_house:45678901_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_next_deadline-entry]
@@ -10526,6 +10759,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_45678901_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Profit before tax',
+      'statistic_id': 'companies_house:45678901_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -10880,6 +11170,63 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_45678901_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Turnover',
+      'statistic_id': 'companies_house:45678901_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_uk_establishments-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -11184,6 +11531,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-04-01',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_12345678_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Cash',
+      'statistic_id': 'companies_house:12345678_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_cash',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_charges_part_satisfied-entry]
@@ -12463,6 +12867,61 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_12345678_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Employees',
+      'statistic_id': 'companies_house:12345678_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -12968,6 +13427,70 @@
     'state': '2026-03-14',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_12345678_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:12345678_cash',
+        'creditors_within_one_year': 'companies_house:12345678_creditors_within_one_year',
+        'employees': 'companies_house:12345678_employees',
+        'net_assets': 'companies_house:12345678_net_assets',
+        'profit_after_tax': 'companies_house:12345678_profit_after_tax',
+        'profit_before_tax': 'companies_house:12345678_profit_before_tax',
+        'turnover': 'companies_house:12345678_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -13016,6 +13539,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_12345678_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Net assets',
+      'statistic_id': 'companies_house:12345678_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.example_trading_limited_next_deadline-entry]
@@ -13589,6 +14169,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_12345678_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Profit before tax',
+      'statistic_id': 'companies_house:12345678_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -13940,6 +14577,63 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_12345678_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Turnover',
+      'statistic_id': 'companies_house:12345678_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_uk_establishments-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -14244,6 +14938,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-10-01',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_OC123456_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Cash',
+      'statistic_id': 'companies_house:oc123456_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_cash',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_charges_part_satisfied-entry]
@@ -15501,6 +16252,61 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.historic_partners_llp_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_OC123456_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Employees',
+      'statistic_id': 'companies_house:oc123456_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -16006,6 +16812,70 @@
     'state': '2026-04-12',
   })
 # ---
+# name: test_entities[sensor][sensor.historic_partners_llp_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_OC123456_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:oc123456_cash',
+        'creditors_within_one_year': 'companies_house:oc123456_creditors_within_one_year',
+        'employees': 'companies_house:oc123456_employees',
+        'net_assets': 'companies_house:oc123456_net_assets',
+        'profit_after_tax': 'companies_house:oc123456_profit_after_tax',
+        'profit_before_tax': 'companies_house:oc123456_profit_before_tax',
+        'turnover': 'companies_house:oc123456_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -16054,6 +16924,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_OC123456_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Net assets',
+      'statistic_id': 'companies_house:oc123456_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_next_deadline-entry]
@@ -16604,6 +17531,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.historic_partners_llp_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_OC123456_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Profit before tax',
+      'statistic_id': 'companies_house:oc123456_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.historic_partners_llp_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -16947,6 +17931,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_OC123456_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Turnover',
+      'statistic_id': 'companies_house:oc123456_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_uk_establishments-entry]
@@ -18245,6 +19286,63 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_23456789_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Cash',
+      'statistic_id': 'companies_house:23456789_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_cash',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_charges_part_satisfied-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -19500,6 +20598,61 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_23456789_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Employees',
+      'statistic_id': 'companies_house:23456789_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -20005,6 +21158,70 @@
     'state': '2024-08-13',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_23456789_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:23456789_cash',
+        'creditors_within_one_year': 'companies_house:23456789_creditors_within_one_year',
+        'employees': 'companies_house:23456789_employees',
+        'net_assets': 'companies_house:23456789_net_assets',
+        'profit_after_tax': 'companies_house:23456789_profit_after_tax',
+        'profit_before_tax': 'companies_house:23456789_profit_before_tax',
+        'turnover': 'companies_house:23456789_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -20053,6 +21270,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_23456789_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Net assets',
+      'statistic_id': 'companies_house:23456789_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.old_ventures_limited_next_deadline-entry]
@@ -20599,6 +21873,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_23456789_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Profit before tax',
+      'statistic_id': 'companies_house:23456789_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -20946,6 +22277,63 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_23456789_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Turnover',
+      'statistic_id': 'companies_house:23456789_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_uk_establishments-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -21250,6 +22638,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2025-04-01',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_56789012_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Cash',
+      'statistic_id': 'companies_house:56789012_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_cash',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_charges_part_satisfied-entry]
@@ -22507,6 +23952,61 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_56789012_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Employees',
+      'statistic_id': 'companies_house:56789012_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -23012,6 +24512,70 @@
     'state': '2019-01-18',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_56789012_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:56789012_cash',
+        'creditors_within_one_year': 'companies_house:56789012_creditors_within_one_year',
+        'employees': 'companies_house:56789012_employees',
+        'net_assets': 'companies_house:56789012_net_assets',
+        'profit_after_tax': 'companies_house:56789012_profit_after_tax',
+        'profit_before_tax': 'companies_house:56789012_profit_before_tax',
+        'turnover': 'companies_house:56789012_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -23060,6 +24624,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_56789012_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Net assets',
+      'statistic_id': 'companies_house:56789012_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_next_deadline-entry]
@@ -23607,6 +25228,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_56789012_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Profit before tax',
+      'statistic_id': 'companies_house:56789012_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -23955,6 +25633,63 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_56789012_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Turnover',
+      'statistic_id': 'companies_house:56789012_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_uk_establishments-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -24255,6 +25990,63 @@
     }),
     'context': <ANY>,
     'entity_id': 'sensor.sunset_retail_limited_accounts_next_period_start',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_cash-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_cash',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Cash',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Cash',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'cash',
+    'unique_id': 'companies_house_34567890_cash',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_cash-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Cash',
+      'statistic_id': 'companies_house:34567890_cash',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_cash',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
@@ -25516,6 +27308,61 @@
     'state': 'unknown',
   })
 # ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_employees-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_employees',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Employees',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Employees',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'employees',
+    'unique_id': 'companies_house_34567890_employees',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_employees-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Employees',
+      'statistic_id': 'companies_house:34567890_employees',
+      'status': 'not read yet',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_employees',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_filings_last_12_months-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -26032,6 +27879,70 @@
     'state': '2026-07-02',
   })
 # ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_latest_accounts-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_latest_accounts',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Latest accounts',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.DATE: 'date'>,
+    'original_icon': None,
+    'original_name': 'Latest accounts',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'accounts_latest',
+    'unique_id': 'companies_house_34567890_accounts_latest',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_latest_accounts-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'date',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Latest accounts',
+      'series': list([
+      ]),
+      'statistics': dict({
+        'cash': 'companies_house:34567890_cash',
+        'creditors_within_one_year': 'companies_house:34567890_creditors_within_one_year',
+        'employees': 'companies_house:34567890_employees',
+        'net_assets': 'companies_house:34567890_net_assets',
+        'profit_after_tax': 'companies_house:34567890_profit_after_tax',
+        'profit_before_tax': 'companies_house:34567890_profit_before_tax',
+        'turnover': 'companies_house:34567890_turnover',
+      }),
+      'status': 'not read yet',
+      'years_read': 0,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_latest_accounts',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_llp_members_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -26080,6 +27991,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_net_assets-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_net_assets',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Net assets',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Net assets',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'net_assets',
+    'unique_id': 'companies_house_34567890_net_assets',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_net_assets-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Net assets',
+      'statistic_id': 'companies_house:34567890_net_assets',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_net_assets',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_next_deadline-entry]
@@ -26626,6 +28594,63 @@
     'state': 'Business and domestic software development',
   })
 # ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_profit_before_tax-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_profit_before_tax',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Profit before tax',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Profit before tax',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'profit_before_tax',
+    'unique_id': 'companies_house_34567890_profit_before_tax',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_profit_before_tax-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Profit before tax',
+      'statistic_id': 'companies_house:34567890_profit_before_tax',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_profit_before_tax',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
+  })
+# ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_psc_statements-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -26977,6 +29002,63 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_turnover-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_turnover',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Turnover',
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 0,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.MONETARY: 'monetary'>,
+    'original_icon': None,
+    'original_name': 'Turnover',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'turnover',
+    'unique_id': 'companies_house_34567890_turnover',
+    'unit_of_measurement': 'GBP',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_turnover-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'monetary',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Turnover',
+      'statistic_id': 'companies_house:34567890_turnover',
+      'status': 'not read yet',
+      <EntityStateAttribute.UNIT_OF_MEASUREMENT: 'unit_of_measurement'>: 'GBP',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_turnover',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'unknown',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_uk_establishments-entry]

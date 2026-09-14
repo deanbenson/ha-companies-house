@@ -379,6 +379,7 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
 def test_describe_change_covers_every_kind() -> None:
     """Every change kind has a plain-English title and a useful link."""
     from custom_components.companies_house.const import (
+        ACCOUNTS_CHANGE_EVENT_TYPES,
         APPOINTMENT_EVENT_TYPES,
         CHARGE_CHANGE_EVENT_TYPES,
         FILING_EVENT_TYPES,
@@ -420,6 +421,7 @@ def test_describe_change_covers_every_kind() -> None:
         "profile": PROFILE_CHANGE_EVENT_TYPES,
         "insolvency": ["case-added"],
         "appointment": APPOINTMENT_EVENT_TYPES,
+        "accounts": ACCOUNTS_CHANGE_EVENT_TYPES,
     }
     for kind, types in kinds.items():
         for event_type in types:
@@ -840,7 +842,13 @@ async def test_timer_fires_probe(
     freezer.move_to(company.probe.next_run + timedelta(seconds=5))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
-    assert aioclient_mock.call_count == before + 1
+    # The accounts back-fill timer fires too; only the probe counts here.
+    probes = [
+        c
+        for c in aioclient_mock.mock_calls[before:]
+        if c[1].path.endswith("/filing-history") and "category" not in c[1].query
+    ]
+    assert len(probes) == 1
     assert company.probe.next_run > dt_util.utcnow()
 
 

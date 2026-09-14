@@ -50,6 +50,10 @@ COMPANY_FIXTURES: dict[str, str] = {
 }
 COMPANY_ENDPOINTS: dict[str, str] = {
     "profile": "",
+    # Registered before the plain filing history so the accounts listing
+    # (a query on the same path) is answered on its own: 404 unless a
+    # fixture or override supplies it.
+    "accounts_filings": "/filing-history?category=accounts",
     "filing_history": "/filing-history",
     "officers": "/officers",
     "psc": "/persons-with-significant-control",
@@ -91,6 +95,18 @@ class FakeClock:
 def fake_clock() -> FakeClock:
     """Return a fake clock."""
     return FakeClock()
+
+
+@pytest.fixture(autouse=True)
+def _recorder_before_hass(request: pytest.FixtureRequest) -> None:
+    """Start the recorder before Home Assistant for tests that ask for it.
+
+    Autouse fixtures run in name order and the ones below need ``hass``;
+    the recorder must come first, so a test naming ``recorder_mock`` gets
+    it resolved here (the leading underscore sorts it ahead of the rest).
+    """
+    if "recorder_mock" in request.fixturenames:
+        request.getfixturevalue("recorder_mock")
 
 
 @pytest.fixture(autouse=True)

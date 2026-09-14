@@ -5,8 +5,10 @@ from __future__ import annotations
 from custom_components.companies_house.digest import (
     _control_words,
     _due,
+    _list_words,
     _normalise_person,
     _pill,
+    _plural,
     _pretty_date,
     _risk_counts,
     _risk_list,
@@ -40,8 +42,8 @@ DIGEST = {
     "summary": {
         "companies": 3,
         "people": 2,
-        "changes": 3,
-        "by_kind": {"charge": 1, "psc": 1, "appointment": 1},
+        "changes": 5,
+        "by_kind": {"charge": 1, "psc": 1, "appointment": 1, "accounts": 2},
         "companies_with_changes": 1,
         "people_with_changes": 1,
         "new_issues": 1,
@@ -277,6 +279,61 @@ DIGEST = {
         }
         for i in range(14)
     ],
+    "accounts_read": [
+        {
+            "company": "ACME LTD",
+            "number": "12345678",
+            "link": "https://example.invalid/company/12345678",
+            "made_up_to": "2025-12-31",
+            "accounts_type": "full accounts",
+            "document": "https://example.invalid/company/12345678/filing-history/t1/document",
+            "rows": [
+                {
+                    "metric": "turnover",
+                    "name": "Turnover",
+                    "value": "£1.2m",
+                    "prior": "£1.5m",
+                    "change": "down 20 %",
+                    "change_percent": -20.0,
+                    "worse": True,
+                },
+                {
+                    "metric": "cash",
+                    "name": "Cash",
+                    "value": "£40k",
+                    "prior": "",
+                    "change": "",
+                    "change_percent": None,
+                    "worse": False,
+                },
+                # A first trading year: last year's figure was nil, so no change.
+                {
+                    "metric": "employees",
+                    "name": "Employees",
+                    "value": "3",
+                    "prior": "0",
+                    "change": "",
+                    "change_percent": None,
+                    "worse": False,
+                },
+            ],
+            "flags": ["Turnover down 20 %+"],
+            "undisclosed": None,
+            "weight": 3,
+        },
+        {
+            "company": "TINY LTD",
+            "number": "17000002",
+            "link": "https://example.invalid/company/17000002",
+            "made_up_to": "2025-06-30",
+            "accounts_type": "micro-entity accounts",
+            "document": "https://example.invalid/company/17000002/filing-history/t2/document",
+            "rows": [],
+            "flags": [],
+            "undisclosed": "Turnover, profit and cash: not disclosed (micro-entity accounts)",
+            "weight": 1,
+        },
+    ],
     "quiet_companies": ["QUIET LTD"],
     "risk": [
         {
@@ -327,6 +384,14 @@ def test_render_html_covers_every_section() -> None:
         "Due in the next 30 days",
         "due today",
         "in 16 days",
+        "Accounts read this week",
+        "full accounts to 31 Dec 2025",
+        "£1.2m",
+        "down 20 %",
+        "Turnover down 20 %+",
+        "No headline figures disclosed.",
+        "Turnover, profit and cash: not disclosed (micro-entity accounts).",
+        "Open accounts PDF",
         "Who controls what",
         "Mark Taylor</strong> ★",
         "and 3 more",
@@ -343,7 +408,7 @@ def test_render_html_covers_every_section() -> None:
         "risk: 1 red, 1 amber, 1 green",
         "url=https://acme.co.uk&amp;size=128",
         "and 2 more",  # Jane's companies beyond six
-        "3 changes (1 charge, 1 ownership change, 1 role change)",
+        "5 changes (2 sets of accounts read, 1 charge, 1 ownership change, 1 role change)",
         "background:#fee2e2",  # new badge
         "background:#f3f4f6;color:#6b7280",  # ongoing badge
         # Links to dig deeper: pages on every company, more on every change.
@@ -387,6 +452,15 @@ def test_render_html_covers_every_section() -> None:
         "accounts 5 months overdue"
     ) in text
     assert "  - AMBER SHAKY LTD — sole director; only 2 years old" in text
+    assert "Accounts read this week:" in text
+    assert "  - ACME LTD: full accounts to 31 Dec 2025" in text
+    assert "      Turnover: £1.2m (last year £1.5m, down 20 %)" in text
+    assert "      Cash: £40k\n" in text
+    assert "      Employees: 3 (last year 0)\n" in text
+    assert "      Flags: Turnover down 20 %+" in text
+    assert (
+        "      Turnover, profit and cash: not disclosed (micro-entity accounts)" in text
+    )
     assert "Still open (known before this week):" in text
 
 
@@ -402,10 +476,12 @@ def test_render_quiet_week() -> None:
         "companies": [],
         "people": [],
         "risk": [],
+        "accounts_read": [],
         "summary": {**DIGEST["summary"], "changes": 0, "by_kind": {}, "risk": {}},
     }
     html = render_html(quiet, title="T")
     assert "A quiet week" in html
+    assert "Accounts read this week" not in html
     assert "Who controls what" not in html
     assert "Risk" not in html
     assert "0 changes ·" in html
@@ -436,6 +512,13 @@ def test_helpers() -> None:
     assert _control_words(["significant-influence-or-control", "something-else"]) == (
         "significant influence or control, something else"
     )
+    assert _list_words([]) == ""
+    assert _list_words(["cash"]) == "cash"
+    assert _list_words(["turnover", "profit"]) == "turnover and profit"
+    assert _list_words(["turnover", "profit", "cash"]) == "turnover, profit and cash"
+    assert _plural(1, "set of accounts read") == "1 set of accounts read"
+    assert _plural(3, "set of accounts read") == "3 sets of accounts read"
+    assert _plural(2, "filing") == "2 filings"
     assert score_change("status", "strike-off-proposed", weight=3) == 30
     assert score_change("filing", "confirmation-statement", weight=1) == 1
     assert score_change("made", "up", weight=2) == 4

@@ -547,6 +547,11 @@ class CompanyRuntime(_Runtime):
             if Dataset.STRUCTURE in datasets
             else None
         )
+        # Always on, like the profile and the filings. Imported here because
+        # the accounts coordinator builds on the classes in this module.
+        from .accounts_coordinator import AccountsCoordinator
+
+        self.accounts = AccountsCoordinator(hass, entry, client, store, self)
 
     @property
     def coordinators(self) -> dict[Dataset, CompaniesHouseCoordinator[Any]]:
@@ -561,6 +566,7 @@ class CompanyRuntime(_Runtime):
         result: dict[Dataset, CompaniesHouseCoordinator[Any]] = {
             Dataset.FILINGS: self.probe,
             Dataset.PROFILE: self.profile,
+            Dataset.ACCOUNTS: self.accounts,
         }
         result.update({d: c for d, c in optional.items() if c is not None})
         return result
@@ -1098,7 +1104,12 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
                 refresh.add(Dataset.PROFILE)
             self._pending_refresh |= refresh
         if reconciliation_due(number, now, state.last_reconciled):
-            self._pending_refresh |= set(Dataset) - {Dataset.FILINGS, Dataset.STRUCTURE}
+            # Accounts are read when filed, never re-read on the weekly slot.
+            self._pending_refresh |= set(Dataset) - {
+                Dataset.FILINGS,
+                Dataset.STRUCTURE,
+                Dataset.ACCOUNTS,
+            }
             self._pending_reason = "weekly reconciliation"
             state.last_reconciled = now
         if structure_due(number, now, state.last_structure):

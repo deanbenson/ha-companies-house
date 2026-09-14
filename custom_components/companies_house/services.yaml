@@ -329,6 +329,22 @@ get_document_metadata:
     document_id:
       selector: *id002
       required: true
+accounts:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+      required: true
+      example: '12345678'
+read_accounts:
+  fields:
+    config_entry_id:
+      selector: *id001
+    company_number:
+      selector: *id002
+    force:
+      selector: *id006
 download_document:
   fields:
     config_entry_id:
@@ -413,3 +429,4 @@ refresh:
           - charges
           - insolvency
           - structure
+          - accounts

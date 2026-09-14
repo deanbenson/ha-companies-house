@@ -75,6 +75,8 @@ class Dataset(StrEnum):
     CHARGES = "charges"
     INSOLVENCY = "insolvency"
     STRUCTURE = "structure"
+    # Figures read from the filed accounts; always on, read as accounts are filed.
+    ACCOUNTS = "accounts"
 
 
 OPTIONAL_DATASETS: Final = (
@@ -202,7 +204,7 @@ FILING_CATEGORY_REFRESH: Final[dict[str, tuple[Dataset, ...]]] = {
     "liquidation": (Dataset.PROFILE, Dataset.INSOLVENCY),
     "gazette": (Dataset.PROFILE, Dataset.INSOLVENCY),
     "dissolution": (Dataset.PROFILE,),
-    "accounts": (Dataset.PROFILE,),
+    "accounts": (Dataset.PROFILE, Dataset.ACCOUNTS),
     "confirmation-statement": (Dataset.PROFILE,),
     "annual-return": (Dataset.PROFILE,),
     "address": (Dataset.PROFILE,),
@@ -268,6 +270,9 @@ PROFILE_CHANGE_EVENT_TYPES: Final = [
     "sic-changed",
     "accounting-reference-date-changed",
 ]
+# A set of accounts was read; there is no event entity for these, they reach
+# the change log, the bus, alerts and the report.
+ACCOUNTS_CHANGE_EVENT_TYPES: Final = ["read"]
 APPOINTMENT_EVENT_TYPES: Final = [
     "appointed",
     "resigned",

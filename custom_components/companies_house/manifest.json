@@ -1,6 +1,7 @@
 {
   "domain": "companies_house",
   "name": "Companies House",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@deanbenson"],
   "config_flow": true,
   "dependencies": ["repairs"],
@@ -10,6 +11,6 @@
   "issue_tracker": "https://github.com/deanbenson/ha-companies-house/issues",
   "loggers": [],
   "quality_scale": "platinum",
-  "requirements": [],
+  "requirements": ["defusedxml==0.7.1"],
   "version": "0.4.6"
 }

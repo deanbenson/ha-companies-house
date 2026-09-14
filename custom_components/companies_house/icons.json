@@ -292,6 +292,24 @@
       },
       "connections": {
         "default": "mdi:graph"
+      },
+      "accounts_latest": {
+        "default": "mdi:file-chart-outline"
+      },
+      "turnover": {
+        "default": "mdi:cash-multiple"
+      },
+      "profit_before_tax": {
+        "default": "mdi:chart-line"
+      },
+      "cash": {
+        "default": "mdi:bank-outline"
+      },
+      "net_assets": {
+        "default": "mdi:scale-balance"
+      },
+      "employees": {
+        "default": "mdi:account-group-outline"
       }
     },
     "binary_sensor": {
@@ -528,6 +546,12 @@
     },
     "refresh": {
       "service": "mdi:refresh"
+    },
+    "accounts": {
+      "service": "mdi:file-chart-outline"
+    },
+    "read_accounts": {
+      "service": "mdi:file-refresh-outline"
     }
   }
 }

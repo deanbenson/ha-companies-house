@@ -21,6 +21,16 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
+from .accounts import (
+    METRICS,
+    AccountsHistory,
+    AccountsYear,
+    figure_attributes,
+    flags_for,
+    percent_change,
+    plain_number,
+)
+from .accounts_coordinator import statistic_id
 from .charges import CHARGE_LIST_CAP, charge_record, lenders, newest_first
 from .connections import SENSOR_LINES_CAP, ConnectionsCoordinator
 from .const import (
@@ -47,6 +57,7 @@ from .coordinator import (
     signal_risk,
     signal_tier,
 )
+from .digest import _document_link
 from .entity import CompanyEntity, OfficerEntity, ServiceEntity, service_device_info
 from .enumerations import (
     COMPANY_SUBTYPE,
@@ -218,6 +229,76 @@ def _risk_attrs(company: CompanyRuntime) -> Attrs:
     return data
 
 
+def _accounts(company: CompanyRuntime) -> AccountsHistory:
+    assert company.accounts.data is not None
+    return company.accounts.data
+
+
+def _latest_figure(company: CompanyRuntime, metric: str) -> int | float | None:
+    """Return the newest read value of one figure, or None when not disclosed."""
+    year = _accounts(company).latest_read
+    return plain_number(year.value(metric)) if year else None
+
+
+def _figure_attrs(company: CompanyRuntime, metric: str) -> Attrs:
+    year = _accounts(company).latest_read
+    if year is None:
+        return {
+            "status": "not read yet",
+            "statistic_id": statistic_id(company.company_number, metric),
+        }
+    figure = year.figure(metric)
+    return {
+        "made_up_to": _iso(year.made_up_to),
+        "prior": plain_number(figure.prior),
+        "change_percent": percent_change(figure.value, figure.prior),
+        "status": year.figure_status_words(metric),
+        "source": year.source,
+        "statistic_id": statistic_id(company.company_number, metric),
+    }
+
+
+def _accounts_status_words(year: AccountsYear | None, checked: bool) -> str:
+    if year is None:
+        return "no accounts found" if checked else "not read yet"
+    return {
+        "ok": "read",
+        "pending": "not read yet",
+        "no_ixbrl": "no structured data (paper or PDF-only accounts)",
+        "parse_error": "could not be read",
+    }.get(year.status, year.status)
+
+
+def _accounts_latest_attrs(company: CompanyRuntime) -> Attrs:
+    history = _accounts(company)
+    year = history.latest
+    attrs: dict[str, Any] = {
+        "status": _accounts_status_words(year, history.checked),
+        "years_read": sum(1 for y in history.years if y.is_read),
+        "statistics": {
+            metric: statistic_id(company.company_number, metric) for metric in METRICS
+        },
+        "series": history.series(),
+    }
+    if year is None:
+        return attrs
+    attrs.update(
+        {
+            "accounts_type": year.type_words,
+            "source": year.source,
+            "filed_on": _iso(year.filed_on),
+            "amended": year.amended,
+            "dormant": year.dormant,
+            "figures": figure_attributes(year),
+            "flags": flags_for(year.figures),
+            "document": _document_link(company.company_number, year.transaction_id),
+        }
+    )
+    if year.error:
+        attrs["error"] = year.error
+    return attrs
+
+
 COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
     # Default on
     CompanySensorDescription(
@@ -348,6 +429,56 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda c: _charges(c).outstanding_count,
         attrs_fn=lambda c: _charge_rows(c, outstanding_only=True),
+    ),
+    CompanySensorDescription(
+        key="accounts_latest",
+        dataset=Dataset.ACCOUNTS,
+        device_class=SensorDeviceClass.DATE,
+        value_fn=lambda c: y.made_up_to if (y := _accounts(c).latest) else None,
+        attrs_fn=_accounts_latest_attrs,
+    ),
+    CompanySensorDescription(
+        key="turnover",
+        dataset=Dataset.ACCOUNTS,
+        device_class=SensorDeviceClass.MONETARY,
+        native_unit_of_measurement="GBP",
+        suggested_display_precision=0,
+        value_fn=lambda c: _latest_figure(c, "turnover"),
+        attrs_fn=lambda c: _figure_attrs(c, "turnover"),
+    ),
+    CompanySensorDescription(
+        key="profit_before_tax",
+        dataset=Dataset.ACCOUNTS,
+        device_class=SensorDeviceClass.MONETARY,
+        native_unit_of_measurement="GBP",
+        suggested_display_precision=0,
+        value_fn=lambda c: _latest_figure(c, "profit_before_tax"),
+        attrs_fn=lambda c: _figure_attrs(c, "profit_before_tax"),
+    ),
+    CompanySensorDescription(
+        key="cash",
+        dataset=Dataset.ACCOUNTS,
+        device_class=SensorDeviceClass.MONETARY,
+        native_unit_of_measurement="GBP",
+        suggested_display_precision=0,
+        value_fn=lambda c: _latest_figure(c, "cash"),
+        attrs_fn=lambda c: _figure_attrs(c, "cash"),
+    ),
+    CompanySensorDescription(
+        key="net_assets",
+        dataset=Dataset.ACCOUNTS,
+        device_class=SensorDeviceClass.MONETARY,
+        native_unit_of_measurement="GBP",
+        suggested_display_precision=0,
+        value_fn=lambda c: _latest_figure(c, "net_assets"),
+        attrs_fn=lambda c: _figure_attrs(c, "net_assets"),
+    ),
+    CompanySensorDescription(
+        key="employees",
+        dataset=Dataset.ACCOUNTS,
+        suggested_display_precision=0,
+        value_fn=lambda c: _latest_figure(c, "employees"),
+        attrs_fn=lambda c: _figure_attrs(c, "employees"),
     ),
     # Diagnostic
     CompanySensorDescription(
@@ -705,6 +836,12 @@ class ChargesSensor(CompanySensor):
     """
 
     _unrecorded_attributes = frozenset({"charges", "lenders"})
+
+
+class AccountsSensor(CompanySensor):
+    """An accounts sensor; the year-by-year series is not worth recording."""
+
+    _unrecorded_attributes = frozenset({"series", "statistics", "figures"})
 
 
 class PollingTierSensor(CompanySensor):
@@ -1166,6 +1303,8 @@ def _company_sensors(company: CompanyRuntime) -> list[CompanySensor]:
         if coordinator is None:
             continue
         cls = _SENSOR_CLASSES.get(description.key, CompanySensor)
+        if description.dataset is Dataset.ACCOUNTS:
+            cls = AccountsSensor
         entities.append(cls(company, coordinator, description))
     return entities
 

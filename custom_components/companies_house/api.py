@@ -66,6 +66,14 @@ class CompaniesHouseNotFoundError(CompaniesHouseError):
     """The resource does not exist."""
 
 
+class CompaniesHouseUnsupportedFormatError(CompaniesHouseNotFoundError):
+    """The document exists but not in the format asked for (HTTP 406).
+
+    Accounts filed on paper have no structured (iXBRL) version, so asking
+    for one is answered this way. It is a normal outcome, not a failure.
+    """
+
+
 class CompaniesHouseConnectionError(CompaniesHouseError):
     """The API could not be reached or returned a server error."""
 
@@ -399,6 +407,9 @@ class CompaniesHouseClient:
         if resp.status == 404:
             resp.release()
             raise CompaniesHouseNotFoundError(url)
+        if resp.status == 406:
+            resp.release()
+            raise CompaniesHouseUnsupportedFormatError(f"{url} as {accept}")
         if resp.status >= 400:
             self.last_error = f"HTTP {resp.status}"
             resp.release()
@@ -978,6 +989,7 @@ __all__ = [
     "CompaniesHouseError",
     "CompaniesHouseNotFoundError",
     "CompaniesHouseRateLimitError",
+    "CompaniesHouseUnsupportedFormatError",
     "Priority",
     "RateLimitStatus",
     "RateLimiter",

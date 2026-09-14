@@ -380,6 +380,24 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
             ),
         },
     ),
+    "accounts": (
+        "Get accounts figures",
+        "The figures read from a watched company's filed accounts: turnover, profit, cash, net assets, creditors and employees for up to six years, with the change on the year before and any warnings. Read from memory; no request is made.",
+        {"config_entry_id": ENTRY, "company_number": (*COMPANY, True, "12345678")},
+    ),
+    "read_accounts": (
+        "Read accounts",
+        "Read the filed accounts again. With a company number, reads that company now and returns its figures. Without one, queues every watched company to be read in turn.",
+        {
+            "config_entry_id": ENTRY,
+            "company_number": (*COMPANY, False),
+            "force": (
+                "Read everything again",
+                "Also read accounts that were read before, for example after an update to how they are read.",
+                BOOL,
+            ),
+        },
+    ),
     "download_document": (
         "Download document",
         "Save a filed document to the documents folder, named by its filing date and description. Never overwrites an existing file.",
@@ -501,6 +519,7 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
                             "charges",
                             "insolvency",
                             "structure",
+                            "accounts",
                         ],
                     }
                 },
