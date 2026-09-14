@@ -389,7 +389,7 @@ async def test_micro_accounts_explain_why_figures_are_missing(
 ) -> None:
     """Turnover is unknown for micro-entity accounts, and the attributes say why."""
     freezer.move_to(NOW)
-    items = [_item("tx-1", "2025-12-31", "2026-06-01", document_id="doc-1")]
+    items = [_item("tx-1", "2025-12-31", "2026-09-01", document_id="doc-1")]
     mock_accounts(
         aioclient_mock,
         items=items,
@@ -428,8 +428,11 @@ async def test_new_accounts_filing_is_read_when_the_probe_sees_it(
     await run_backfill(hass, freezer)
     assert company.accounts.data is not None
     assert company.accounts.data.latest.made_up_to == date(2024, 12, 31)
-    read_before = len([e for e in events if e.data["kind"] == "accounts"])
-    assert read_before == 1
+    # Accounts filed a year ago are history: remembered under their filing
+    # date, announced to nobody.
+    assert [e for e in events if e.data["kind"] == "accounts"] == []
+    (old_read,) = [c for c in company.state.changes if c["kind"] == "accounts"]
+    assert old_read["at"].startswith("2024-10-01T00:00:00")
 
     # The register now shows the new accounts, first in the filing history.
     history = load_fixture("company_active/filing_history")
@@ -449,7 +452,7 @@ async def test_new_accounts_filing_is_read_when_the_probe_sees_it(
     kinds = [(e.data["kind"], e.data["event_type"]) for e in events]
     assert ("filing", "accounts") in kinds
     read = [e for e in events if e.data["kind"] == "accounts"]
-    assert len(read) == 2
+    assert len(read) == 1
     assert read[-1].data["transaction_id"] == "tx-2025"
 
 
@@ -560,7 +563,7 @@ async def test_fetch_failure_lets_other_companies_go_first(
     mock_accounts(
         aioclient_mock,
         "OC123456",
-        items=[_item("tx-llp", "2025-03-31", "2025-12-01", document_id="doc-llp")],
+        items=[_item("tx-llp", "2025-03-31", "2026-09-12", document_id="doc-llp")],
         documents={"doc-llp": _ixbrl("micro_doctype")},
     )
     entry = await setup_entry([ACTIVE, "OC123456"])
@@ -673,7 +676,7 @@ async def test_probe_read_paused_on_budget_goes_back_to_the_queue(
     limiter = entry.runtime_data.client.limiter
     await run_backfill(hass, freezer)
     assert queue.queued == []
-    assert len([e for e in events if e.data["kind"] == "accounts"]) == 1
+    assert [e for e in events if e.data["kind"] == "accounts"] == []
 
     history = load_fixture("company_active/filing_history")
     history["items"].insert(0, FILINGS[0])
@@ -706,7 +709,7 @@ async def test_probe_read_paused_on_budget_goes_back_to_the_queue(
     assert queue.queued == []
     assert hass.states.get("sensor.example_trading_limited_cash").state == "13552"
     read = [e for e in events if e.data["kind"] == "accounts"]
-    assert len(read) == 2
+    assert len(read) == 1
     assert read[-1].data["transaction_id"] == "tx-2025"
 
 
@@ -847,7 +850,7 @@ async def test_amended_accounts_are_read_and_announced(
     freezer.move_to(NOW)
     events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
     original = _item(
-        "tx-1", "2025-12-31", "2026-06-01", document_id="doc-1", accounts_type="full"
+        "tx-1", "2025-12-31", "2026-08-20", document_id="doc-1", accounts_type="full"
     )
     mock_accounts(
         aioclient_mock, items=[original], documents={"doc-1": _ixbrl("full_frs102")}
@@ -995,7 +998,7 @@ async def test_queue_reads_companies_one_at_a_time(
     mock_accounts(
         aioclient_mock,
         "OC123456",
-        items=[_item("tx-llp", "2025-03-31", "2025-12-01", document_id="doc-llp")],
+        items=[_item("tx-llp", "2025-03-31", "2026-09-12", document_id="doc-llp")],
         documents={"doc-llp": _ixbrl("micro_doctype")},
     )
     entry = await setup_entry([ACTIVE, "OC123456", "23456789"])
@@ -1072,7 +1075,7 @@ async def test_statistics_are_imported_for_every_year(
     mock_accounts(
         aioclient_mock,
         "OC123456",
-        items=[_item("tx-llp", "2025-03-31", "2025-12-01", document_id="doc-llp")],
+        items=[_item("tx-llp", "2025-03-31", "2026-09-12", document_id="doc-llp")],
         documents={"doc-llp": _ixbrl("micro_doctype")},
     )
     entry = await setup_entry([ACTIVE, "OC123456"])
@@ -1268,7 +1271,7 @@ async def test_report_has_an_accounts_section(
     mock_accounts(
         aioclient_mock,
         "OC123456",
-        items=[_item("tx-llp", "2025-03-31", "2025-12-01", document_id="doc-llp")],
+        items=[_item("tx-llp", "2025-03-31", "2026-09-12", document_id="doc-llp")],
         documents={"doc-llp": _ixbrl("micro_hidden_employees")},
     )
     mock_accounts(
@@ -1278,7 +1281,7 @@ async def test_report_has_an_accounts_section(
             _item(
                 "tx-sub",
                 "2026-02-28",
-                "2026-08-01",
+                "2026-09-11",
                 document_id="doc-sub",
                 accounts_type="small",
             )
@@ -1371,7 +1374,7 @@ async def test_alerts_describe_the_accounts(
 ) -> None:
     """A company set to notify instantly raises an alert when its accounts are read."""
     freezer.move_to(NOW)
-    items = [_item("tx-1", "2025-12-31", "2026-06-01", document_id="doc-1")]
+    items = [_item("tx-1", "2025-12-31", "2026-09-01", document_id="doc-1")]
     mock_accounts(
         aioclient_mock, items=items, documents={"doc-1": _ixbrl("dormant_aa02")}
     )
@@ -1525,8 +1528,14 @@ def test_flags_need_their_inputs() -> None:
         == []
     )
     assert flags_for(
-        {"employees": Figure(value=Decimal(1), prior=Decimal(2), status="ok")}
+        {"employees": Figure(value=Decimal(2), prior=Decimal(4), status="ok")}
     ) == ["Headcount halved"]
+    assert (
+        flags_for(
+            {"employees": Figure(value=Decimal(1), prior=Decimal(2), status="ok")}
+        )
+        == []
+    )
     assert (
         flags_for(
             {"employees": Figure(value=Decimal(0), prior=Decimal(1), status="ok")}

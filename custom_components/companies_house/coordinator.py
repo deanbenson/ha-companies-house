@@ -211,18 +211,28 @@ class _Runtime:
         """Return (title, message, link) for an alert. Subclasses implement."""
         raise NotImplementedError
 
-    def _log_change(self, event: ChangeEvent) -> None:
-        """Remember the change for reports."""
+    def _log_change(self, event: ChangeEvent, *, at: datetime | None = None) -> None:
+        """Remember the change for reports, dated ``at`` (default: now)."""
         self.state.changes = remember_change(
             self.state.changes,
             {
-                "at": dt_util.utcnow().isoformat(),
+                "at": (at or dt_util.utcnow()).isoformat(),
                 "kind": event.kind,
                 "event_type": event.event_type,
                 "payload": event.payload,
             },
         )
         self.store.save()
+
+    @callback
+    def record(self, event: ChangeEvent, *, at: datetime) -> None:
+        """Keep a change in the log under an earlier date, without announcing it.
+
+        For things that happened long before they were noticed, such as old
+        accounts read for the first time: the report then files them under
+        the week they really happened, and nobody is alerted to old news.
+        """
+        self._log_change(event, at=at)
 
     @callback
     def dispatch(self, event: ChangeEvent) -> None:

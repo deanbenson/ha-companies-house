@@ -333,9 +333,11 @@ def flags_for(figures: Mapping[str, Figure]) -> list[str]:
         and creditors.value > cash_now.value + debtors.value
     ):
         flags.append("Creditors exceed cash and debtors")
+    # Two people becoming one is a family firm, not a warning: only a team of
+    # four or more losing half counts.
     if (
         (staff := _both(figures.get("employees")))
-        and staff[1] >= 2
+        and staff[1] >= 4
         and staff[0] <= staff[1] / 2
     ):
         flags.append("Headcount halved")

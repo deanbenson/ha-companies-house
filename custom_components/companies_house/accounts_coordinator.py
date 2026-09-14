@@ -60,6 +60,9 @@ BACKFILL_RETRY_GAP = timedelta(minutes=15)
 # How many times a company whose documents keep failing is tried per request.
 # A spent budget is not a failure: the queue simply waits for the window.
 BACKFILL_MAX_ATTEMPTS = 3
+# Accounts filed within this long are announced when read; older ones are
+# only remembered under their filing date.
+ANNOUNCE_WINDOW = timedelta(days=45)
 # The register's made-up date and the year end written in the accounts
 # themselves can differ by a few days; a comparative column this close to a
 # year's made-up date is about that year.
@@ -297,9 +300,15 @@ class AccountsCoordinator(_CompanyCoordinator[AccountsHistory]):
                 or newest.made_up_to > newest_read
                 or (replaced is not None and replaced != newest.transaction_id)
             ):
-                self.company.dispatch(
-                    ChangeEvent("accounts", "read", year_payload(newest))
-                )
+                event = ChangeEvent("accounts", "read", year_payload(newest))
+                filed = newest.filed_on
+                today = dt_util.now().date()
+                if filed is not None and today - filed <= ANNOUNCE_WINDOW:
+                    # Freshly filed: worth an alert and a place in this week's report.
+                    self.company.dispatch(event)
+                elif filed is not None:
+                    # Old accounts read for the first time: history, not news.
+                    self.company.record(event, at=dt_util.start_of_local_day(filed))
         return result
 
     @callback

@@ -62,7 +62,7 @@ SHELL_HTML = r"""<!DOCTYPE html>
   #legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
   #legend i.sq { border-radius:2px; }
   #legend i.ring { background:#fff; border:2px solid var(--risk); }
-  #interesting { max-height:34%; overflow:auto; background:#fff; border-top:1px solid #e5e7eb; padding:6px 12px; }
+  #interesting { max-height:26%; overflow:auto; background:#fff; border-top:1px solid #e5e7eb; padding:6px 12px; }
   #interesting summary { cursor:pointer; color:var(--muted); font-weight:600; }
   #interesting ul { margin:6px 0 0; padding-left:18px; }
   #interesting li { margin:3px 0; }
@@ -81,7 +81,7 @@ SHELL_HTML = r"""<!DOCTYPE html>
     <input id="search" type="search" placeholder="Find a company or person">
     <label><input id="showResigned" type="checkbox"> Resigned and ceased</label>
     <label><input id="showExternal" type="checkbox" checked> Unwatched companies</label>
-    <label><input id="showOthers" type="checkbox" checked> Other officers</label>
+    <label><input id="showOthers" type="checkbox"> Other officers</label>
     <span id="newBadge" class="pill new" hidden></span>
     <span id="updated" class="pill quiet"></span>
   </header>

@@ -336,8 +336,11 @@ for a later go (three goes, a quarter of an hour apart) without holding up
 the company's other years. A new accounts filing seen by the probe is read
 on its own, and goes back on the queue if that read could not finish. Each
 year's figures come from its own accounts; an amended set replaces the year
-it restates and is announced like any other read. The `read_accounts` action
-reads again on request.
+it restates and is announced like any other read. Only accounts filed in the
+last 45 days are announced (an alert for companies with *Notify instantly*, a
+line in the week's report): older accounts read for the first time are history,
+so they go into the change log under their filing date and wake nobody. The
+`read_accounts` action reads again on request.
 
 When the recorder is running the figures are also written to **long-term
 statistics** (`companies_house:<number>_<metric>`, one row per financial year,
