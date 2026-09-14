@@ -5157,6 +5157,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -5198,6 +5199,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Status change',
     }),
@@ -5561,6 +5563,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -5602,6 +5605,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Status change',
     }),
@@ -5965,6 +5969,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -6006,6 +6011,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Status change',
     }),
@@ -6437,6 +6443,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -6478,6 +6485,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Status change',
     }),
@@ -6841,6 +6849,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -6882,6 +6891,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Status change',
     }),
@@ -7245,6 +7255,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -7286,6 +7297,7 @@
         'strike-off-proposed',
         'strike-off-discontinued',
         'dissolved',
+        'risk-changed',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Status change',
     }),
@@ -10408,6 +10420,97 @@
     'state': '0',
   })
 # ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.dormant_holdings_limited_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_45678901_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.dormant_holdings_limited_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'red',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Risk rating',
+      'info': dict({
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+        'R4',
+        'R8',
+      ]),
+      'reason': 'Red: strike-off proposed (compulsory) on 25 Aug 2026; accounts 7 months overdue; confirmation statement 7 months overdue; files dormant accounts (declares it is not trading) and 2 more',
+      'reasons': list([
+        'strike-off proposed (compulsory) on 25 Aug 2026',
+        'accounts 7 months overdue',
+        'confirmation statement 7 months overdue',
+        'files dormant accounts (declares it is not trading)',
+        'both accounts and confirmation statement overdue',
+        'sole director',
+      ]),
+      'score': 100,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.dormant_holdings_limited_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'red',
+  })
+# ---
 # name: test_entities[sensor][sensor.dormant_holdings_limited_secretaries_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -13229,6 +13332,91 @@
     'state': '2',
   })
 # ---
+# name: test_entities[sensor][sensor.example_trading_limited_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.example_trading_limited_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_12345678_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.example_trading_limited_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'green',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Risk rating',
+      'info': dict({
+        'accounts_disclosure': 'minimal',
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+      ]),
+      'reason': 'Green: 1 outstanding charge',
+      'reasons': list([
+        '1 outstanding charge',
+      ]),
+      'score': 2,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.example_trading_limited_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'green',
+  })
+# ---
 # name: test_entities[sensor][sensor.example_trading_limited_secretaries_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -16027,6 +16215,89 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.historic_partners_llp_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_OC123456_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.historic_partners_llp_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'green',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Risk rating',
+      'info': dict({
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+      ]),
+      'reason': 'Green: no concerns on the register',
+      'reasons': list([
+      ]),
+      'score': 0,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.historic_partners_llp_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'green',
   })
 # ---
 # name: test_entities[sensor][sensor.historic_partners_llp_secretaries_active-entry]
@@ -19815,6 +20086,91 @@
     'state': '0',
   })
 # ---
+# name: test_entities[sensor][sensor.old_ventures_limited_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.old_ventures_limited_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_23456789_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.old_ventures_limited_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'red',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Risk rating',
+      'info': dict({
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+        'R1',
+      ]),
+      'reason': 'Red: dissolved on 13 Aug 2024',
+      'reasons': list([
+        'dissolved on 13 Aug 2024',
+      ]),
+      'score': 100,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.old_ventures_limited_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'red',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_secretaries_active-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -22610,6 +22966,92 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.subsidiary_services_limited_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_56789012_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.subsidiary_services_limited_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'green',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Risk rating',
+      'info': dict({
+        'accounts_disclosure': 'minimal',
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+      ]),
+      'reason': 'Green: sole director; nothing filed for 7 years',
+      'reasons': list([
+        'sole director',
+        'nothing filed for 7 years',
+      ]),
+      'score': 6,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.subsidiary_services_limited_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'green',
   })
 # ---
 # name: test_entities[sensor][sensor.subsidiary_services_limited_secretaries_active-entry]
@@ -25417,6 +25859,97 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_risk_rating-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.sunset_retail_limited_risk_rating',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Risk rating',
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.ENUM: 'enum'>,
+    'original_icon': None,
+    'original_name': 'Risk rating',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'risk_rating',
+    'unique_id': 'companies_house_34567890_risk_rating',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.sunset_retail_limited_risk_rating-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'band': 'red',
+      'basis': "Companies House data only: filing compliance, status, board, ownership, charges and the register's own flags. It cannot see county court judgments, winding-up petitions, payment behaviour or bank data, so it is a register health rating, not a credit limit.",
+      'computed_at': '2026-09-15T09:00:00+00:00',
+      'coverage': dict({
+        'charges': '2026-09-15T09:00:00+00:00',
+        'filings': '2026-09-15T09:00:00+00:00',
+        'insolvency': '2026-09-15T09:00:00+00:00',
+        'officers': '2026-09-15T09:00:00+00:00',
+        'profile': '2026-09-15T09:00:00+00:00',
+        'psc': '2026-09-15T09:00:00+00:00',
+      }),
+      'data_age_days': 0,
+      <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'enum',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Risk rating',
+      'info': dict({
+        'accounts_disclosure': 'minimal',
+        'due_soon': list([
+          'accounts',
+        ]),
+      }),
+      <SensorEntityCapabilityAttribute.OPTIONS: 'options'>: list([
+        'green',
+        'amber',
+        'red',
+      ]),
+      'overrides': list([
+        'R2',
+      ]),
+      'reason': 'Red: being wound up (solvent liquidation) since 1 Jul 2026; confirmation statement 3 months overdue; sole director',
+      'reasons': list([
+        'being wound up (solvent liquidation) since 1 Jul 2026',
+        'confirmation statement 3 months overdue',
+        'sole director',
+      ]),
+      'score': 100,
+      'scoring_version': '1',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.sunset_retail_limited_risk_rating',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'red',
   })
 # ---
 # name: test_entities[sensor][sensor.sunset_retail_limited_secretaries_active-entry]

@@ -6,7 +6,12 @@ from custom_components.companies_house.digest import (
     _control_words,
     _due,
     _normalise_person,
+    _pill,
     _pretty_date,
+    _risk_counts,
+    _risk_list,
+    _risk_worsened,
+    describe_change,
     logo_for,
     render_html,
     render_text,
@@ -43,6 +48,7 @@ DIGEST = {
         "still_open": 1,
         "deadlines_soon": 2,
         "new_companies": 1,
+        "risk": {"red": 1, "amber": 1, "green": 1, "unknown": 0},
     },
     "top": [
         {
@@ -138,7 +144,17 @@ DIGEST = {
             "attention": [
                 {"issue": "Strike-off proposed", "new": True, "since": None},
                 {"issue": "Accounts overdue", "new": False, "since": "2026-01-01"},
+                {"issue": "Risk rating red", "new": True, "kind": "risk"},
             ],
+            "risk": {
+                "band": "red",
+                "score": 100,
+                "reason": "Red: strike-off proposed (compulsory) on 3 Jul 2026; accounts 5 months overdue",
+                "reasons": [
+                    "strike-off proposed (compulsory) on 3 Jul 2026",
+                    "accounts 5 months overdue",
+                ],
+            },
             "changes": [
                 CHANGE,
                 {
@@ -217,6 +233,36 @@ DIGEST = {
         for i in range(14)
     ],
     "quiet_companies": ["QUIET LTD"],
+    "risk": [
+        {
+            "company": "ACME LTD",
+            "number": "12345678",
+            "link": "https://example.invalid/company/12345678",
+            "band": "red",
+            "score": 100,
+            "reason": "Red: strike-off proposed (compulsory) on 3 Jul 2026; accounts 5 months overdue",
+            "reasons": [
+                "strike-off proposed (compulsory) on 3 Jul 2026",
+                "accounts 5 months overdue",
+            ],
+            "pages": [
+                {
+                    "text": "Filing history",
+                    "href": "https://example.invalid/company/12345678/filing-history",
+                }
+            ],
+        },
+        {
+            "company": "SHAKY LTD",
+            "number": "33333333",
+            "link": "https://example.invalid/company/33333333",
+            "band": "amber",
+            "score": 12,
+            "reason": "Amber: sole director; only 2 years old",
+            "reasons": ["sole director", "only 2 years old"],
+            "pages": [],
+        },
+    ],
 }
 
 
@@ -241,6 +287,15 @@ def test_render_html_covers_every_section() -> None:
         "and 3 more",
         "Still open",
         "OLD PIG LTD",
+        # The risk section, worst first, and the pill in the card heading.
+        "🚦&nbsp; Risk",
+        "Not a credit check.",
+        ">red</span>",
+        ">amber</span>",
+        "strike-off proposed (compulsory) on 3 Jul 2026; accounts 5 months overdue",
+        'href="https://example.invalid/company/33333333" style="color:#111827;text-decoration:none">SHAKY LTD',
+        "sole director; only 2 years old",
+        "risk: 1 red, 1 amber, 1 green",
         "url=https://acme.co.uk&amp;size=128",
         "and 2 more",  # Jane's companies beyond six
         "3 changes (1 charge, 1 ownership change, 1 role change)",
@@ -258,6 +313,8 @@ def test_render_html_covers_every_section() -> None:
     ):
         assert expected in html, expected
     assert "A quiet week" not in html
+    # The risk badge is not doubled: the pill says it, so no grey badge for it.
+    assert "Risk rating red" not in html
 
     text = render_text(DIGEST, title="Your Companies House week", summary="Summary.")
     assert text.startswith("Your Companies House week\n\nSummary.\n\n")
@@ -266,6 +323,12 @@ def test_render_html_covers_every_section() -> None:
     assert "New companies:" in text
     assert "NEW CO LTD (set up 1 Sep 2026): Jane Smith" in text
     assert "Due in the next 30 days:" in text
+    assert "Risk (from the register alone, not a credit check):" in text
+    assert (
+        "  - RED ACME LTD — strike-off proposed (compulsory) on 3 Jul 2026; "
+        "accounts 5 months overdue"
+    ) in text
+    assert "  - AMBER SHAKY LTD — sole director; only 2 years old" in text
     assert "Still open (known before this week):" in text
 
 
@@ -280,12 +343,16 @@ def test_render_quiet_week() -> None:
         "new_companies": [],
         "companies": [],
         "people": [],
-        "summary": {**DIGEST["summary"], "changes": 0, "by_kind": {}},
+        "risk": [],
+        "summary": {**DIGEST["summary"], "changes": 0, "by_kind": {}, "risk": {}},
     }
     html = render_html(quiet, title="T")
     assert "A quiet week" in html
     assert "Who controls what" not in html
+    assert "Risk" not in html
     assert "0 changes ·" in html
+    assert "risk:" not in html
+    assert "Risk (from" not in render_text(quiet, title="T")
     assert "Nothing changed at any watched company or person." in render_text(
         quiet, title="T"
     )
@@ -314,3 +381,106 @@ def test_helpers() -> None:
     assert score_change("status", "strike-off-proposed", weight=3) == 30
     assert score_change("filing", "confirmation-statement", weight=1) == 1
     assert score_change("made", "up", weight=2) == 4
+
+
+def test_risk_helpers() -> None:
+    """The pill, the band counts, the worst-first list and the worsened test."""
+    assert _pill("green") == ""
+    assert _pill(None) == ""
+    assert "margin-left:6px" in _pill("amber")
+    assert "margin-left:6px" not in _pill("red", margin=False)
+    cards = [
+        {
+            "name": "A",
+            "number": "1",
+            "link": "l1",
+            "risk": {
+                "band": "amber",
+                "score": 12,
+                "reason": "Amber: x",
+                "reasons": ["x"],
+            },
+        },
+        {
+            "name": "B",
+            "number": "2",
+            "link": "l2",
+            "risk": {"band": "red", "score": 60, "reason": "Red: y", "reasons": ["y"]},
+        },
+        {
+            "name": "C",
+            "number": "3",
+            "link": "l3",
+            "risk": {
+                "band": "green",
+                "score": 0,
+                "reason": "Green: no concerns on the register",
+                "reasons": [],
+            },
+        },
+        {"name": "D", "number": "4", "link": "l4", "risk": None},
+        {
+            "name": "E",
+            "number": "5",
+            "link": "l5",
+            "risk": {"band": None, "score": 0, "reason": "Unknown", "reasons": []},
+        },
+        {
+            "name": "F",
+            "number": "6",
+            "link": "l6",
+            "risk": {
+                "band": "amber",
+                "score": 20,
+                "reason": "Amber: z",
+                "reasons": ["z"],
+            },
+        },
+    ]
+    assert _risk_counts(cards) == {"red": 1, "amber": 2, "green": 1, "unknown": 2}
+    assert [(r["band"], r["company"]) for r in _risk_list(cards)] == [
+        ("red", "B"),
+        ("amber", "F"),
+        ("amber", "A"),
+    ]
+    assert _risk_list(cards)[0]["pages"] == []
+    logged = [
+        {
+            "kind": "status",
+            "event_type": "risk-changed",
+            "payload": {"old_band": "amber", "new_band": "green"},
+        },
+        {"kind": "officer", "event_type": "resigned", "payload": {}},
+    ]
+    assert not _risk_worsened(logged)
+    assert _risk_worsened(
+        [
+            *logged,
+            {
+                "kind": "status",
+                "event_type": "risk-changed",
+                "payload": {"old_band": "green", "new_band": "red"},
+            },
+        ]
+    )
+    assert not _risk_worsened([{"kind": "status", "event_type": "risk-changed"}])
+
+
+def test_describe_risk_change() -> None:
+    """A rating change reads as a sentence, with the reasons when known."""
+    title, message, link = describe_change(
+        "status",
+        "risk-changed",
+        {"old_band": "green", "new_band": "amber", "reason": "Amber: sole director"},
+        subject="ACME LTD",
+        number="12345678",
+    )
+    assert title == "ACME LTD: risk now amber"
+    assert message == "Amber: sole director"
+    assert link.endswith("/company/12345678")
+    title, message, _ = describe_change(
+        "status", "risk-changed", {"old_band": "amber", "new_band": "red"}, subject="X"
+    )
+    assert (title, message) == ("X: risk now red", "Red: was amber.")
+    title, message, _ = describe_change("status", "risk-changed", {}, subject="X")
+    assert (title, message) == ("X: risk now unknown", "Unknown: was unknown.")

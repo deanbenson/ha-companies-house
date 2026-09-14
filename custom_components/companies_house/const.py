@@ -231,6 +231,7 @@ STATUS_CHANGE_EVENT_TYPES: Final = [
     "strike-off-proposed",
     "strike-off-discontinued",
     "dissolved",
+    "risk-changed",
 ]
 PROFILE_CHANGE_EVENT_TYPES: Final = [
     "name-changed",

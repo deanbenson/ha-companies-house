@@ -86,6 +86,7 @@ from .repairs import (
     async_raise_rate_limited,
     async_raise_subentry_issue,
 )
+from .risk import RiskResult, TrackedPerson, compute_risk
 from .scheduler import (
     appointments_next_run,
     compute_tier,
@@ -143,6 +144,11 @@ def signal_changes(subentry_id: str) -> str:
 def signal_tier(subentry_id: str) -> str:
     """Dispatcher signal fired when a company's tier or schedule changes."""
     return f"{DOMAIN}_tier_{subentry_id}"
+
+
+def signal_risk(subentry_id: str) -> str:
+    """Dispatcher signal fired when a company's risk rating has been recomputed."""
+    return f"{DOMAIN}_risk_{subentry_id}"
 
 
 def signal_new_company(entry_id: str) -> str:
@@ -494,6 +500,8 @@ class CompanyRuntime(_Runtime):
         self.state: CompanyState = store.company(company_number)
         self.tier = Tier.NORMAL
         self.tier_reason = "not evaluated"
+        # The last risk rating; None until the profile has been read.
+        self.risk: RiskResult | None = None
         self.probe = ProbeCoordinator(hass, entry, client, store, self)
         self.profile = ProfileCoordinator(hass, entry, client, store, self)
         self.officers = (
@@ -577,6 +585,7 @@ class CompanyRuntime(_Runtime):
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
         self.recompute_tier()
+        self.recompute_risk()
 
     @callback
     def recompute_tier(self) -> None:
@@ -616,6 +625,87 @@ class CompanyRuntime(_Runtime):
             await self.coordinators[dataset].async_refresh_now(on_demand=on_demand)
         if Dataset.PROFILE in wanted:
             self.recompute_tier()
+
+    def _tracked_people(self) -> list[TrackedPerson]:
+        """Return the followed people, for the disqualification and connected-party rules."""
+        runtime = getattr(self.entry, "runtime_data", None)
+        if runtime is None:
+            return []
+        return [
+            TrackedPerson(
+                name=officer.officer_name,
+                officer_ids=list(officer.officer_ids),
+                disqualification=officer.disqualification.data,
+                appointments=officer.appointments.data,
+            )
+            for officer in runtime.officers.values()
+        ]
+
+    @callback
+    def recompute_risk(self) -> None:
+        """Re-rate the company from the data on hand.
+
+        Called after every refresh that lands once the company is live, and
+        once at the end of setup. The band is remembered in the store and a
+        ``risk-changed`` event fires only when it moves, never for the score
+        alone and never on the first rating after setup.
+        """
+        coverage = {
+            dataset.value: coordinator.fetched_at
+            for dataset, coordinator in self.coordinators.items()
+            if coordinator.data is not None
+        }
+        result = compute_risk(
+            profile=self.profile.data,
+            officers=self.officers.data if self.officers else None,
+            psc=self.psc.data if self.psc else None,
+            charges=self.charges.data if self.charges else None,
+            insolvency=self.insolvency.data if self.insolvency else None,
+            filings=self.probe.data.items if self.probe.data else (),
+            state=self.state,
+            coverage=coverage,
+            people=self._tracked_people(),
+            today=dt_util.now().date(),
+        )
+        result = replace(result, computed_at=dt_util.utcnow())
+        previous = self.risk
+        self.risk = result
+        LOGGER.debug(
+            "%s (%s) risk %s %d: %s",
+            self.company_name,
+            self.company_number,
+            result.band,
+            result.score,
+            "; ".join(result.reasons) or "no concerns",
+        )
+        old_band = self.state.risk_band
+        if result.band is not None and result.band != old_band:
+            self.state.risk_band = result.band
+            self.state.risk_score = result.score
+            self.store.save()
+            if old_band is not None:
+                self.dispatch(
+                    ChangeEvent(
+                        "status",
+                        "risk-changed",
+                        {
+                            "old_band": old_band,
+                            "new_band": result.band,
+                            "score": result.score,
+                            "reasons": list(result.reasons),
+                            "reason": result.reason,
+                        },
+                    )
+                )
+        elif result.band is not None and result.score != self.state.risk_score:
+            self.state.risk_score = result.score
+            self.store.save()
+        if previous is None or (
+            previous.band,
+            previous.score,
+            previous.reasons,
+        ) != (result.band, result.score, result.reasons):
+            async_dispatcher_send(self.hass, signal_risk(self.subentry.subentry_id))
 
     @property
     def strike_off_proposed(self) -> bool:
@@ -659,6 +749,17 @@ class _CompanyCoordinator[DataT: StorableModel](CompaniesHouseCoordinator[DataT]
     def company_number(self) -> str:
         """Return the company number."""
         return self.company.company_number
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Re-rate the company once a refresh has landed.
+
+        Every dataset feeds the rating. Setup refreshes are skipped: the
+        runtime rates once after all of them, so a new company is never
+        announced as amber for want of data that is still on its way.
+        """
+        if self.company.ready:
+            self.company.recompute_risk()
 
 
 def _keep_recent(
@@ -952,13 +1053,17 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
     def _async_refresh_finished(self) -> None:
         """Re-evaluate the tier once the new profile is in place, and manage issues."""
         self.company.recompute_tier()
-        if not self.last_update_success or self.data is None:
-            return
-        if self.company.state.not_found:
+        found = self.last_update_success and self.data is not None
+        if found and self.company.state.not_found:
             self.company.state.not_found = False
             async_clear_subentry_issue(
                 self.hass, "company_not_found", self.company_number
             )
+        # Rate before the early return so a company gone from the register
+        # honestly shows "unknown" rather than its last band.
+        super()._async_refresh_finished()
+        if not found or self.data is None:
+            return
         if self.data.company_status in FINISHED_STATUSES:
             async_raise_subentry_issue(
                 self.hass,
@@ -1341,6 +1446,16 @@ class OfficerRuntime(_Runtime):
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
 
+    @callback
+    def rerate_companies(self) -> None:
+        """Re-rate every watched company: this person's record feeds their ratings."""
+        runtime = getattr(self.entry, "runtime_data", None)
+        if runtime is None:
+            return
+        for company in runtime.companies.values():
+            if company.profile.data is not None:
+                company.recompute_risk()
+
     async def async_shutdown(self) -> None:
         """Stop both coordinators."""
         for coordinator in self.coordinators.values():
@@ -1446,6 +1561,8 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
             )
         if self.last_update_success and self.officer.watch_companies:
             self.hass.async_create_task(self.officer.async_watch_companies())
+        if self.last_update_success and self.officer.ready:
+            self.officer.rerate_companies()
 
     def _detect_changes(
         self, previous: AppointmentList, current: AppointmentList
@@ -1594,6 +1711,12 @@ class DisqualificationCoordinator(_OfficerCoordinator[DisqualificationResult]):
                 company_names=[str(n) for n in latest.get("company_names") or []],
             )
         return result
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Re-rate the companies this person sits on: disqualification is scored."""
+        if self.last_update_success and self.officer.ready:
+            self.officer.rerate_companies()
 
     def _detect_changes(
         self, previous: DisqualificationResult, current: DisqualificationResult
@@ -1815,5 +1938,6 @@ __all__ = [
     "signal_changes",
     "signal_new_company",
     "signal_new_officer",
+    "signal_risk",
     "signal_tier",
 ]

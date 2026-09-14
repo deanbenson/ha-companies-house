@@ -58,6 +58,7 @@ def _company_info(company: CompanyRuntime, *, include_data: bool) -> dict[str, A
         "tier": company.tier.value,
         "tier_reason": company.tier_reason,
         "strike_off_proposed": company.strike_off_proposed,
+        "risk": company.risk.as_dict() if company.risk is not None else None,
         "state": {
             "filings_total_count": company.state.filings_total_count,
             "newest_transaction_id": company.state.newest_transaction_id,

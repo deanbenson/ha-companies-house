@@ -89,6 +89,9 @@ class CompanyState:
     last_reconciled: datetime | None = None
     last_structure: datetime | None = None
     strike_off_notice_on: date | None = None
+    # The last risk rating, so a restart does not announce it again.
+    risk_band: str | None = None
+    risk_score: int | None = None
     not_found: bool = False
     # Every change detected, newest first, so a report can look back.
     changes: list[JsonDict] = field(default_factory=list)
@@ -112,6 +115,8 @@ class CompanyState:
             "last_reconciled": _iso(self.last_reconciled),
             "last_structure": _iso(self.last_structure),
             "strike_off_notice_on": _iso(self.strike_off_notice_on),
+            "risk_band": self.risk_band,
+            "risk_score": self.risk_score,
             "changes": self.changes[:CHANGE_LOG_CAP],
         }
 
@@ -140,6 +145,11 @@ class CompanyState:
             last_reconciled=_dt(data.get("last_reconciled")),
             last_structure=_dt(data.get("last_structure")),
             strike_off_notice_on=parse_date(data.get("strike_off_notice_on")),
+            risk_band=band if isinstance(band := data.get("risk_band"), str) else None,
+            risk_score=score
+            if isinstance(score := data.get("risk_score"), int)
+            and not isinstance(score, bool)
+            else None,
             changes=_changes(data),
         )
 

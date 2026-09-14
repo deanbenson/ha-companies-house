@@ -1,6 +1,14 @@
 {
   "entity": {
     "sensor": {
+      "risk_rating": {
+        "default": "mdi:shield-half-full",
+        "state": {
+          "green": "mdi:shield-check",
+          "amber": "mdi:shield-alert",
+          "red": "mdi:shield-off"
+        }
+      },
       "next_deadline": {
         "default": "mdi:calendar-star"
       },

@@ -42,6 +42,8 @@ async def test_config_entry_diagnostics(
     assert companies["34567890"]["tier"] == "deadline"
     assert companies["12345678"]["coordinators"]["profile"]["last_reason"] == "fetched"
     assert companies["12345678"]["state"]["filings_total_count"] == 6
+    assert companies["12345678"]["risk"]["band"] == "green"
+    assert companies["34567890"]["risk"]["band"] == "red"
     assert "data" not in companies["12345678"]
     assert diagnostics["officers"][0]["officer_id"] == "officer-jane"
 

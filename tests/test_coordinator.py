@@ -265,14 +265,23 @@ async def test_officer_and_charge_changes_fire_events(
         ("psc", "ceased"),
         ("psc", "notified"),
         ("psc", "statement-added"),
+        ("status", "risk-changed"),
     ]
+    # A resignation and a change of control move the rating from green to
+    # amber, once, after the refreshes have settled.
+    rated = next(e.data for e in events if e.data["event_type"] == "risk-changed")
+    assert (rated["old_band"], rated["new_band"]) == ("green", "amber")
+    assert "1 director resigned in the last year" in rated["reasons"]
+    assert rated["reason"].startswith("Amber: ")
+    assert company.state.risk_band == "amber"
+    assert company.state.risk_score == rated["score"]
     # Every change is remembered, newest first, for the report.
     logged = company.state.changes
-    assert len(logged) == 8
+    assert len(logged) == 9
     assert {(c["kind"], c["event_type"]) for c in logged} == set(kinds)
     assert logged[0]["at"]
     assert logged[0]["payload"]
-    assert len(entry.runtime_data.store.company(ACTIVE).changes) == 8
+    assert len(entry.runtime_data.store.company(ACTIVE).changes) == 9
     resigned = next(e.data for e in events if e.data["event_type"] == "resigned")
     assert resigned["name"] == "PATEL, Priya"
     assert resigned["resigned_on"] == "2026-09-12"
@@ -325,7 +334,9 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
     mock_company(aioclient_mock, ACTIVE, overrides={"officers": officers})
     await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
     await hass.async_block_till_done()
-    assert len(alerts) == 1
+    # The resignation itself, then the rating it pushed from green to amber
+    # (no directors left in office).
+    assert len(alerts) == 2
     data = alerts[0].data
     assert data["company_number"] == ACTIVE
     assert data["kind"] == "officer"
@@ -335,6 +346,11 @@ async def test_notify_instantly_raises_alerts_in_plain_english(
         "Jane Elizabeth Smith resigned as director on 13 Sep 2026"
     )
     assert data["link"].endswith(f"/company/{ACTIVE}/officers")
+    rated = alerts[1].data
+    assert rated["event_type"] == "risk-changed"
+    assert rated["title"] == "EXAMPLE TRADING LIMITED: risk now amber"
+    assert rated["message"].startswith("Amber: no directors in office")
+    assert rated["link"].endswith(f"/company/{ACTIVE}")
 
 
 def test_describe_change_covers_every_kind() -> None:
@@ -428,9 +444,11 @@ async def test_status_and_profile_changes(
         "accounting-reference-date-changed",
         "address-changed",
         "name-changed",
+        "risk-changed",
         "sic-changed",
         "strike-off-proposed",
     ]
+    assert hass.states.get("sensor.example_trading_limited_risk_rating").state == "red"
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"
@@ -477,8 +495,19 @@ async def test_gazette_filing_flags_strike_off(
     mock_company(aioclient_mock, ACTIVE, overrides={"filing_history": history})
     await company.probe.async_refresh()
     await hass.async_block_till_done()
-    assert [e.data["event_type"] for e in events] == ["gazette", "strike-off-proposed"]
+    assert [e.data["event_type"] for e in events] == [
+        "gazette",
+        "strike-off-proposed",
+        "risk-changed",
+    ]
     assert company.state.strike_off_notice_on is not None
+    rating = hass.states.get("sensor.example_trading_limited_risk_rating")
+    assert rating is not None
+    assert rating.state == "red"
+    assert rating.attributes["overrides"] == ["R4"]
+    assert rating.attributes["reasons"][0].startswith(
+        "strike-off proposed (compulsory) on "
+    )
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"
@@ -501,7 +530,11 @@ async def test_gazette_filing_flags_strike_off(
     assert [e.data["event_type"] for e in events] == [
         "gazette",
         "strike-off-discontinued",
+        "risk-changed",
     ]
+    assert (
+        hass.states.get("sensor.example_trading_limited_risk_rating").state == "green"
+    )
     assert (
         hass.states.get(
             "binary_sensor.example_trading_limited_proposed_strike_off"

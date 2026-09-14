@@ -508,17 +508,33 @@ async def test_digest_action_reports_the_week(
     assert response["days"] == 7
     assert response["summary"]["companies"] == 2
     assert response["summary"]["people"] == 1
-    assert response["summary"]["changes"] == 2
-    assert response["summary"]["by_kind"] == {"filing": 1, "officer": 1}
-    assert response["summary"]["new_issues"] == 0
+    # The resignation, the accounts filing, and the rating the resignation
+    # pushed from green to amber.
+    assert response["summary"]["changes"] == 3
+    assert response["summary"]["by_kind"] == {"filing": 1, "officer": 1, "status": 1}
+    assert response["summary"]["new_issues"] == 1
     assert response["summary"]["still_open"] == 1
+    assert response["summary"]["risk"] == {
+        "red": 1,
+        "amber": 1,
+        "green": 0,
+        "unknown": 0,
+    }
     (changed,) = response["companies"]
     assert changed["name"] == "EXAMPLE TRADING LIMITED"
     assert changed["initials"] == "ET"
     assert changed["weight"] == 3  # close watch: your own company
-    # The resignation outranks the routine filing; both are scored by weight.
-    assert [c["event_type"] for c in changed["changes"]] == ["resigned", "accounts"]
-    assert [c["score"] for c in changed["changes"]] == [18, 15]
+    assert changed["risk"]["band"] == "amber"
+    assert changed["risk"]["reason"].startswith("Amber: ")
+    # The rating change and the resignation outrank the routine filing; all
+    # are scored by weight.
+    assert [c["event_type"] for c in changed["changes"]] == [
+        "risk-changed",
+        "resigned",
+        "accounts",
+    ]
+    assert [c["score"] for c in changed["changes"]] == [27, 18, 15]
+    assert changed["changes"][0]["title"] == "EXAMPLE TRADING LIMITED: risk now amber"
     # Every company offers the register's pages; every change offers more links.
     assert [p["text"] for p in changed["pages"]] == [
         "Filing history",
@@ -527,22 +543,42 @@ async def test_digest_action_reports_the_week(
         "Charges",
     ]
     assert changed["pages"][0]["href"] == changed["link"] + "/filing-history"
-    assert changed["changes"][0]["links"] == [
+    assert changed["changes"][1]["links"] == [
         {"text": "Officers", "href": changed["link"] + "/officers"}
     ]
-    assert changed["changes"][1]["links"][0]["text"] == "Filing history"
-    assert response["top"][0]["title"] == "EXAMPLE TRADING LIMITED: director resigned"
-    assert response["top"][0]["subject"] == "EXAMPLE TRADING LIMITED"
-    # The liquidation started before this week: still open, not needing attention.
-    assert response["needs_attention"] == []
+    assert changed["changes"][2]["links"][0]["text"] == "Filing history"
+    assert response["top"][1]["title"] == "EXAMPLE TRADING LIMITED: director resigned"
+    assert response["top"][1]["subject"] == "EXAMPLE TRADING LIMITED"
+    # The rating got worse this week: that needs attention. The liquidation
+    # started before this week: still open, and rated red all along.
+    assert response["needs_attention"] == [
+        {
+            "company": "EXAMPLE TRADING LIMITED",
+            "number": "12345678",
+            "link": changed["link"],
+            "issues": ["Risk rating amber"],
+        }
+    ]
     assert response["still_open"] == [
         {
             "company": "SUNSET RETAIL LIMITED",
             "number": "34567890",
             "link": changed["link"].replace("12345678", "34567890"),
-            "issues": ["In liquidation", "Confirmation statement overdue"],
+            "issues": [
+                "In liquidation",
+                "Confirmation statement overdue",
+                "Risk rating red",
+            ],
         }
     ]
+    # The risk list: red first, then amber, each with the one-line reason.
+    assert [(r["band"], r["company"]) for r in response["risk"]] == [
+        ("red", "SUNSET RETAIL LIMITED"),
+        ("amber", "EXAMPLE TRADING LIMITED"),
+    ]
+    assert response["risk"][0]["reason"].startswith(
+        "Red: being wound up (solvent liquidation) since 1 Jul 2026"
+    )
     assert "SUNSET RETAIL LIMITED" in response["quiet_companies"]
     assert response["new_companies"] == []
     assert response["attachments"] == []
@@ -551,10 +587,13 @@ async def test_digest_action_reports_the_week(
     assert "Worth a look" in html
     assert "Still open" in html
     assert "director resigned" in html
+    assert "risk: 1 red, 1 amber" in html
+    assert ">amber</span>" in html  # the pill in the company card heading
     assert "<script" not in html
     text = response["text"]
     assert "Still open (known before this week):" in text
     assert "director resigned" in text
+    assert "  - RED SUNSET RETAIL LIMITED — being wound up" in text
     assert "url" not in response
 
     # With attach on, the accounts PDF is fetched and offered as an attachment.

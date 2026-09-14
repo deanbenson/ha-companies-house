@@ -16,6 +16,7 @@ from homeassistant.util import dt as dt_util
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
 from .enumerations import COMPANY_STATUS
 from .models import JsonDict, display_name
+from .risk import BAND_AMBER, BAND_RANK, BAND_RED, band_worsened
 from .scheduler import days_until
 
 if TYPE_CHECKING:
@@ -184,6 +185,14 @@ def describe_change(
             )
         if event_type == "dissolved":
             return f"{subject}: dissolved", "The company has been dissolved.", link
+        if event_type == "risk-changed":
+            band = str(p.get("new_band") or "unknown")
+            was = str(p.get("old_band") or "unknown")
+            return (
+                f"{subject}: risk now {band}",
+                str(p.get("reason") or f"{band.capitalize()}: was {was}."),
+                link,
+            )
         return (
             f"{subject}: now {_status_word(p.get('new_status'))}",
             (
@@ -354,6 +363,7 @@ _KIND_WEIGHT: dict[tuple[str, str], int] = {
     ("status", "strike-off-proposed"): 10,
     ("status", "dissolved"): 10,
     ("status", "status-changed"): 9,
+    ("status", "risk-changed"): 9,
     ("status", "strike-off-discontinued"): 6,
     ("filing", "gazette"): 9,
     ("charge", "created"): 8,
@@ -535,8 +545,26 @@ def _register_appointments(
     return out
 
 
+def _risk_worsened(logged: Iterable[JsonDict]) -> bool:
+    """Whether a logged rating change in the period moved the band the wrong way."""
+    return any(
+        c.get("kind") == "status"
+        and c.get("event_type") == "risk-changed"
+        and band_worsened(
+            (c.get("payload") or {}).get("old_band"),
+            (c.get("payload") or {}).get("new_band"),
+        )
+        for c in logged
+    )
+
+
 def _attention(
-    company: CompanyRuntime, changes: list[JsonDict], since: datetime, today: date
+    company: CompanyRuntime,
+    changes: list[JsonDict],
+    since: datetime,
+    today: date,
+    *,
+    risk_worsened: bool = False,
 ) -> list[JsonDict]:
     """Return the company's open problems, each marked new or ongoing.
 
@@ -580,6 +608,13 @@ def _attention(
             "Confirmation statement overdue",
             new=since_day <= due <= today,
             since_date=due,
+        )
+    risk = company.risk
+    if risk is not None and risk.band in (BAND_AMBER, BAND_RED):
+        # New when the band got worse this period. The reasons are in the
+        # report's own Risk section, so the badge stays short.
+        out.append(
+            {"issue": f"Risk rating {risk.band}", "new": risk_worsened, "kind": "risk"}
         )
     return out
 
@@ -643,9 +678,19 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         }
         if deadline
         else None,
-        "attention": _attention(company, changes, since, today),
+        "attention": _attention(
+            company, changes, since, today, risk_worsened=_risk_worsened(logged)
+        ),
         "changes": changes,
         "score": max((c["score"] for c in changes), default=0),
+        "risk": {
+            "band": company.risk.band,
+            "score": company.risk.score,
+            "reason": company.risk.reason,
+            "reasons": list(company.risk.reasons),
+        }
+        if company.risk is not None
+        else None,
     }
 
 
@@ -799,6 +844,36 @@ def _new_companies(
     return out
 
 
+def _risk_counts(companies: list[JsonDict]) -> dict[str, int]:
+    """Count the rated companies by band: red, amber, green, unknown."""
+    counts = {"red": 0, "amber": 0, "green": 0, "unknown": 0}
+    for card in companies:
+        risk = card.get("risk")
+        band = risk["band"] if risk and risk.get("band") else "unknown"
+        counts[band] = counts.get(band, 0) + 1
+    return counts
+
+
+def _risk_list(companies: list[JsonDict]) -> list[JsonDict]:
+    """List the amber and red companies, worst first, with the one-line reason."""
+    out = [
+        {
+            "company": card["name"],
+            "number": card["number"],
+            "link": card["link"],
+            "band": card["risk"]["band"],
+            "score": card["risk"]["score"],
+            "reason": card["risk"]["reason"],
+            "reasons": list(card["risk"]["reasons"]),
+            "pages": card.get("pages") or [],
+        }
+        for card in companies
+        if card.get("risk") and card["risk"]["band"] in (BAND_AMBER, BAND_RED)
+    ]
+    out.sort(key=lambda r: (-BAND_RANK.get(r["band"], 0), -r["score"], r["company"]))
+    return out
+
+
 def build_digest(
     entry: CompaniesHouseConfigEntry, *, days: int, now: datetime | None = None
 ) -> JsonDict:
@@ -884,6 +959,7 @@ def build_digest(
     for change in all_changes:
         by_kind[change["kind"]] = by_kind.get(change["kind"], 0) + 1
     new_companies = _new_companies(companies, people, since, today)
+    risk = _risk_list(companies)
     return {
         "generated_at": now.isoformat(),
         "since": since.isoformat(),
@@ -899,12 +975,14 @@ def build_digest(
             "still_open": len(still_open),
             "deadlines_soon": len(deadlines),
             "new_companies": len(new_companies),
+            "risk": _risk_counts(companies),
         },
         "top": all_changes[:5],
         "needs_attention": new_issues,
         "still_open": still_open,
         "deadlines": deadlines,
         "new_companies": new_companies,
+        "risk": risk,
         "companies": changed_companies,
         "people": changed_people,
         "ownership": _ownership(all_companies, all_people),
@@ -1048,6 +1126,25 @@ def _change_rows(changes: list[JsonDict]) -> str:
     )
 
 
+_PILL_COLOURS = {
+    BAND_RED: "background:#fee2e2;color:#991b1b;",
+    BAND_AMBER: "background:#fef3c7;color:#b45309;",
+}
+
+
+def _pill(band: str | None, *, margin: bool = True) -> str:
+    """Render a small coloured band label; green and unknown show nothing."""
+    colours = _PILL_COLOURS.get(band or "")
+    if not colours:
+        return ""
+    return (
+        f'<span style="display:inline-block;{colours}border-radius:999px;'
+        "padding:2px 8px;font-size:11px;font-weight:600;text-transform:uppercase;"
+        f"letter-spacing:.04em;{'margin-left:6px;' if margin else ''}"
+        f'vertical-align:middle;{_FONT}">{_e(band)}</span>'
+    )
+
+
 def _badge(text: str, *, new: bool) -> str:
     colours = (
         "background:#fee2e2;color:#991b1b;"
@@ -1092,9 +1189,14 @@ def _company_block(card: JsonDict) -> str:
             f'<span style="{due_style}">{_e(deadline["what"].replace("_", " "))} {_e(due_text)}</span>'
         )
     badges = "".join(
-        _badge(a["issue"], new=a["new"]) for a in card.get("attention") or []
+        _badge(a["issue"], new=a["new"])
+        for a in card.get("attention") or []
+        if a.get("kind") != "risk"  # the pill says it
     )
-    heading = _link(card["name"], card["link"], "#111827") + badges
+    risk = card.get("risk") or {}
+    heading = (
+        _link(card["name"], card["link"], "#111827") + _pill(risk.get("band")) + badges
+    )
     return _card(
         _avatar(card.get("logo", ""), card["initials"]),
         heading,
@@ -1157,6 +1259,25 @@ def _issues_list(items: list[JsonDict], colour: str) -> str:
         f'<ul style="margin:0;padding-left:18px;font-size:14px;{_FONT}">'
         + "".join(rows)
         + "</ul>"
+    )
+
+
+def _risk_rows(items: list[JsonDict]) -> str:
+    rows = []
+    for r in items:
+        reason = r["reason"].split(": ", 1)[-1]
+        rows.append(
+            '<tr><td style="padding:6px 0;border-top:1px solid #f3f4f6;vertical-align:top;'
+            f'white-space:nowrap">{_pill(r["band"], margin=False)}</td>'
+            f'<td style="padding:6px 0 6px 8px;border-top:1px solid #f3f4f6;font-size:14px;{_FONT}">'
+            f'<div style="font-weight:600;color:#111827">{_link(r["company"], r["link"], "#111827")}</div>'
+            f'<div style="{_MUTED}font-size:13px">{_e(reason)}</div>'
+            f"{_link_row(r.get('pages') or [])}</td></tr>"
+        )
+    return (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+        + "".join(rows)
+        + "</table>"
     )
 
 
@@ -1236,10 +1357,15 @@ def _stats_line(digest: JsonDict) -> str:
         _plural(n, _KIND_LABEL.get(k, k))
         for k, n in sorted(s.get("by_kind", {}).items(), key=lambda kv: -kv[1])
     )
+    risk = s.get("risk") or {}
+    rated = ", ".join(
+        f"{risk[band]} {band}" for band in ("red", "amber", "green") if risk.get(band)
+    )
     return (
         _plural(s["changes"], "change")
         + (f" ({kinds})" if kinds else "")
         + f" · {s['companies']} companies and {s['people']} people watched"
+        + (f" · risk: {rated}" if rated else "")
     )
 
 
@@ -1272,6 +1398,17 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
                 _top_block(digest["top"]),
                 icon="⭐",
                 intro="The week's changes, most important first.",
+            )
+        )
+    if digest.get("risk"):
+        parts.append(
+            _section(
+                "Risk",
+                _risk_rows(digest["risk"]),
+                icon="🚦",
+                intro="Companies rated amber or red from the register alone: "
+                "filing compliance, status, board, ownership and charges. Not a "
+                "credit check.",
             )
         )
     if digest.get("new_companies"):
@@ -1369,6 +1506,13 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             lines.append(
                 f"  - {c['subject']}: {c['title'].split(': ', 1)[-1]} — {c['message']}"
             )
+        lines.append("")
+    if digest.get("risk"):
+        lines.append("Risk (from the register alone, not a credit check):")
+        lines += [
+            f"  - {r['band'].upper()} {r['company']} — {r['reason'].split(': ', 1)[-1]}"
+            for r in digest["risk"]
+        ]
         lines.append("")
     if digest.get("new_companies"):
         lines.append("New companies:")
