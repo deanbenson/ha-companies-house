@@ -578,6 +578,10 @@ async def _digest(
         filename = f"report-{stamp}.html"
         try:
             await hass.async_add_executor_job(_write_report, folder / filename, html)
+            # A stable address for "the latest report", for a dashboard link.
+            await hass.async_add_executor_job(
+                _write_report, folder / "report-latest.html", html
+            )
         except OSError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
@@ -587,6 +591,7 @@ async def _digest(
         base = (hass.config.external_url or hass.config.internal_url or "").rstrip("/")
         result["path"] = str(folder / filename)
         result["url"] = f"{base}/local/{DOMAIN}/{filename}"
+        result["latest_url"] = f"{base}/local/{DOMAIN}/report-latest.html"
     return result
 
 

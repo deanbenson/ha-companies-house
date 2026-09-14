@@ -592,15 +592,25 @@ def _new_companies(
         if not created or date.fromisoformat(created) < cutoff:
             continue
         founders = [
-            {"name": p["name"], "role": h["role"]}
+            {
+                "name": p["name"],
+                "role": h["role"],
+                "appointed_on": h.get("appointed_on"),
+            }
             for p in people
             for h in p["companies"]
             if h["number"] == card["number"]
         ]
-        seen_this_period = date.fromisoformat(created) >= since_day or any(
-            c["event_type"] == "company-now-watched" for c in card["changes"]
+        # Only once: the week it was set up, first watched, or first joined.
+        seen_this_period = (
+            date.fromisoformat(created) >= since_day
+            or any(c["event_type"] == "company-now-watched" for c in card["changes"])
+            or any(
+                f["appointed_on"] and date.fromisoformat(f["appointed_on"]) >= since_day
+                for f in founders
+            )
         )
-        if not founders and not seen_this_period:
+        if not seen_this_period:
             continue
         out.append(
             {

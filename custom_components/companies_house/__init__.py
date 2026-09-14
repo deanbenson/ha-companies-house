@@ -222,8 +222,8 @@ def _rename_officer(hass: HomeAssistant, officer: OfficerRuntime, name: str) -> 
     """Apply a new display name to a running officer and its device."""
     officer.configured_name = name
     device_registry = dr.async_get(hass)
-    device = device_registry.async_get_device(
-        identifiers={(DOMAIN, f"officer_{officer.officer_id}")}
+    device = device_registry.async_get_device_by_identifier(
+        (DOMAIN, f"officer_{officer.officer_id}"), officer.entry.entry_id
     )
     if device is not None:
         device_registry.async_update_device(device.id, name=officer.officer_name)

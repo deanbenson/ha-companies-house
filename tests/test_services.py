@@ -585,6 +585,9 @@ async def test_digest_action_reports_the_week(
     assert saved.name.startswith("report-")
     assert saved.read_text(encoding="utf-8") == response["html"]  # noqa: ASYNC240
     assert response["url"].endswith(f"/local/{DOMAIN}/{saved.name}")
+    latest = saved.parent / "report-latest.html"
+    assert latest.read_text(encoding="utf-8") == response["html"]
+    assert response["latest_url"].endswith(f"/local/{DOMAIN}/report-latest.html")
 
     # A company opted out of the report is left out entirely.
     await hass.services.async_call(
@@ -634,17 +637,32 @@ def test_new_companies_and_ownership_are_spotted() -> None:
         {
             "name": "Jane Smith",
             "companies": [
-                {"number": "17000001", "role": "director", "name": "BRAND NEW LTD"}
+                {
+                    "number": "17000001",
+                    "role": "director",
+                    "name": "BRAND NEW LTD",
+                    "appointed_on": "2026-09-01",
+                },
+                {
+                    "number": "17000002",
+                    "role": "director",
+                    "name": "ALSO NEW LTD",
+                    "appointed_on": "2026-08-01",
+                },
             ],
         }
     ]
     from datetime import UTC, date, datetime
 
+    # ALSO NEW LTD is recent but nothing about it happened this week, so it is
+    # left out: a new company is highlighted once, not for three months.
     found = _new_companies(
-        companies, people, datetime(2026, 9, 8, tzinfo=UTC), date(2026, 9, 14)
+        companies, people, datetime(2026, 8, 30, tzinfo=UTC), date(2026, 9, 14)
     )
     assert [n["company"] for n in found] == ["BRAND NEW LTD"]
-    assert found[0]["people"] == [{"name": "Jane Smith", "role": "director"}]
+    assert found[0]["people"] == [
+        {"name": "Jane Smith", "role": "director", "appointed_on": "2026-09-01"}
+    ]
     assert (
         _control_words(
             ["ownership-of-shares-75-to-100-percent", "voting-rights-75-to-100-percent"]
