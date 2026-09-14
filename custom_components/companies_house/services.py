@@ -561,6 +561,17 @@ async def _digest(
                         "title": filing["title"],
                     }
                 )
+    # The same list in the shape the email action (smtp.send_message) takes.
+    result["email_attachments"] = [
+        {
+            "media_source": {
+                "media_content_id": a["media_content_id"],
+                "media_content_type": a["media_content_type"],
+            },
+            "filename": a["filename"],
+        }
+        for a in result["attachments"]
+    ]
     if call.data.get(ATTR_SAVE):
         folder = Path(hass.config.path("www", DOMAIN))
         stamp = dt_util.now().strftime("%Y-%m-%d")

@@ -259,8 +259,8 @@ filed PDFs) and as plain text. Pass `summary` to put a paragraph at the top (an
 `ai_task.generate_data` call over the data works well), `save: true` to also
 write it under `www/companies_house/` so it has a link, and `attach: true` to
 download the period's accounts and every filing at close-watch companies
-(capped) and return them as `attachments` for `notify.send_message`. Only
-`attach` costs API requests.
+(capped) and return them as `attachments` (and `email_attachments`, already in
+the shape `smtp.send_message` takes). Only `attach` costs API requests.
 
 Downloads return a `media_content_id` when the document lands under a media
 folder, so an automation can hand the PDF to `ai_task.generate_data` for a

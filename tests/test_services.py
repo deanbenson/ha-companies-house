@@ -566,6 +566,15 @@ async def test_digest_action_reports_the_week(
     )
     assert response is not None
     (attachment,) = response["attachments"]
+    assert response["email_attachments"] == [
+        {
+            "media_source": {
+                "media_content_id": attachment["media_content_id"],
+                "media_content_type": "application/pdf",
+            },
+            "filename": attachment["filename"],
+        }
+    ]
     assert attachment["media_content_type"] == "application/pdf"
     assert attachment["filename"].startswith("2026-09-13 - Companies House - ")
     assert attachment["media_content_id"].startswith(
