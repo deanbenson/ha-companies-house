@@ -450,6 +450,33 @@ ACTIONS: dict[str, tuple[str, str, dict[str, tuple[Any, ...]]]] = {
             ),
         },
     ),
+    "connections": (
+        "Map the connections",
+        "Who sits with whom and who owns what, across every watched company and followed person, plus the connections worth knowing about (shared boards, ownership chains, a director who also runs a company in liquidation). Built from what is already known; costs no API requests.",
+        {
+            "config_entry_id": ENTRY,
+            "days": (
+                "Days to look back",
+                "Roles and holdings that started or ended within this many days are marked as new.",
+                {"number": {"min": 1, "max": 90, "mode": "box"}},
+            ),
+            "include_resigned": (
+                "Include resigned and ceased",
+                "Keep resigned roles, ceased holdings and satisfied charges in the map as history.",
+                BOOL,
+            ),
+            "include_external": (
+                "Include unwatched companies",
+                "Keep companies nobody watches and outside lenders in the map. On by default.",
+                BOOL,
+            ),
+            "save": (
+                "Save as a web page",
+                "Also write the map under www/companies_house (connections.html and connections.json) so it has a link for a dashboard card or your phone.",
+                BOOL,
+            ),
+        },
+    ),
     "refresh": (
         "Refresh",
         "Check the companies and officers you are watching right now.",

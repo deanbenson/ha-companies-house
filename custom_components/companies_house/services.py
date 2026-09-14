@@ -36,6 +36,12 @@ from .api import (
     CompaniesHouseNotFoundError,
     Priority,
 )
+from .connections import (
+    async_write_files,
+    build_connections,
+    connections_url,
+    trim_for_llm,
+)
 from .const import (
     API_BASE,
     CONF_DOCUMENT_DIRECTORY,
@@ -71,6 +77,8 @@ ATTR_TITLE = "title"
 ATTR_SUMMARY = "summary"
 ATTR_SAVE = "save"
 ATTR_ATTACH = "attach"
+ATTR_INCLUDE_RESIGNED = "include_resigned"
+ATTR_INCLUDE_EXTERNAL = "include_external"
 
 PSC_KINDS = (
     "individual",
@@ -133,6 +141,9 @@ class ActionDef:
     schema: dict[Any, Any]
     handler: Handler
     llm: bool = True
+    # Trims the response when an assistant calls the action, for actions
+    # whose full response is far more than a model needs.
+    llm_response: Callable[[JsonDict], JsonDict] | None = None
 
 
 def _q(call: ServiceCall) -> str:
@@ -600,6 +611,33 @@ def _write_report(path: Path, html: str) -> None:
     path.write_text(html, encoding="utf-8")
 
 
+# ---------------------------------------------------------------- connections
+
+
+async def _connections(
+    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+) -> JsonDict:
+    """Build the connections map: who sits with whom, who owns what."""
+    entry = _resolve_entry(hass, call)
+    result = build_connections(
+        entry,
+        days=int(call.data.get(ATTR_DAYS, 7)),
+        include_resigned=bool(call.data.get(ATTR_INCLUDE_RESIGNED, False)),
+        include_external=bool(call.data.get(ATTR_INCLUDE_EXTERNAL, True)),
+    )
+    if call.data.get(ATTR_SAVE):
+        try:
+            result["path"] = await async_write_files(hass, result)
+        except OSError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="document_write_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        result["url"] = connections_url(hass)
+    return result
+
+
 # ---------------------------------------------------------------- refresh
 
 
@@ -924,6 +962,26 @@ ACTIONS: tuple[ActionDef, ...] = (
         llm=False,
     ),
     ActionDef(
+        name="connections",
+        description=(
+            "Map who sits with whom and who owns what across the watched "
+            "companies and followed people, and list the connections worth "
+            "knowing about: shared boards, ownership chains, a director who also "
+            "runs a company in liquidation."
+        ),
+        schema={
+            **ENTRY_FIELD,
+            vol.Optional(ATTR_DAYS, default=7): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=90)
+            ),
+            vol.Optional(ATTR_INCLUDE_RESIGNED, default=False): cv.boolean,
+            vol.Optional(ATTR_INCLUDE_EXTERNAL, default=True): cv.boolean,
+            vol.Optional(ATTR_SAVE, default=False): cv.boolean,
+        },
+        handler=_connections,
+        llm_response=trim_for_llm,
+    ),
+    ActionDef(
         name="refresh",
         description="Refresh monitored companies and officers now.",
         schema={
@@ -1043,6 +1101,7 @@ class ActionTool(llm.Tool):
             }
         )
         self._action = action.name
+        self._trim = action.llm_response
 
     @override
     async def async_call(
@@ -1051,7 +1110,7 @@ class ActionTool(llm.Tool):
         tool_input: llm.ToolInput,
         llm_context: llm.LLMContext,
     ) -> JsonObjectType:
-        """Call the action and return its response."""
+        """Call the action and return its response, trimmed where the action says."""
         result = await hass.services.async_call(
             DOMAIN,
             self._action,
@@ -1060,6 +1119,8 @@ class ActionTool(llm.Tool):
             context=llm_context.context,
             return_response=True,
         )
+        if self._trim is not None and isinstance(result, dict):
+            result = self._trim(dict(result))
         return {"result": result}
 
 
@@ -1084,8 +1145,9 @@ class CompaniesHouseLLMAPI(llm.API):
                 )
         prompt = (
             "You can look up the UK Companies House public register: company profiles, "
-            "officers, filings, charges, persons with significant control and deadlines. "
-            "Company numbers are 8 characters."
+            "officers, filings, charges, persons with significant control and deadlines, "
+            "and map the connections between the watched companies and followed people "
+            "(who sits with whom, who owns what). Company numbers are 8 characters."
         )
         if monitored:
             prompt += " Monitored companies: " + ", ".join(monitored[:30]) + "."

@@ -209,9 +209,10 @@ sensor. A false "your director is disqualified" is worse than no alert at all.
 
 One "Companies House" device per API key with the aggregate **All deadlines**
 calendar (every monitored company, titled `Company - deadline type`; this is
-the one for the dashboard) and diagnostics: requests used this window,
-requests remaining, budget used, window resets at, last successful update,
-last error, companies monitored, officers monitored, next scheduled probe.
+the one for the dashboard), the **Connections** sensor (see the connections
+map below) and diagnostics: requests used this window, requests remaining,
+budget used, window resets at, last successful update, last error, companies
+monitored, officers monitored, next scheduled probe.
 
 ### Attribute size
 
@@ -270,6 +271,77 @@ the shape `smtp.send_message` takes). Only `attach` costs API requests.
 Downloads return a `media_content_id` when the document lands under a media
 folder, so an automation can hand the PDF to `ai_task.generate_data` for a
 plain-English reading and attach it to `notify.send_message`.
+
+The report also has a **Connections** section (up to eight lines from the
+connections map below, most serious first, each linking to the register) so
+the weekly email says when a director of yours also runs a company in
+liquidation, or when two people joined the same boards on the same day.
+
+## Connections map
+
+**Who sits with whom, who owns what.** The integration already holds every
+watched company's officers and people with significant control, every
+followed person's appointments, and every charge, so it draws the map from
+memory: building it costs no API requests.
+
+Nodes are companies (yours in dark blue, watched in blue, not watched in
+grey), people (followed in teal, other officers in grey) and outside entities
+(lenders, overseas parents, drawn as diamonds). Edges are roles (solid;
+resigned ones dashed and hidden by default), control (a thick arrow pointing
+at the company controlled, labelled with the share band) and charges (a
+dotted arrow from the lender). Companies in liquidation or facing strike-off
+get a red ring, dissolved ones fade, a disqualified director or a sanctioned
+owner gets a red badge, and anything that changed in the last week says
+**new**.
+
+Identity is handled honestly. A followed person is one node however many
+register records they have. A person with significant control has no record
+id, so they are joined to a director by surname, first forename and month and
+year of birth (the same test the disqualification check uses); by name alone
+only when there is no date of birth to check. A corporate owner or corporate
+secretary registered in the UK becomes its company; anything registered
+abroad stays an outside entity.
+
+The map is also read for the **connections worth knowing about**, each with a
+severity and links:
+
+- *high* — a person with a role at a watched company also runs a company in
+  liquidation or facing strike-off; a followed person is disqualified yet
+  still holds roles; a person with significant control is on the sanctions
+  list.
+- *medium* — two watched companies control each other through their people;
+  ownership chains and who ultimately owns what (`Alex Morgan → Holdco
+  Capital → Portfolio One`); one owner controlling several watched
+  companies; a corporate parent that is not watched; two or more people who
+  sit on the same boards, or joined the same companies on the same day; a
+  person with roles at five or more watched companies.
+- *low* — a new role that links two previously separate groups, or a
+  resignation that cuts one; a company nobody watches but two followed people
+  run; an owner with no role at the company (or a sole director who is not an
+  owner); a charge in favour of another watched company or a followed
+  person; watched companies sharing a registered office.
+
+**`companies_house.connections`** returns the whole thing (`nodes`, `edges`,
+`interesting`, `summary`) and takes `days` (what counts as new), `include_resigned`
+and `include_external` (what is drawn; the rules always see everything) and
+`save`. With `save: true` it writes `www/companies_house/connections.html` (a
+fixed page: inline styles and a small force layout on SVG, no libraries, no
+outside requests; search box, legend, hover to highlight neighbours, click to
+open the register, toggles for resigned roles, unwatched companies and other
+officers) and `connections.json`, which the page fetches fresh every time it
+opens. Called from an assistant, the action returns only the counts and the
+lines. The map is kept current on its own too: a change to any role, holding,
+status or name, or a company or person being added or removed, rebuilds it a
+minute later and rewrites the files only when it actually changed. The first
+write happens shortly after start-up.
+
+The service device gets a **Connections** sensor: its state is the number of
+live connections between the companies and people you watch, and its
+attributes carry the counts, when it was built and written, the page's
+address and the lines worth knowing (up to twenty; kept out of the recorder).
+
+If the `www` folder did not exist when Home Assistant started, `/local` is
+not served until the next restart.
 
 ## Triggers
 
@@ -356,6 +428,10 @@ in `allowlist_external_dirs`.
 `refresh` refreshes monitored companies and officers now (target a device or
 the entry, optionally choose datasets) using the on demand reserve.
 
+`connections` builds the connections map from what is already known (see
+above); `digest` builds the report. Neither costs a request unless asked to
+fetch documents.
+
 ```yaml
 action: companies_house.get_filing_history
 data:
@@ -385,6 +461,29 @@ cards:
       - entity: sensor.example_trading_limited_days_to_next_deadline
       - entity: binary_sensor.example_trading_limited_proposed_strike_off
       - entity: sensor.companies_house_budget_used
+```
+
+The connections map in a card (the page is fixed and fetches its data fresh,
+so a plain address is fine; run `companies_house.connections` with
+`save: true` once, or wait for the first automatic write after start-up):
+
+```yaml
+type: iframe
+url: /local/companies_house/connections.html
+aspect_ratio: 75%
+title: Connections
+```
+
+Or a markdown card that lists the lines worth knowing and links to the map:
+
+```yaml
+type: markdown
+content: >-
+  {% for line in state_attr('sensor.companies_house_connections', 'interesting') or [] %}
+  - {{ line }}
+  {% endfor %}
+
+  [Open the map](/local/companies_house/connections.html)
 ```
 
 ### Notify at 30 and 7 days before any deadline
@@ -517,6 +616,11 @@ HACS if you no longer want the files.
   lower bound for very active ones.
 * Search endpoints cap paging depth; lists are fetched up to the configured
   maximum number of pages.
+* The connections map only knows the other companies of people you follow
+  (their appointment lists are fetched) and of watched companies. An officer
+  nobody follows appears with their watched roles only, so "also runs a
+  company in liquidation" can only be spotted for followed people and for
+  companies that are themselves watched.
 
 ## Troubleshooting
 

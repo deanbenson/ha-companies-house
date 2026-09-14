@@ -7569,6 +7569,79 @@
     'state': '6',
   })
 # ---
+# name: test_entities[sensor][sensor.companies_house_connections-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': dict({
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.companies_house_connections',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Connections',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Connections',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'connections',
+    'unique_id': 'companies_house_entry1_connections',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.companies_house_connections-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'components': 11,
+      'edges': 40,
+      'external_companies': 25,
+      'followed_people': 1,
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Companies House Connections',
+      'generated_at': '2026-09-15T09:00:00+00:00',
+      'high': 0,
+      'interesting': list([
+        'medium: Parent Holdings Limited (09876543) controls SUBSIDIARY SERVICES LIMITED (75 to 100% of the shares, 75 to 100% of the votes, the right to appoint and remove directors) but is not watched',
+        'low: 5 watched companies share the registered office at 47 High Street, Reading, RG1 2AB, England: DORMANT HOLDINGS LIMITED, EXAMPLE TRADING LIMITED, HISTORIC PARTNERS LLP, SUBSIDIARY SERVICES LIMITED and SUNSET RETAIL LIMITED',
+      ]),
+      'interesting_count': 2,
+      'low': 1,
+      'medium': 1,
+      'new_connections': 0,
+      'nodes': 42,
+      'other_people': 8,
+      'path': None,
+      <SensorEntityCapabilityAttribute.STATE_CLASS: 'state_class'>: <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'url': '/local/companies_house/connections.html',
+      'watched_companies': 6,
+      'written_at': None,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.companies_house_connections',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '2',
+  })
+# ---
 # name: test_entities[sensor][sensor.companies_house_last_error-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([

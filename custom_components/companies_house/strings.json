@@ -560,6 +560,9 @@
       },
       "next_scheduled_probe": {
         "name": "Next check"
+      },
+      "connections": {
+        "name": "Connections"
       }
     },
     "binary_sensor": {
@@ -1340,6 +1343,32 @@
         "attach": {
           "name": "Fetch the key documents",
           "description": "Download the period's accounts, and every filing at close-watch companies, so they can be attached to the email. Returned as attachments."
+        }
+      }
+    },
+    "connections": {
+      "name": "Map the connections",
+      "description": "Who sits with whom and who owns what, across every watched company and followed person, plus the connections worth knowing about (shared boards, ownership chains, a director who also runs a company in liquidation). Built from what is already known; costs no API requests.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Companies House account",
+          "description": "Only needed if you have set up more than one API key."
+        },
+        "days": {
+          "name": "Days to look back",
+          "description": "Roles and holdings that started or ended within this many days are marked as new."
+        },
+        "include_resigned": {
+          "name": "Include resigned and ceased",
+          "description": "Keep resigned roles, ceased holdings and satisfied charges in the map as history."
+        },
+        "include_external": {
+          "name": "Include unwatched companies",
+          "description": "Keep companies nobody watches and outside lenders in the map. On by default."
+        },
+        "save": {
+          "name": "Save as a web page",
+          "description": "Also write the map under www/companies_house (connections.html and connections.json) so it has a link for a dashboard card or your phone."
         }
       }
     },

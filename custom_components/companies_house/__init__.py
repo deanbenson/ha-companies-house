@@ -20,6 +20,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
 from .api import CompaniesHouseClient
+from .connections import ConnectionsCoordinator
 from .const import (
     CONF_API_KEY,
     CONF_CLOSE_WATCH,
@@ -74,6 +75,8 @@ class CompaniesHouseRuntimeData:
     store: ChangeStore
     account: AccountCoordinator
     service_device_id: str = ""
+    # The connections map (who sits with whom, who owns what) on the service device.
+    connections: ConnectionsCoordinator | None = None
     companies: dict[str, CompanyRuntime] = field(default_factory=dict)
     officers: dict[str, OfficerRuntime] = field(default_factory=dict)
     snapshot: dict[str, Any] = field(default_factory=dict)
@@ -133,11 +136,14 @@ async def async_setup_entry(
 
     _prune_store(runtime)
     await runtime.account.async_config_entry_first_refresh()
+    runtime.connections = ConnectionsCoordinator(hass, entry)
+    runtime.connections.async_build()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     for company in runtime.companies.values():
         company.mark_ready()
     for officer in runtime.officers.values():
         officer.mark_ready()
+    runtime.connections.async_start()
     runtime.snapshot = _subentry_snapshot(entry)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     LOGGER.debug(
@@ -361,6 +367,9 @@ async def _async_apply_changes(
     _raise_if_auth_failed(runtime)
     runtime.snapshot = after
     await runtime.account.async_refresh()
+    if runtime.connections is not None:
+        # Removals raise no event, so the map is asked to catch up here.
+        runtime.connections.request_rebuild("settings changed")
 
 
 async def async_unload_entry(
@@ -375,6 +384,8 @@ async def async_unload_entry(
         for officer in runtime.officers.values():
             await officer.async_shutdown()
         await runtime.account.async_shutdown()
+        if runtime.connections is not None:
+            await runtime.connections.async_shutdown()
         await runtime.store.async_save()
     return unloaded
 
