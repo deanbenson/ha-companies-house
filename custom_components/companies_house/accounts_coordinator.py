@@ -567,6 +567,7 @@ class AccountsBackfill:
 
 
 __all__ = [
+    "ANNOUNCE_WINDOW",
     "BACKFILL_GAP",
     "BACKFILL_RETRY_GAP",
     "BACKFILL_START_DELAY",

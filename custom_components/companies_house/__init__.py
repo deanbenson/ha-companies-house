@@ -18,8 +18,9 @@ from homeassistant.helpers import (
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
-from .accounts_coordinator import AccountsBackfill
+from .accounts_coordinator import ANNOUNCE_WINDOW, AccountsBackfill
 from .api import CompaniesHouseClient
 from .connections import ConnectionsCoordinator
 from .const import (
@@ -205,6 +206,32 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
     for officer_id in list(runtime.store.officers):
         if officer_id not in wanted_officers:
             runtime.store.forget_officer(officer_id)
+    _redate_old_accounts_reads(runtime)
+
+
+def _redate_old_accounts_reads(runtime: CompaniesHouseRuntimeData) -> None:
+    """File old accounts reads under their filing date, not the day they were read.
+
+    Version 0.5.0 logged the first read of every company's accounts as a
+    change of that day, so a week's report would have listed years-old
+    accounts as news. Anything read long after it was filed is moved to the
+    filing date; the report then leaves it alone.
+    """
+    for state in runtime.store.companies.values():
+        changed = False
+        for change in state.changes:
+            if change.get("kind") != "accounts":
+                continue
+            filed = dt_util.parse_date(
+                str((change.get("payload") or {}).get("filed_on") or "")
+            )
+            at = dt_util.parse_datetime(str(change.get("at") or ""))
+            if filed is None or at is None or at.date() - filed <= ANNOUNCE_WINDOW:
+                continue
+            change["at"] = dt_util.start_of_local_day(filed).isoformat()
+            changed = True
+        if changed:
+            runtime.store.save()
 
 
 # Settings that only change what is shown, never what is fetched.

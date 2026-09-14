@@ -370,3 +370,45 @@ async def test_adding_a_subentry_does_not_reload_the_others(
         )
         await hass.async_block_till_done()
         reload.assert_called_once_with(entry.entry_id)
+
+
+def test_old_accounts_reads_are_filed_under_their_filing_date() -> None:
+    """A first read of years-old accounts logged as today's news is moved to its filing date."""
+    from unittest.mock import MagicMock
+
+    from custom_components.companies_house import _redate_old_accounts_reads
+    from custom_components.companies_house.store import CompanyState
+
+    state = CompanyState(
+        changes=[
+            {
+                "at": "2026-09-14T09:15:00+00:00",
+                "kind": "accounts",
+                "event_type": "read",
+                "payload": {"filed_on": "2025-09-25"},
+            },
+            {
+                "at": "2026-09-14T09:16:00+00:00",
+                "kind": "accounts",
+                "event_type": "read",
+                "payload": {"filed_on": "2026-09-10"},
+            },
+            {
+                "at": "2026-09-14T09:17:00+00:00",
+                "kind": "filing",
+                "event_type": "accounts",
+                "payload": {"filed_on": "2025-09-25"},
+            },
+        ]
+    )
+    runtime = MagicMock()
+    runtime.store.companies = {"12345678": state}
+    _redate_old_accounts_reads(runtime)
+    assert state.changes[0]["at"].startswith("2025-09-25T00:00:00")
+    assert state.changes[1]["at"] == "2026-09-14T09:16:00+00:00"
+    assert state.changes[2]["at"] == "2026-09-14T09:17:00+00:00"
+    runtime.store.save.assert_called_once()
+
+    runtime.store.save.reset_mock()
+    _redate_old_accounts_reads(runtime)
+    runtime.store.save.assert_not_called()
