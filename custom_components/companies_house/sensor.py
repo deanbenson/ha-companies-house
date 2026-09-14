@@ -18,15 +18,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .charges import CHARGE_LIST_CAP, charge_record, lenders, newest_first
+from .connections import SENSOR_LINES_CAP, ConnectionsCoordinator
 from .const import (
     ATTR_APPOINTMENTS_CAP,
     ATTR_LIST_CAP,
     COMPANY_STATUS_DETAIL_OPTIONS,
     COMPANY_STATUS_OPTIONS,
     DEADLINE_TYPE_OPTIONS,
+    DOMAIN,
     JURISDICTION_OPTIONS,
     MAX_STATE_LENGTH,
     Dataset,
@@ -42,7 +45,7 @@ from .coordinator import (
     signal_new_officer,
     signal_tier,
 )
-from .entity import CompanyEntity, OfficerEntity, ServiceEntity
+from .entity import CompanyEntity, OfficerEntity, ServiceEntity, service_device_info
 from .enumerations import (
     COMPANY_SUBTYPE,
     COMPANY_TYPE,
@@ -1021,6 +1024,71 @@ class ServiceSensor(ServiceEntity, SensorEntity):
         return dict(self.entity_description.attrs_fn(self.coordinator))
 
 
+class ConnectionsSensor(CoordinatorEntity[ConnectionsCoordinator], SensorEntity):
+    """How many live connections the map holds between what you watch and follow.
+
+    The counts and the lines worth knowing are attributes; the drawing itself
+    lives in the map page and the ``connections`` action, never in the state
+    machine. The lines are kept out of the recorder.
+    """
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "connections"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _unrecorded_attributes = frozenset({"interesting"})
+
+    def __init__(
+        self, entry: CompaniesHouseConfigEntry, coordinator: ConnectionsCoordinator
+    ) -> None:
+        """Bind to the connections coordinator on the service device."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{DOMAIN}_{entry.entry_id}_connections"
+        self._attr_device_info = service_device_info(entry)
+
+    @property
+    def available(self) -> bool:
+        """Unavailable until the map has been built once."""
+        return super().available and self.coordinator.data is not None
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the number of live connections between watched and followed nodes."""
+        data = self.coordinator.data
+        if data is None:
+            return None
+        return int(data.graph["summary"]["live_connections"])
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Return the counts, the lines worth knowing and where the map is."""
+        data = self.coordinator.data
+        if data is None:
+            return None
+        summary = data.graph["summary"]
+        return {
+            "nodes": summary["nodes"],
+            "edges": summary["edges"],
+            "watched_companies": summary["watched_companies"],
+            "followed_people": summary["followed_people"],
+            "other_people": summary["other_people"],
+            "external_companies": summary["external_companies"],
+            "new_connections": summary["new_connections"],
+            "components": summary["components"],
+            "interesting_count": summary["interesting"],
+            "high": summary["high"],
+            "medium": summary["medium"],
+            "low": summary["low"],
+            "generated_at": data.graph["generated_at"],
+            "written_at": data.written_at.isoformat() if data.written_at else None,
+            "path": data.path,
+            "url": data.url,
+            "interesting": [
+                f"{line['severity']}: {line['text']}"
+                for line in data.graph["interesting"][:SENSOR_LINES_CAP]
+            ],
+        }
+
+
 # ---------------------------------------------------------------- setup
 
 
@@ -1062,6 +1130,8 @@ async def async_setup_entry(
         ServiceSensor(entry, runtime.account, description)
         for description in SERVICE_SENSORS
     )
+    if runtime.connections is not None:
+        async_add_entities([ConnectionsSensor(entry, runtime.connections)])
 
     @callback
     def _add_company(company: CompanyRuntime) -> None:

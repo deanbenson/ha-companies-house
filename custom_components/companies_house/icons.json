@@ -281,6 +281,9 @@
       },
       "next_scheduled_probe": {
         "default": "mdi:radar"
+      },
+      "connections": {
+        "default": "mdi:graph"
       }
     },
     "binary_sensor": {
@@ -511,6 +514,9 @@
     },
     "download_document": {
       "service": "mdi:download"
+    },
+    "connections": {
+      "service": "mdi:graph"
     },
     "refresh": {
       "service": "mdi:refresh"

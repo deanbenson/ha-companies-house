@@ -482,6 +482,8 @@ _KIND_WEIGHT: dict[tuple[str, str], int] = {
 }
 _ONGOING_STATUSES = ("liquidation", "administration", "receivership")
 NEW_COMPANY_DAYS = 90
+# How many connection lines the report shows; the map itself shows them all.
+CONNECTION_LINES = 8
 ATTACH_LIMIT = 8
 ATTACH_BYTES_LIMIT = 20_000_000
 
@@ -1055,6 +1057,7 @@ def build_digest(
     for change in all_changes:
         by_kind[change["kind"]] = by_kind.get(change["kind"], 0) + 1
     new_companies = _new_companies(companies, people, since, today)
+    connections = _connections(entry, days=days, now=now)
     return {
         "generated_at": now.isoformat(),
         "since": since.isoformat(),
@@ -1070,6 +1073,7 @@ def build_digest(
             "still_open": len(still_open),
             "deadlines_soon": len(deadlines),
             "new_companies": len(new_companies),
+            "connections": len(connections),
         },
         "top": all_changes[:5],
         "needs_attention": new_issues,
@@ -1079,8 +1083,55 @@ def build_digest(
         "companies": changed_companies,
         "people": changed_people,
         "ownership": _ownership(all_companies, all_people),
+        "connections": connections,
         "quiet_companies": [c["name"] for c in companies if not c["changes"]],
     }
+
+
+def _connections(
+    entry: CompaniesHouseConfigEntry, *, days: int, now: datetime
+) -> list[JsonDict]:
+    """Return the connections worth knowing about, most serious first, capped.
+
+    A company or person opted out of the report is left out of these lines
+    too. A person is matched by any of their register records, since the
+    node can carry a pooled record's id rather than the primary one.
+    """
+    # Imported here: the connections module reuses this module's helpers.
+    from .connections import build_connections
+
+    runtime = entry.runtime_data
+    left_out = {
+        f"company:{c.company_number}"
+        for c in runtime.companies.values()
+        if not c.in_weekly_report
+    }
+    quiet_records = {
+        record
+        for o in runtime.officers.values()
+        if not o.in_weekly_report
+        for record in o.officer_ids
+    }
+    graph = build_connections(entry, days=days, now=now)
+    left_out.update(
+        n["id"]
+        for n in graph["nodes"]
+        if n["type"] == "person"
+        and not quiet_records.isdisjoint(n["meta"].get("officer_ids") or [])
+    )
+    lines = [
+        line for line in graph["interesting"] if left_out.isdisjoint(line["node_ids"])
+    ]
+    return [
+        {
+            "rule": line["rule"],
+            "severity": line["severity"],
+            "text": line["text"],
+            "link": line["link"],
+            "links": line["links"],
+        }
+        for line in lines[:CONNECTION_LINES]
+    ]
 
 
 def attachable_documents(digest: JsonDict) -> list[JsonDict]:
@@ -1423,6 +1474,33 @@ def _ownership_rows(holders: list[JsonDict], limit: int = 12) -> str:
     )
 
 
+_SEVERITY_STYLE = {
+    "high": "background:#b91c1c;",
+    "medium": "background:#d97706;",
+    "low": "background:#9ca3af;",
+}
+
+
+def _connection_rows(lines: list[JsonDict]) -> str:
+    rows = []
+    for line in lines:
+        dot = (
+            '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;'
+            f"{_SEVERITY_STYLE.get(line['severity'], _SEVERITY_STYLE['low'])}"
+            'margin-right:8px;vertical-align:middle"></span>'
+        )
+        rows.append(
+            f'<li style="margin:4px 0;list-style:none">{dot}'
+            f"{_link(line['text'], line.get('link') or '', '#111827')}"
+            f"{_link_row(line.get('links') or [])}</li>"
+        )
+    return (
+        f'<ul style="margin:0;padding:0;font-size:14px;{_FONT}">'
+        + "".join(rows)
+        + "</ul>"
+    )
+
+
 def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
@@ -1511,6 +1589,15 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
                 intro="Ownership changed this week. ★ marks people you follow.",
             )
         )
+    if digest.get("connections"):
+        parts.append(
+            _section(
+                "Connections",
+                _connection_rows(digest["connections"]),
+                icon="🕸️",
+                intro="Who sits with whom and who owns what, across everything you watch.",
+            )
+        )
     if not digest["companies"] and not digest["people"]:
         parts.append(
             _section(
@@ -1597,6 +1684,10 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             f"  - {_when(c['at'])}: {c['title'].split(': ', 1)[-1]} — {c['message']}"
             for c in card["changes"]
         ]
+        lines.append("")
+    if digest.get("connections"):
+        lines.append("Connections:")
+        lines += [f"  - {c['text']}" for c in digest["connections"]]
         lines.append("")
     if not digest["companies"] and not digest["people"]:
         lines += ["Nothing changed at any watched company or person.", ""]

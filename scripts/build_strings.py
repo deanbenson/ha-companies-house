@@ -143,6 +143,7 @@ SERVICE_SENSORS = {
     "companies_monitored": "Companies monitored",
     "officers_monitored": "Officers monitored",
     "next_scheduled_probe": "Next check",
+    "connections": "Connections",
 }
 COMPANY_BINARY = {
     "accounts_overdue": "Accounts overdue",
