@@ -537,7 +537,8 @@ async def test_officer_subentry_search_and_add(
     assert result["step_id"] == "select"
     options = result["data_schema"].schema[CONF_SELECTION].config["options"]
     assert (
-        options[0]["label"] == "Jane Elizabeth SMITH - born 06/1978 - 23 appointments"
+        options[0]["label"]
+        == "Jane Elizabeth SMITH - born 06/1978 - Reading - 23 appointments"
     )
     assert options[1]["label"] == "Jane SMITH - born 02/1981 - 1 appointment"
     from .conftest import mock_officer

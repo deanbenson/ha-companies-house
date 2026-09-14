@@ -70,6 +70,7 @@ from .const import (
     MANUFACTURER,
     MAX_CADENCE_MULTIPLIER,
     MIN_CADENCE_MULTIPLIER,
+    OFFICER_SEARCH_ITEMS_PER_PAGE,
     OPTIONAL_DATASETS,
     SEARCH_ITEMS_PER_PAGE,
     SUBENTRY_TYPE_COMPANY,
@@ -652,7 +653,7 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
             query = user_input[CONF_QUERY].strip()
             try:
                 raw = await self._client.search_officers(
-                    query, items_per_page=SEARCH_ITEMS_PER_PAGE
+                    query, items_per_page=OFFICER_SEARCH_ITEMS_PER_PAGE
                 )
             except CompaniesHouseAuthError:
                 return self.async_abort(reason="invalid_auth")
@@ -672,12 +673,15 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                     if not officer_id:
                         continue
                     dob = DateOfBirth.from_api(item.get("date_of_birth"))
+                    raw_address = item.get("address")
+                    address = raw_address if isinstance(raw_address, dict) else {}
                     self._results[officer_id] = {
                         "officer_id": officer_id,
                         "name": item.get("title") or officer_id,
                         "appointment_count": item.get("appointment_count"),
                         "date_of_birth": dob.to_storage() if dob else None,
                         "dob_display": dob.display() if dob else None,
+                        "locality": address.get("locality") or None,
                     }
                 if not self._results:
                     errors["base"] = "no_results"
@@ -720,6 +724,7 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 value=key,
                 label=f"{item['name']}"
                 + (f" - born {item['dob_display']}" if item.get("dob_display") else "")
+                + (f" - {item['locality']}" if item.get("locality") else "")
                 + (
                     f" - {_plural(item['appointment_count'], 'appointment', 'appointments')}"
                     if item.get("appointment_count") is not None
@@ -729,13 +734,15 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
             )
             for key, item in self._results.items()
         ]
+        # A dropdown can be typed into, so "1977" or "Leeds" narrows a
+        # long list of namesakes down to the right person.
         return self.async_show_form(
             step_id="select",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_SELECTION): SelectSelector(
                         SelectSelectorConfig(
-                            options=options, mode=SelectSelectorMode.LIST
+                            options=options, mode=SelectSelectorMode.DROPDOWN
                         )
                     )
                 }

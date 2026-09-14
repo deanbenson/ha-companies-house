@@ -80,6 +80,25 @@ async def test_setup_with_companies_and_officer(
     assert (
         hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "18"
     )
+    # A person's page names the companies they currently hold a role at,
+    # newest first, and says which of them are already watched here.
+    current = hass.states.get("sensor.jane_elizabeth_smith_current_companies")
+    assert current is not None
+    assert current.state.startswith(
+        "PORTFOLIO COMPANY 11 LIMITED, PORTFOLIO COMPANY 10 LIMITED, "
+    )
+    assert current.state.endswith("…")
+    assert len(current.state) == 255
+    companies = current.attributes["companies"]
+    assert len(companies) == 18
+    assert companies[0] == {
+        "company_number": "10000011",
+        "company_name": "PORTFOLIO COMPANY 11 LIMITED",
+        "role": "director",
+        "appointed_on": "2021-03-15",
+        "watched": False,
+    }
+    assert not any(c["watched"] for c in companies)
 
 
 async def test_remove_subentry_removes_only_its_device(
@@ -301,6 +320,34 @@ async def test_adding_a_subentry_does_not_reload_the_others(
     assert "34567890" not in entry.runtime_data.store.companies
     assert hass.states.get("sensor.sunset_retail_limited_company_status") is None
     assert hass.states.get("sensor.example_trading_limited_company_status") is not None
+
+    # Renaming is cosmetic: the officer and their device pick up the new name
+    # in place, and a company label changes nothing that runs.
+    officer_sub = entry.subentries["sub_officer"]
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_update_subentry(
+            entry,
+            officer_sub,
+            data={**officer_sub.data, "officer_name": "Jane Smith (main record)"},
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert (
+        entry.runtime_data.officers["sub_officer"].officer_name
+        == "Jane Smith (main record)"
+    )
+    device = dr.async_get(hass).async_get_device_by_identifier(
+        (DOMAIN, "officer_officer-jane"), entry.entry_id
+    )
+    assert device is not None
+    assert device.name == "Jane Smith (main record)"
+    subentry = entry.subentries["sub_12345678"]
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_update_subentry(
+            entry, subentry, data={**subentry.data, "label": "Ours"}
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
 
     # Changing an existing company's settings does reload.
     subentry = entry.subentries["sub_12345678"]

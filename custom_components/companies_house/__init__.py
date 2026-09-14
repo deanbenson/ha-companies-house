@@ -26,6 +26,7 @@ from .const import (
     CONF_DATASETS,
     CONF_DATE_OF_BIRTH_MONTH,
     CONF_DATE_OF_BIRTH_YEAR,
+    CONF_LABEL,
     CONF_MAX_PAGES,
     CONF_OFFICER_ID,
     CONF_OFFICER_NAME,
@@ -180,12 +181,32 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
             runtime.store.forget_officer(officer_id)
 
 
+# Settings that only change what is shown, never what is fetched.
+COSMETIC_KEYS: frozenset[str] = frozenset({CONF_LABEL, CONF_OFFICER_NAME})
+
+
 def _subentry_snapshot(entry: ConfigEntry) -> dict[str, Any]:
     """Return what the listener compares against to see what changed."""
     return {
         "options": dict(entry.options),
         "subentries": {sid: dict(sub.data) for sid, sub in entry.subentries.items()},
     }
+
+
+def _material(data: dict[str, Any]) -> dict[str, Any]:
+    """Return the settings that decide what is fetched and how often."""
+    return {k: v for k, v in data.items() if k not in COSMETIC_KEYS}
+
+
+def _rename_officer(hass: HomeAssistant, officer: OfficerRuntime, name: str) -> None:
+    """Apply a new display name to a running officer and its device."""
+    officer.configured_name = name
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_device(
+        identifiers={(DOMAIN, f"officer_{officer.officer_id}")}
+    )
+    if device is not None:
+        device_registry.async_update_device(device.id, name=officer.officer_name)
 
 
 async def _async_start_subentry(
@@ -238,9 +259,9 @@ async def _async_update_listener(
 ) -> None:
     """React to the entry changing.
 
-    A company or officer being added or removed is handled in place, so the
-    ones already running are untouched (no flicker to unavailable). Changed
-    settings on an existing one, or changed options, reload the entry.
+    A company or officer being added, removed or renamed is handled in place,
+    so the ones already running are untouched (no flicker to unavailable).
+    Changed settings on an existing one, or changed options, reload the entry.
     """
     runtime = entry.runtime_data
     before = runtime.snapshot
@@ -250,11 +271,19 @@ async def _async_update_listener(
     changed = {
         sid
         for sid in known & current
-        if before["subentries"][sid] != after["subentries"][sid]
+        if _material(before["subentries"][sid]) != _material(after["subentries"][sid])
     }
     if before["options"] != after["options"] or changed:
         await hass.config_entries.async_reload(entry.entry_id)
         return
+
+    for sid in known & current:
+        if before["subentries"][sid] == after["subentries"][sid]:
+            continue
+        if (officer := runtime.officers.get(sid)) is not None:
+            _rename_officer(
+                hass, officer, after["subentries"][sid].get(CONF_OFFICER_NAME, "")
+            )
 
     for sid in known - current:
         if (company := runtime.companies.pop(sid, None)) is not None:

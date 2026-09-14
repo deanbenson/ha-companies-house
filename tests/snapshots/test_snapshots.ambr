@@ -16573,6 +16573,184 @@
     'state': 'England',
   })
 # ---
+# name: test_entities[sensor][sensor.jane_elizabeth_smith_current_companies-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.jane_elizabeth_smith_current_companies',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Current companies',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Current companies',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'current_companies',
+    'unique_id': 'companies_house_officer_officer-jane_current_companies',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.jane_elizabeth_smith_current_companies-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'companies': list([
+        dict({
+          'appointed_on': '2021-03-15',
+          'company_name': 'PORTFOLIO COMPANY 11 LIMITED',
+          'company_number': '10000011',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2020-02-15',
+          'company_name': 'PORTFOLIO COMPANY 10 LIMITED',
+          'company_number': '10000010',
+          'role': 'secretary',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2019-01-15',
+          'company_name': 'PORTFOLIO COMPANY 09 LIMITED',
+          'company_number': '10000009',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2018-09-15',
+          'company_name': 'PORTFOLIO COMPANY 08 LIMITED',
+          'company_number': '10000008',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2017-08-15',
+          'company_name': 'PORTFOLIO COMPANY 07 LIMITED',
+          'company_number': '10000007',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2016-07-15',
+          'company_name': 'PORTFOLIO COMPANY 06 LIMITED',
+          'company_number': '10000006',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2016-01-15',
+          'company_name': 'PORTFOLIO COMPANY 18 LIMITED',
+          'company_number': '10000018',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2015-09-15',
+          'company_name': 'PORTFOLIO COMPANY 17 LIMITED',
+          'company_number': '10000017',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2015-06-15',
+          'company_name': 'PORTFOLIO COMPANY 05 LIMITED',
+          'company_number': '10000005',
+          'role': 'secretary',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2014-08-15',
+          'company_name': 'PORTFOLIO COMPANY 16 LIMITED',
+          'company_number': '10000016',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2014-05-15',
+          'company_name': 'PORTFOLIO COMPANY 04 LIMITED',
+          'company_number': '10000004',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2013-07-15',
+          'company_name': 'PORTFOLIO COMPANY 15 LIMITED',
+          'company_number': '10000015',
+          'role': 'secretary',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2013-04-15',
+          'company_name': 'PORTFOLIO COMPANY 03 LIMITED',
+          'company_number': '10000003',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2012-06-15',
+          'company_name': 'PORTFOLIO COMPANY 14 LIMITED',
+          'company_number': '10000014',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2012-03-15',
+          'company_name': 'PORTFOLIO COMPANY 02 LIMITED',
+          'company_number': '10000002',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2011-05-15',
+          'company_name': 'PORTFOLIO COMPANY 13 LIMITED',
+          'company_number': '10000013',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2011-02-15',
+          'company_name': 'PORTFOLIO COMPANY 01 LIMITED',
+          'company_number': '10000001',
+          'role': 'director',
+          'watched': False,
+        }),
+        dict({
+          'appointed_on': '2010-04-15',
+          'company_name': 'PORTFOLIO COMPANY 12 LIMITED',
+          'company_number': '10000012',
+          'role': 'director',
+          'watched': False,
+        }),
+      ]),
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Current companies',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.jane_elizabeth_smith_current_companies',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'PORTFOLIO COMPANY 11 LIMITED, PORTFOLIO COMPANY 10 LIMITED, PORTFOLIO COMPANY 09 LIMITED, PORTFOLIO COMPANY 08 LIMITED, PORTFOLIO COMPANY 07 LIMITED, PORTFOLIO COMPANY 06 LIMITED, PORTFOLIO COMPANY 18 LIMITED, PORTFOLIO COMPANY 17 LIMITED, PORTFOLIO COMP…',
+  })
+# ---
 # name: test_entities[sensor][sensor.jane_elizabeth_smith_date_of_birth-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([

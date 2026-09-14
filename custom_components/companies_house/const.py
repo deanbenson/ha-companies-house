@@ -288,6 +288,8 @@ STORAGE_KEY_TEMPLATE: Final = f"{DOMAIN}.{{entry_id}}"
 # Pagination
 ITEMS_PER_PAGE: Final = 100
 SEARCH_ITEMS_PER_PAGE: Final = 20
+# Common names have hundreds of namesakes; show more and let people filter.
+OFFICER_SEARCH_ITEMS_PER_PAGE: Final = 50
 
 # Documents
 DOCUMENT_FILENAME_MAX: Final = 200

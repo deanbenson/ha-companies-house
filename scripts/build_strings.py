@@ -117,6 +117,7 @@ COMPANY_SENSORS = {
     "registers_held": "Registers held",
 }
 OFFICER_SENSORS = {
+    "current_companies": "Current companies",
     "appointments_active": "Appointments active",
     "appointments_total": "Appointments total",
     "most_recent_company": "Most recent company",

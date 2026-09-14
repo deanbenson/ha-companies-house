@@ -192,6 +192,9 @@
       "registers_held": {
         "default": "mdi:book-open-variant"
       },
+      "current_companies": {
+        "default": "mdi:office-building-outline"
+      },
       "appointments_active": {
         "default": "mdi:briefcase"
       },

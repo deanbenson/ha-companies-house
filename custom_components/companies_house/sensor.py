@@ -708,6 +708,30 @@ def _current(officer: OfficerRuntime) -> Appointment | None:
     return active[0] if active else _most_recent(officer)
 
 
+def _current_companies(officer: OfficerRuntime) -> str:
+    """Name the companies the person currently holds a role at, newest first."""
+    names = [a.company_name for a in _sorted_appointments(officer) if a.is_active]
+    return _truncate(", ".join(n for n in names if n)) or "None"
+
+
+def _current_company_attrs(officer: OfficerRuntime) -> Attrs:
+    """List the current companies, flagging the ones already watched here."""
+    watched = {c.company_number for c in officer.entry.runtime_data.companies.values()}
+    return {
+        "companies": [
+            {
+                "company_number": a.company_number,
+                "company_name": a.company_name,
+                "role": a.officer_role,
+                "appointed_on": _iso(_appointment_date(a)),
+                "watched": a.company_number in watched,
+            }
+            for a in _sorted_appointments(officer)
+            if a.is_active
+        ][:ATTR_APPOINTMENTS_CAP]
+    }
+
+
 def _appointment_attrs(officer: OfficerRuntime) -> Attrs:
     return {
         "appointments": [
@@ -725,6 +749,11 @@ def _appointment_attrs(officer: OfficerRuntime) -> Attrs:
 
 
 OFFICER_SENSORS: tuple[OfficerSensorDescription, ...] = (
+    OfficerSensorDescription(
+        key="current_companies",
+        value_fn=_current_companies,
+        attrs_fn=_current_company_attrs,
+    ),
     OfficerSensorDescription(
         key="appointments_active",
         state_class=SensorStateClass.MEASUREMENT,

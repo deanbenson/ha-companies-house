@@ -444,6 +444,9 @@
       "registers_held": {
         "name": "Registers held"
       },
+      "current_companies": {
+        "name": "Current companies"
+      },
       "appointments_active": {
         "name": "Appointments active"
       },
