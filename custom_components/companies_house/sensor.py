@@ -732,6 +732,25 @@ def _current_company_attrs(officer: OfficerRuntime) -> Attrs:
     }
 
 
+def _record_attrs(officer: OfficerRuntime) -> Attrs:
+    """List the records followed as this person, and any lookalikes found."""
+    search = officer.records.data
+    return {
+        "records": list(officer.officer_ids),
+        "checked_on": _iso(search.checked_on) if search else None,
+        "possible_matches": [
+            {
+                "officer_id": m.officer_id,
+                "name": m.title,
+                "date_of_birth": m.date_of_birth.display() if m.date_of_birth else None,
+                "address": m.address_snippet,
+                "appointments": m.appointment_count,
+            }
+            for m in (search.possible_matches if search else [])
+        ],
+    }
+
+
 def _appointment_attrs(officer: OfficerRuntime) -> Attrs:
     return {
         "appointments": [
@@ -819,6 +838,13 @@ OFFICER_SENSORS: tuple[OfficerSensorDescription, ...] = (
         value_fn=lambda o: (
             d.display() if (d := _appointments(o).date_of_birth) else None
         ),
+    ),
+    OfficerSensorDescription(
+        key="register_records",
+        dataset=OfficerDataset.RECORDS,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda o: len(o.officer_ids),
+        attrs_fn=_record_attrs,
     ),
     OfficerSensorDescription(
         key="officer_role",

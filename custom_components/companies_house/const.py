@@ -46,7 +46,11 @@ CONF_CLOSE_WATCH: Final = "close_watch"
 CONF_LABEL: Final = "label"
 
 CONF_OFFICER_ID: Final = "officer_id"
+# Every register record followed as this one person; the first is the main one.
+CONF_OFFICER_IDS: Final = "officer_ids"
 CONF_OFFICER_NAME: Final = "officer_name"
+# Add every company the person currently holds a role at, automatically.
+CONF_WATCH_COMPANIES: Final = "watch_companies"
 CONF_DATE_OF_BIRTH_MONTH: Final = "date_of_birth_month"
 CONF_DATE_OF_BIRTH_YEAR: Final = "date_of_birth_year"
 
@@ -81,6 +85,7 @@ class OfficerDataset(StrEnum):
 
     APPOINTMENTS = "appointments"
     DISQUALIFICATION = "disqualification"
+    RECORDS = "records"
 
 
 # Rate limiting (section 6.6)
@@ -133,6 +138,8 @@ RECONCILE_INTERVAL: Final = timedelta(days=7)
 STRUCTURE_INTERVAL: Final = timedelta(days=30)
 APPOINTMENTS_INTERVAL: Final = timedelta(days=1)
 DISQUALIFICATION_INTERVAL: Final = timedelta(days=7)
+# How often the register is searched for new records of a followed person.
+RECORDS_INTERVAL: Final = timedelta(days=7)
 JITTER_FRACTION: Final = 0.15
 
 BUSINESS_HOURS_START: Final = (8, 0)
@@ -230,6 +237,8 @@ APPOINTMENT_EVENT_TYPES: Final = [
     "resigned",
     "company-status-changed",
     "disqualified",
+    "new-record",
+    "company-now-watched",
 ]
 
 EVENT_COMPANIES_HOUSE: Final = "companies_house_event"

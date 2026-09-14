@@ -30,10 +30,12 @@ from custom_components.companies_house.const import (
     CONF_LABEL,
     CONF_MAX_PAGES,
     CONF_OFFICER_ID,
+    CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
     CONF_POSTCODE,
     CONF_QUERY,
     CONF_SELECTION,
+    CONF_WATCH_COMPANIES,
     DOMAIN,
     SUBENTRY_TYPE_COMPANY,
     SUBENTRY_TYPE_OFFICER,
@@ -438,9 +440,12 @@ async def test_track_officer_shortcut(
     labels = [o["label"] for o in options]
     assert "SMITH, Jane Elizabeth - director - born 06/1978" in labels
     assert all("BROWN" not in label for label in labels)  # resigned
-    from .conftest import mock_officer
+    from .conftest import appointments_at, mock_company, mock_officer
 
-    mock_officer(aioclient_mock)
+    # Jane holds roles at the watched company and one more; following her
+    # watches the other one automatically.
+    mock_officer(aioclient_mock, appointments=appointments_at("12345678", "34567890"))
+    mock_company(aioclient_mock, "34567890")
     result = await hass.config_entries.subentries.async_configure(
         result["flow_id"], {CONF_SELECTION: "officer-jane"}
     )
@@ -454,13 +459,32 @@ async def test_track_officer_shortcut(
     assert officer.title == "Jane Elizabeth SMITH"
     assert officer.data == {
         CONF_OFFICER_ID: "officer-jane",
+        CONF_OFFICER_IDS: ["officer-jane"],
         CONF_OFFICER_NAME: "Jane Elizabeth SMITH",
         CONF_DATE_OF_BIRTH_MONTH: 6,
         CONF_DATE_OF_BIRTH_YEAR: 1978,
+        CONF_WATCH_COMPANIES: True,
     }
     assert (
         hass.states.get("sensor.jane_elizabeth_smith_appointments_active") is not None
     )
+    await hass.async_block_till_done()
+    added = next(
+        s
+        for s in entry.subentries.values()
+        if s.subentry_type == SUBENTRY_TYPE_COMPANY and s.unique_id == "34567890"
+    )
+    assert added.title == "SUNSET RETAIL LIMITED (Jane Elizabeth SMITH)"
+    assert added.data["label"] == "Jane Elizabeth SMITH"
+    assert (
+        hass.states.get("sensor.sunset_retail_limited_company_status").state
+        == "liquidation"
+    )
+    assert (
+        hass.states.get("switch.jane_elizabeth_smith_watch_their_companies").state
+        == "on"
+    )
+    assert hass.states.get("sensor.companies_house_companies_monitored").state == "2"
 
     # Doing it again aborts because the officer is already tracked.
     result = await hass.config_entries.subentries.async_init(
@@ -602,9 +626,11 @@ async def test_officer_subentry_errors(
 
 
 async def test_officer_subentry_reconfigure(
-    hass: HomeAssistant, setup_entry: Callable[..., Any]
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
 ) -> None:
-    """The display name can be changed."""
+    """The name and the watch-their-companies setting can be changed in place."""
     entry = await setup_entry(officers=True)
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_OFFICER),
@@ -613,15 +639,25 @@ async def test_officer_subentry_reconfigure(
             "subentry_id": "sub_officer",
         },
     )
-    assert result["step_id"] == "reconfigure"
-    assert result["description_placeholders"] == {"officer_id": "officer-jane"}
+    assert result["type"] is FlowResultType.MENU
+    assert result["menu_options"] == ["settings", "add_record"]
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {CONF_OFFICER_NAME: "Jane Smith (our director)"}
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    assert result["step_id"] == "settings"
+    assert result["description_placeholders"] == {
+        "officer_id": "officer-jane",
+        "records": "1 record",
+    }
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {CONF_OFFICER_NAME: "Jane Smith (our director)", CONF_WATCH_COMPANIES: False},
     )
     await hass.async_block_till_done()
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
     assert entry.subentries["sub_officer"].title == "Jane Smith (our director)"
+    assert entry.subentries["sub_officer"].data[CONF_WATCH_COMPANIES] is False
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, SUBENTRY_TYPE_OFFICER),
         context={
@@ -630,12 +666,156 @@ async def test_officer_subentry_reconfigure(
         },
     )
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {CONF_OFFICER_NAME: "  "}
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_OFFICER_NAME: "  ", CONF_WATCH_COMPANIES: False}
     )
     assert (
         entry.subentries["sub_officer"].data[CONF_OFFICER_NAME]
         == "Jane Smith (our director)"
     )
+
+
+async def test_officer_add_record_pools_appointments(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A second register record is followed as the same person, in place."""
+    from unittest.mock import patch
+
+    from .conftest import appointments_at
+
+    entry = await setup_entry(officers=True)
+    before = hass.states.get("sensor.jane_elizabeth_smith_appointments_active")
+    assert before.state == "18"
+    mock_search(aioclient_mock)
+    aioclient_mock.get(
+        f"{API_BASE}/officers/officer-other-jane/appointments",
+        json=appointments_at("34567890"),
+    )
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OFFICER),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": "sub_officer",
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "add_record"}
+    )
+    assert result["step_id"] == "add_record"
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "jane smith"}
+    )
+    assert result["step_id"] == "pick_record"
+    options = result["data_schema"].schema[CONF_SELECTION].config["options"]
+    assert options[0]["label"].endswith("(already following)")
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {CONF_SELECTION: "officer-other-jane"}
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "record_added"
+    assert result["description_placeholders"] == {"name": "Jane SMITH"}
+    assert entry.subentries["sub_officer"].data[CONF_OFFICER_IDS] == [
+        "officer-jane",
+        "officer-other-jane",
+    ]
+    # The appointments of both records are pooled on the one person.
+    assert (
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "19"
+    )
+    records = hass.states.get("sensor.jane_elizabeth_smith_register_records")
+    assert records.state == "2"
+    assert records.attributes["records"] == ["officer-jane", "officer-other-jane"]
+    current = hass.states.get("sensor.jane_elizabeth_smith_current_companies")
+    assert "SUNSET RETAIL LIMITED" in [
+        c["company_name"] for c in current.attributes["companies"]
+    ]
+
+    # Adding the same record again is refused.
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_OFFICER),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": "sub_officer",
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "add_record"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "jane smith"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_SELECTION: "officer-other-jane"}
+    )
+    assert result["reason"] == "record_already_followed"
+
+
+async def test_pasted_links_go_straight_to_the_record(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A Companies House page address, or a bare id or number, skips the search."""
+    from .conftest import mock_company, mock_officer
+
+    entry = await setup_entry()
+    mock_officer(aioclient_mock)
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_OFFICER)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_QUERY: "https://find-and-update.company-information.service.gov.uk"
+            "/officers/officer-jane/appointments"
+        },
+    )
+    assert result["step_id"] == "select"
+    options = result["data_schema"].schema[CONF_SELECTION].config["options"]
+    assert len(options) == 1
+    assert options[0]["value"] == "officer-jane"
+    assert (
+        options[0]["label"]
+        == "Jane Elizabeth SMITH - born 06/1978 - Reading - 23 appointments"
+    )
+    # No search request was made; the record was fetched directly.
+    assert not any("search/officers" in c[1].path for c in aioclient_mock.mock_calls)
+
+    mock_company(aioclient_mock, "12345678")
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_COMPANY)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_QUERY: "https://find-and-update.company-information.service.gov.uk"
+            "/company/12345678",
+            CONF_POSTCODE: "",
+        },
+    )
+    assert result["step_id"] == "select"
+    options = result["data_schema"].schema[CONF_SELECTION].config["options"]
+    assert options == [
+        {
+            "value": "12345678",
+            "label": "EXAMPLE TRADING LIMITED (12345678) - active - incorporated 2015",
+        }
+    ]
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_COMPANY)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "12345678", CONF_POSTCODE: ""}
+    )
+    assert result["step_id"] == "select"
+    # A link that leads nowhere is just "no results".
+    aioclient_mock.get(f"{API_BASE}/company/99999999", status=404)
+    result = await _start_subentry(hass, entry, SUBENTRY_TYPE_COMPANY)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_QUERY: "99999999", CONF_POSTCODE: ""}
+    )
+    assert result["errors"] == {"base": "no_results"}
 
 
 async def test_search_404_means_no_results_and_input_is_kept(

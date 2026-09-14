@@ -146,6 +146,7 @@ def mock_officer(
     *,
     appointments: dict[str, Any] | None = None,
     disqualified_search: dict[str, Any] | None = None,
+    records_search: dict[str, Any] | None = None,
 ) -> None:
     """Register the officer endpoints."""
     aioclient_mock.get(
@@ -158,10 +159,48 @@ def mock_officer(
         if disqualified_search is not None
         else load_fixture("officer_many/disqualified_search_name_only"),
     )
+    # The weekly search for more register records of this person.
+    aioclient_mock.get(
+        f"{API_BASE}/search/officers?q=Jane+Elizabeth+SMITH",
+        json=records_search
+        if records_search is not None
+        else load_fixture("search/officers"),
+    )
     aioclient_mock.get(
         f"{API_BASE}/disqualified-officers/natural/dq-exact-jane",
         json=load_fixture("officer_many/disqualification_natural"),
     )
+
+
+def appointments_at(*company_numbers: str) -> dict[str, Any]:
+    """Return Jane's appointments payload cut down to the given companies.
+
+    The names come from the company fixtures, so a company added from an
+    appointment matches what its own endpoints then return.
+    """
+    full = load_fixture("officer_many/appointments")
+    items = []
+    for number in company_numbers:
+        profile = load_fixture(f"{COMPANY_FIXTURES[number]}/profile")
+        item = dict(full["items"][0])
+        item["appointed_to"] = {
+            "company_name": profile["company_name"],
+            "company_number": number,
+            "company_status": profile["company_status"],
+        }
+        item["links"] = {
+            "company": f"/company/{number}",
+            "self": f"/company/{number}/appointments/app-{number}",
+        }
+        items.append(item)
+    return {
+        **full,
+        "items": items,
+        "total_results": len(items),
+        "active_count": sum(1 for i in items if not i.get("resigned_on")),
+        "resigned_count": 0,
+        "inactive_count": 0,
+    }
 
 
 def mock_search(aioclient_mock: AiohttpClientMocker) -> None:

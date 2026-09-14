@@ -28,6 +28,7 @@ from .const import (
     QUIET_NO_DEADLINE_DAYS,
     QUIET_NO_FILING_DAYS,
     RECONCILE_INTERVAL,
+    RECORDS_INTERVAL,
     STRUCTURE_INTERVAL,
     TIMEZONE,
     Tier,
@@ -318,6 +319,13 @@ def disqualification_next_run(
     )
 
 
+def records_next_run(
+    officer_id: str, now: datetime, last_run: datetime | None
+) -> datetime:
+    """Return the next weekly slot for searching the register for new records."""
+    return next_slot(f"records:{officer_id}", RECORDS_INTERVAL, now, last_run)
+
+
 def projected_requests_per_window(
     tiers: list[Tier], officer_count: int, multiplier: float = 1.0
 ) -> float:
@@ -339,5 +347,6 @@ def projected_requests_per_window(
     total += officer_count * (
         window / (APPOINTMENTS_INTERVAL * multiplier)
         + window / (DISQUALIFICATION_INTERVAL * multiplier)
+        + window / (RECORDS_INTERVAL * multiplier)
     )
     return round(total, 2)

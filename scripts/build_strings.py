@@ -124,6 +124,7 @@ OFFICER_SENSORS = {
     "last_appointment_date": "Last appointment date",
     "appointments_resigned": "Appointments resigned",
     "first_appointment_date": "First appointment date",
+    "register_records": "Register records",
     "nationality": "Nationality",
     "country_of_residence": "Country of residence",
     "occupation": "Occupation",
@@ -233,6 +234,8 @@ EVENTS = {
             "resigned": "Resigned",
             "company-status-changed": "Company status changed",
             "disqualified": "Disqualified",
+            "new-record": "New register record found",
+            "company-now-watched": "Company now watched",
         },
     ),
 }
@@ -343,9 +346,12 @@ def build() -> dict:
                     "user": {
                         "title": "Find a company",
                         "description": "Type part of the company name. Or enter a postcode to find the company registered at an address.",
-                        "data": {"query": "Company name", "postcode": "Postcode"},
+                        "data": {
+                            "query": "Company name, number or link",
+                            "postcode": "Postcode",
+                        },
                         "data_description": {
-                            "query": "Part of the company name is enough.",
+                            "query": "Part of the company name is enough. A company number, or the address of the company's page on the Companies House website, goes straight to it.",
                             "postcode": "Optional. Only show companies registered at this postcode.",
                         },
                     },
@@ -417,16 +423,49 @@ def build() -> dict:
                     "user": {
                         "title": "Find a person",
                         "description": "Search by name for a director, secretary or other officer. Many people share a name. Use the month and year of birth in the results to pick the right one.",
-                        "data": {"query": "Name"},
+                        "data": {"query": "Name or Companies House link"},
+                        "data_description": {
+                            "query": "You can also paste the address of the person's page on the Companies House website."
+                        },
                     },
                     "select": {
                         "title": "Choose the person",
-                        "data": {"selection": "Person"},
+                        "data": {
+                            "selection": "Person",
+                            "watch_companies": "Watch their companies",
+                        },
+                        "data_description": {
+                            "watch_companies": "Add every company they currently hold a role at, and any they join later, as watched companies."
+                        },
                     },
                     "reconfigure": {
                         "title": "Change officer settings",
-                        "description": "The name to show for this person (Companies House reference {officer_id}). Useful when the register holds more than one record for the same person.",
-                        "data": {"officer_name": "Name to show"},
+                        "menu_options": {
+                            "settings": "Change the name or settings",
+                            "add_record": "Add another register record for this person",
+                        },
+                    },
+                    "settings": {
+                        "title": "Settings",
+                        "description": "Companies House reference {officer_id}. Followed as {records}.",
+                        "data": {
+                            "officer_name": "Name to show",
+                            "watch_companies": "Watch their companies",
+                        },
+                        "data_description": {
+                            "officer_name": "Useful when the register holds more than one record for the same person.",
+                            "watch_companies": "Add every company they currently hold a role at, and any they join later, as watched companies.",
+                        },
+                    },
+                    "add_record": {
+                        "title": "Find another record",
+                        "description": "The register opens a new record whenever someone is appointed with slightly different details. Search for the person again, or paste the address of the other record's page.",
+                        "data": {"query": "Name or Companies House link"},
+                    },
+                    "pick_record": {
+                        "title": "Choose the record to add to {name}",
+                        "description": "Its appointments will be pooled with the ones already followed.",
+                        "data": {"selection": "Record"},
                     },
                 },
                 "error": {
@@ -437,6 +476,8 @@ def build() -> dict:
                     "already_configured": "You are already following this person.",
                     "invalid_auth": "Companies House rejected your API key. Fix that from the repair notice first.",
                     "reconfigure_successful": "Saved.",
+                    "record_added": "Added {name} as another record of this person.",
+                    "record_already_followed": "That record is already followed.",
                 },
             },
         },
@@ -457,6 +498,7 @@ def build() -> dict:
                 k: {"name": v} for k, v in {**COMPANY_BINARY, **OFFICER_BINARY}.items()
             },
             "event": events,
+            "switch": {"watch_companies": {"name": "Watch their companies"}},
             "calendar": {
                 "deadlines": {"name": "Deadlines"},
                 "all_deadlines": {"name": "All deadlines"},

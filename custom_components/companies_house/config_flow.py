@@ -40,6 +40,7 @@ from .api import (
     CompaniesHouseError,
     CompaniesHouseNotFoundError,
     CompaniesHouseRateLimitError,
+    Priority,
 )
 from .const import (
     BUDGET_PROJECTION_MAX_PER_WINDOW,
@@ -56,10 +57,12 @@ from .const import (
     CONF_LABEL,
     CONF_MAX_PAGES,
     CONF_OFFICER_ID,
+    CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
     CONF_POSTCODE,
     CONF_QUERY,
     CONF_SELECTION,
+    CONF_WATCH_COMPANIES,
     DEFAULT_CADENCE_MULTIPLIER,
     DEFAULT_DOCUMENT_DIRECTORY,
     DEFAULT_DUE_SOON_DAYS,
@@ -77,7 +80,13 @@ from .const import (
     SUBENTRY_TYPE_OFFICER,
     Tier,
 )
-from .models import DateOfBirth, JsonDict, officer_id_from_link
+from .models import (
+    DateOfBirth,
+    JsonDict,
+    company_number_from_text,
+    officer_id_from_link,
+    officer_id_from_text,
+)
 from .scheduler import projected_requests_per_window
 
 API_KEY_SCHEMA = vol.Schema(
@@ -378,6 +387,21 @@ class CompanySubentryFlow(ConfigSubentryFlow):
     async def _search(self, query: str, postcode: str) -> dict[str, JsonDict]:
         if not query and not postcode:
             return {}
+        if (number := company_number_from_text(query)) and not postcode:
+            # A pasted Companies House link or a bare company number.
+            profile = await self._client.get_company(
+                number, priority=Priority.ON_DEMAND
+            )
+            return {
+                number: {
+                    "company_number": number,
+                    "title": profile.company_name,
+                    "company_status": profile.company_status,
+                    "date_of_creation": profile.date_of_creation.isoformat()
+                    if profile.date_of_creation
+                    else None,
+                }
+            }
         if postcode:
             params: dict[str, Any] = {
                 "location": postcode,
@@ -538,10 +562,7 @@ class CompanySubentryFlow(ConfigSubentryFlow):
         if user_input is not None:
             chosen = self._results[user_input[CONF_SELECTION]]
             officer_id = str(chosen["officer_id"])
-            if any(
-                s.subentry_type == SUBENTRY_TYPE_OFFICER and s.unique_id == officer_id
-                for s in entry.subentries.values()
-            ):
+            if officer_id in _followed_records(entry):
                 return self.async_abort(reason="officer_already_configured")
             dob = chosen.get("date_of_birth") or {}
             self.hass.config_entries.async_add_subentry(
@@ -550,9 +571,11 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                     data=MappingProxyType(
                         {
                             CONF_OFFICER_ID: officer_id,
+                            CONF_OFFICER_IDS: [officer_id],
                             CONF_OFFICER_NAME: _display_name(str(chosen["name"])),
                             CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
                             CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
+                            CONF_WATCH_COMPANIES: True,
                         }
                     ),
                     subentry_type=SUBENTRY_TYPE_OFFICER,
@@ -574,7 +597,7 @@ class CompanySubentryFlow(ConfigSubentryFlow):
                 errors["base"] = "cannot_connect"
             if not errors and not self._results:
                 return self.async_abort(reason="no_officers")
-        followed = _configured(entry, SUBENTRY_TYPE_OFFICER)
+        followed = _followed_records(entry)
         options = [
             SelectOptionDict(
                 value=key,
@@ -634,7 +657,7 @@ class CompanySubentryFlow(ConfigSubentryFlow):
 
 
 class OfficerSubentryFlow(ConfigSubentryFlow):
-    """Add or reconfigure a tracked officer."""
+    """Add or reconfigure a followed person."""
 
     def __init__(self) -> None:
         """Initialise the search state."""
@@ -644,81 +667,83 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
     def _client(self) -> CompaniesHouseClient:
         return _client_for(self.hass, self._get_entry())
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Search officers by name."""
+    async def _search(self, query: str) -> dict[str, JsonDict]:
+        """Search by name, or look one record up when given a link or id."""
+        officer_id = officer_id_from_text(query)
+        if officer_id:
+            raw = await self._client.get_officer_appointments_raw(officer_id)
+            items = raw.get("items") or []
+            first = items[0] if items and isinstance(items[0], dict) else {}
+            raw_address = first.get("address")
+            address = raw_address if isinstance(raw_address, dict) else {}
+            return {
+                officer_id: {
+                    "officer_id": officer_id,
+                    "name": raw.get("name") or officer_id,
+                    "appointment_count": raw.get("total_results"),
+                    "date_of_birth": dob.to_storage()
+                    if (dob := DateOfBirth.from_api(raw.get("date_of_birth")))
+                    else None,
+                    "dob_display": dob.display() if dob else None,
+                    "locality": address.get("locality") or None,
+                }
+            }
+        raw = await self._client.search_officers(
+            query, items_per_page=OFFICER_SEARCH_ITEMS_PER_PAGE
+        )
+        results: dict[str, JsonDict] = {}
+        for item in raw.get("items") or []:
+            if not isinstance(item, dict):
+                continue
+            raw_links = item.get("links")
+            links: JsonDict = raw_links if isinstance(raw_links, dict) else {}
+            officer_id = officer_id_from_link(links.get("self"))
+            if not officer_id:
+                continue
+            dob = DateOfBirth.from_api(item.get("date_of_birth"))
+            raw_address = item.get("address")
+            address = raw_address if isinstance(raw_address, dict) else {}
+            results[officer_id] = {
+                "officer_id": officer_id,
+                "name": item.get("title") or officer_id,
+                "appointment_count": item.get("appointment_count"),
+                "date_of_birth": dob.to_storage() if dob else None,
+                "dob_display": dob.display() if dob else None,
+                "locality": address.get("locality") or None,
+            }
+        return results
+
+    async def _async_run_search(
+        self, step_id: str, user_input: dict[str, Any] | None
+    ) -> SubentryFlowResult | None:
+        """Run the name search form; return None once results are in hand."""
         errors: dict[str, str] = {}
         if user_input is not None:
             query = user_input[CONF_QUERY].strip()
             try:
-                raw = await self._client.search_officers(
-                    query, items_per_page=OFFICER_SEARCH_ITEMS_PER_PAGE
-                )
+                self._results = await self._search(query)
             except CompaniesHouseAuthError:
                 return self.async_abort(reason="invalid_auth")
             except CompaniesHouseNotFoundError:
-                raw = {"items": []}
+                # No hits, or a pasted link that leads nowhere, both answer 404.
+                self._results = {}
             except CompaniesHouseError as err:
                 LOGGER.debug("Officer search failed: %s", err)
                 errors["base"] = "cannot_connect"
-            if not errors:
-                self._results = {}
-                for item in raw.get("items") or []:
-                    if not isinstance(item, dict):
-                        continue
-                    raw_links = item.get("links")
-                    links: JsonDict = raw_links if isinstance(raw_links, dict) else {}
-                    officer_id = officer_id_from_link(links.get("self"))
-                    if not officer_id:
-                        continue
-                    dob = DateOfBirth.from_api(item.get("date_of_birth"))
-                    raw_address = item.get("address")
-                    address = raw_address if isinstance(raw_address, dict) else {}
-                    self._results[officer_id] = {
-                        "officer_id": officer_id,
-                        "name": item.get("title") or officer_id,
-                        "appointment_count": item.get("appointment_count"),
-                        "date_of_birth": dob.to_storage() if dob else None,
-                        "dob_display": dob.display() if dob else None,
-                        "locality": address.get("locality") or None,
-                    }
-                if not self._results:
-                    errors["base"] = "no_results"
-                else:
-                    return await self.async_step_select()
+            if not errors and not self._results:
+                errors["base"] = "no_results"
+            elif not errors:
+                return None
         return self.async_show_form(
-            step_id="user",
+            step_id=step_id,
             data_schema=self.add_suggested_values_to_schema(
                 vol.Schema({vol.Required(CONF_QUERY): TextSelector()}), user_input
             ),
             errors=errors,
         )
 
-    async def async_step_select(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Pick the officer; the date of birth is what separates namesakes."""
-        if user_input is not None:
-            chosen = self._results[user_input[CONF_SELECTION]]
-            officer_id = str(chosen["officer_id"])
-            if any(
-                s.subentry_type == SUBENTRY_TYPE_OFFICER and s.unique_id == officer_id
-                for s in self._get_entry().subentries.values()
-            ):
-                return self.async_abort(reason="already_configured")
-            dob = chosen.get("date_of_birth") or {}
-            return self.async_create_entry(
-                title=str(chosen["name"]),
-                data={
-                    CONF_OFFICER_ID: officer_id,
-                    CONF_OFFICER_NAME: chosen["name"],
-                    CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
-                    CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
-                },
-                unique_id=officer_id,
-            )
-        followed = _configured(self._get_entry(), SUBENTRY_TYPE_OFFICER)
+    def _selector(self, followed: set[str]) -> SelectSelector:
+        """Build the results dropdown, marking records already followed."""
         options = [
             SelectOptionDict(
                 value=key,
@@ -736,15 +761,46 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
         ]
         # A dropdown can be typed into, so "1977" or "Leeds" narrows a
         # long list of namesakes down to the right person.
+        return SelectSelector(
+            SelectSelectorConfig(options=options, mode=SelectSelectorMode.DROPDOWN)
+        )
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Search officers by name, or by a pasted Companies House link."""
+        form = await self._async_run_search("user", user_input)
+        return form if form is not None else await self.async_step_select()
+
+    async def async_step_select(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Pick the person; the date of birth is what separates namesakes."""
+        if user_input is not None:
+            chosen = self._results[user_input[CONF_SELECTION]]
+            officer_id = str(chosen["officer_id"])
+            if officer_id in _followed_records(self._get_entry()):
+                return self.async_abort(reason="already_configured")
+            dob = chosen.get("date_of_birth") or {}
+            return self.async_create_entry(
+                title=str(chosen["name"]),
+                data={
+                    CONF_OFFICER_ID: officer_id,
+                    CONF_OFFICER_IDS: [officer_id],
+                    CONF_OFFICER_NAME: chosen["name"],
+                    CONF_DATE_OF_BIRTH_MONTH: dob.get("month"),
+                    CONF_DATE_OF_BIRTH_YEAR: dob.get("year"),
+                    CONF_WATCH_COMPANIES: bool(user_input[CONF_WATCH_COMPANIES]),
+                },
+                unique_id=officer_id,
+            )
+        followed = _followed_records(self._get_entry())
         return self.async_show_form(
             step_id="select",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_SELECTION): SelectSelector(
-                        SelectSelectorConfig(
-                            options=options, mode=SelectSelectorMode.DROPDOWN
-                        )
-                    )
+                    vol.Required(CONF_SELECTION): self._selector(followed),
+                    vol.Required(CONF_WATCH_COMPANIES, default=True): BooleanSelector(),
                 }
             ),
         )
@@ -752,7 +808,15 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Change the display name."""
+        """Offer the settings or adding another register record."""
+        return self.async_show_menu(
+            step_id="reconfigure", menu_options=["settings", "add_record"]
+        )
+
+    async def async_step_settings(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Change the display name and whether their companies are watched."""
         subentry = self._get_reconfigure_subentry()
         if user_input is not None:
             name = (
@@ -763,17 +827,82 @@ class OfficerSubentryFlow(ConfigSubentryFlow):
                 self._get_entry(),
                 subentry,
                 title=name,
-                data_updates={CONF_OFFICER_NAME: name},
+                data_updates={
+                    CONF_OFFICER_NAME: name,
+                    CONF_WATCH_COMPANIES: bool(user_input[CONF_WATCH_COMPANIES]),
+                },
             )
+        records = subentry.data.get(CONF_OFFICER_IDS) or [
+            subentry.data[CONF_OFFICER_ID]
+        ]
         return self.async_show_form(
-            step_id="reconfigure",
+            step_id="settings",
             data_schema=vol.Schema(
                 {
                     vol.Required(
                         CONF_OFFICER_NAME,
                         default=subentry.data.get(CONF_OFFICER_NAME, ""),
-                    ): TextSelector()
+                    ): TextSelector(),
+                    vol.Required(
+                        CONF_WATCH_COMPANIES,
+                        default=bool(subentry.data.get(CONF_WATCH_COMPANIES, False)),
+                    ): BooleanSelector(),
                 }
             ),
-            description_placeholders={"officer_id": subentry.data[CONF_OFFICER_ID]},
+            description_placeholders={
+                "officer_id": subentry.data[CONF_OFFICER_ID],
+                "records": _plural(len(records), "record", "records"),
+            },
         )
+
+    async def async_step_add_record(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Search for another register record of this same person."""
+        form = await self._async_run_search("add_record", user_input)
+        return form if form is not None else await self.async_step_pick_record()
+
+    async def async_step_pick_record(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Add the chosen record to this person."""
+        entry = self._get_entry()
+        subentry = self._get_reconfigure_subentry()
+        records = list(
+            subentry.data.get(CONF_OFFICER_IDS) or [subentry.data[CONF_OFFICER_ID]]
+        )
+        if user_input is not None:
+            officer_id = str(user_input[CONF_SELECTION])
+            if officer_id in _followed_records(entry):
+                return self.async_abort(reason="record_already_followed")
+            self.hass.config_entries.async_update_subentry(
+                entry,
+                subentry,
+                data={**subentry.data, CONF_OFFICER_IDS: [*records, officer_id]},
+            )
+            return self.async_abort(
+                reason="record_added",
+                description_placeholders={
+                    "name": str(self._results[officer_id]["name"])
+                },
+            )
+        return self.async_show_form(
+            step_id="pick_record",
+            data_schema=vol.Schema(
+                {vol.Required(CONF_SELECTION): self._selector(_followed_records(entry))}
+            ),
+            description_placeholders={
+                "name": subentry.data.get(CONF_OFFICER_NAME, ""),
+            },
+        )
+
+
+def _followed_records(entry: ConfigEntry) -> set[str]:
+    """Return every register record followed, across all the people."""
+    followed: set[str] = set()
+    for sub in entry.subentries.values():
+        if sub.subentry_type != SUBENTRY_TYPE_OFFICER:
+            continue
+        followed.add(str(sub.data.get(CONF_OFFICER_ID, sub.unique_id or "")))
+        followed.update(str(i) for i in sub.data.get(CONF_OFFICER_IDS) or [])
+    return followed

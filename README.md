@@ -52,9 +52,27 @@ monitor, whether to enable **close watch**, and an optional label such as
 "Contractor, 47 High Street". Profile and filing history are always monitored.
 
 **Officer.** Search by name and pick from results shown as
-`Name - born MM/YYYY - N appointments`. Names collide constantly; the month and
-year of birth is what tells people apart. The officer id is resolved from the
-result, and the date of birth is kept for disqualification matching.
+`Name - born MM/YYYY - Town - N appointments`. Names collide constantly; the
+month and year of birth is what tells people apart, and the list can be typed
+into to narrow it. The officer id is resolved from the result, and the date of
+birth is kept for disqualification matching. Tick **Watch their companies** to
+add every company they currently hold a role at as a watched company, and any
+they join later, automatically. The same setting is a switch on the person's
+device.
+
+**Pasting a link.** Both pickers accept the address of a page on the Companies
+House website (`/company/12345678` or `/officers/.../appointments`), or a bare
+company number or officer id, and go straight to it. Handy for a common name
+that never surfaces in a search.
+
+**One person, several records.** The register opens a new record whenever
+someone is appointed with slightly different details, so one person can be
+three "officers". Reconfigure the person and choose **Add another register
+record**: its appointments are pooled with the ones already followed, on the
+one device. Once a week the register is searched for further records of each
+followed person; a record whose surname, forename and month and year of birth
+all match is followed automatically (and raises a `new-record` event), while a
+name-only match is only listed on the *Register records* sensor.
 
 **The shortcut.** Reconfigure a company and choose **Track an officer of this
 company**: its current officers are listed and one click creates the officer
@@ -172,11 +190,14 @@ accounts period end and the accounting reference date as all day events.
 
 ### Officer
 
-Appointments active, appointments total (with the full list in attributes,
-capped at fifty), most recent company, last appointment date, disqualified
-(problem), currently holds appointments, appointments resigned, first
-appointment date; diagnostic: nationality, country of residence, occupation,
-date of birth (month and year only), officer role.
+Current companies (the companies they hold a role at today, newest first,
+with a `watched` flag per company in the attributes), appointments active,
+appointments total (with the full list in attributes, capped at fifty), most
+recent company, last appointment date, disqualified (problem), currently holds
+appointments, appointments resigned, first appointment date; the *Watch their
+companies* switch; diagnostic: nationality, country of residence, occupation,
+date of birth (month and year only), officer role, register records (how many
+records are followed as this person, with any lookalikes found).
 
 **Disqualification matching is honest.** The register search matches on name,
 and names collide constantly. The *Disqualified* sensor only turns on for an
@@ -260,7 +281,7 @@ Event types by kind:
 | charge | created, satisfied, part-satisfied, acquired | charge_code, persons_entitled, created_on, delivered_on, satisfied_on, status |
 | status | status-changed, strike-off-proposed, strike-off-discontinued, dissolved | old_status, new_status, detail |
 | profile | name-changed, address-changed, sic-changed, accounting-reference-date-changed | old_value, new_value |
-| appointment (officer) | appointed, resigned, company-status-changed, disqualified | company_number, company_name, company_status, role, appointed_on, resigned_on |
+| appointment (officer) | appointed, resigned, company-status-changed, disqualified, new-record, company-now-watched | company_number, company_name, company_status, role, appointed_on, resigned_on; `new-record` carries officer_id and name |
 
 `companies_house_document_downloaded` fires after `download_document` with the
 path and filing metadata.

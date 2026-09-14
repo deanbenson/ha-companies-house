@@ -22,7 +22,13 @@ ALL_COMPANIES = list(COMPANY_FIXTURES)
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
 @pytest.mark.parametrize(
     "platform",
-    [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.EVENT, Platform.CALENDAR],
+    [
+        Platform.SENSOR,
+        Platform.BINARY_SENSOR,
+        Platform.EVENT,
+        Platform.CALENDAR,
+        Platform.SWITCH,
+    ],
 )
 async def test_entities(
     hass: HomeAssistant,

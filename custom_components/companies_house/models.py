@@ -79,6 +79,36 @@ def officer_id_from_link(link: Any) -> str | None:
     return match.group(1) if match else None
 
 
+_OFFICER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{27}$")
+_COMPANY_NUMBER_RE = re.compile(r"^[A-Z0-9]{8}$")
+
+
+def officer_id_from_text(text: str) -> str | None:
+    """Return the officer id if the text is a Companies House link or a bare id.
+
+    Accepts the register's ``/officers/{id}/appointments`` page address, with
+    or without the site, and a bare 27 character id. Anything else is a name.
+    """
+    cleaned = text.strip()
+    match = re.search(r"/officers/([A-Za-z0-9_-]+)(?:/|$|\?)", cleaned)
+    if match:
+        return match.group(1)
+    return cleaned if _OFFICER_ID_RE.match(cleaned) else None
+
+
+def company_number_from_text(text: str) -> str | None:
+    """Return the company number if the text is a Companies House link or a number.
+
+    Accepts ``/company/{number}`` page addresses and bare eight character
+    numbers such as ``11718666`` or ``SC233070``.
+    """
+    cleaned = text.strip()
+    match = re.search(r"/company/([A-Za-z0-9]+)(?:/|$|\?)", cleaned)
+    if match:
+        return match.group(1).upper()
+    return cleaned.upper() if _COMPANY_NUMBER_RE.match(cleaned.upper()) else None
+
+
 def stable_hash(*parts: Any) -> str:
     """Return a short stable hash of the given parts for change detection."""
     payload = json.dumps(parts, sort_keys=True, default=str)
@@ -994,6 +1024,8 @@ class AppointmentList(StorableModel):
     inactive_count: int | None = None
     items: list[Appointment] = field(default_factory=list)
     etag: str | None = None
+    # Every register record merged into this list; empty means just officer_id.
+    officer_ids: list[str] = field(default_factory=list)
 
     @classmethod
     def from_api(
@@ -1014,6 +1046,35 @@ class AppointmentList(StorableModel):
             etag=_str(data.get("etag")),
         )
 
+    @classmethod
+    def merge(cls, primary: AppointmentList, others: list[AppointmentList]) -> Self:
+        """Combine several register records into one person's list.
+
+        The main record supplies the name and date of birth; the counts and
+        the appointments are pooled. The register's counts are kept only
+        when every record reports them.
+        """
+        records = [primary, *others]
+
+        def total(attr: str) -> int | None:
+            values = [getattr(r, attr) for r in records]
+            return None if any(v is None for v in values) else sum(values)
+
+        return cls(
+            officer_id=primary.officer_id,
+            name=primary.name,
+            is_corporate_officer=primary.is_corporate_officer,
+            date_of_birth=primary.date_of_birth
+            or next((r.date_of_birth for r in others if r.date_of_birth), None),
+            total_results=sum(r.total_results for r in records),
+            active_count=total("active_count"),
+            resigned_count=total("resigned_count"),
+            inactive_count=total("inactive_count"),
+            items=[a for r in records for a in r.items],
+            etag=primary.etag,
+            officer_ids=[r.officer_id for r in records],
+        )
+
     @property
     def active(self) -> list[Appointment]:
         """Appointments that have not been resigned."""
@@ -1028,6 +1089,28 @@ class AppointmentList(StorableModel):
     def inactive(self) -> list[Appointment]:
         """Unresigned appointments at companies no longer on the register."""
         return [a for a in self.items if a.resigned_on is None and not a.is_active]
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecordCandidate(StorableModel):
+    """A register record that shares a followed person's name."""
+
+    officer_id: str
+    title: str
+    date_of_birth: DateOfBirth | None = None
+    address_snippet: str | None = None
+    appointment_count: int | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class RecordSearch(StorableModel):
+    """The result of searching the register for more records of one person."""
+
+    checked_on: date | None = None
+    # Records found this time whose name and date of birth both matched.
+    found: list[str] = field(default_factory=list)
+    # Same name, but no date of birth to confirm with, or a different one.
+    possible_matches: list[RecordCandidate] = field(default_factory=list)
 
 
 @dataclass(frozen=True, kw_only=True)

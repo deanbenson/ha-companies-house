@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -29,7 +30,9 @@ from .const import (
     CONF_LABEL,
     CONF_MAX_PAGES,
     CONF_OFFICER_ID,
+    CONF_OFFICER_IDS,
     CONF_OFFICER_NAME,
+    CONF_WATCH_COMPANIES,
     DEFAULT_MAX_PAGES,
     DOMAIN,
     LOGGER,
@@ -56,6 +59,7 @@ PLATFORMS: list[Platform] = [
     Platform.CALENDAR,
     Platform.EVENT,
     Platform.SENSOR,
+    Platform.SWITCH,
 ]
 
 
@@ -70,6 +74,9 @@ class CompaniesHouseRuntimeData:
     companies: dict[str, CompanyRuntime] = field(default_factory=dict)
     officers: dict[str, OfficerRuntime] = field(default_factory=dict)
     snapshot: dict[str, Any] = field(default_factory=dict)
+    # Changes are applied one at a time, so an officer adding companies while
+    # a change is still being applied cannot start the same company twice.
+    lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
 type CompaniesHouseConfigEntry = ConfigEntry[CompaniesHouseRuntimeData]
@@ -183,8 +190,10 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
 
 # Settings that only change what is shown, never what is fetched.
 COSMETIC_KEYS: frozenset[str] = frozenset({CONF_LABEL, CONF_OFFICER_NAME})
-# Settings a running company can take on board without being rebuilt.
-LIVE_KEYS: frozenset[str] = frozenset({CONF_CLOSE_WATCH})
+# Settings a running company or officer can take on board without a rebuild.
+LIVE_KEYS: frozenset[str] = frozenset(
+    {CONF_CLOSE_WATCH, CONF_WATCH_COMPANIES, CONF_OFFICER_IDS}
+)
 
 
 def _subentry_snapshot(entry: ConfigEntry) -> dict[str, Any]:
@@ -249,6 +258,8 @@ async def _async_start_subentry(
             date_of_birth=DateOfBirth(month=month, year=year)
             if month is not None and year is not None
             else None,
+            officer_ids=list(subentry.data.get(CONF_OFFICER_IDS) or []),
+            watch_companies=bool(subentry.data.get(CONF_WATCH_COMPANIES, False)),
         )
         await officer.async_first_refresh()
         runtime.officers[subentry.subentry_id] = officer
@@ -266,6 +277,14 @@ async def _async_update_listener(
     running are untouched (no flicker to unavailable). Changing what is
     fetched for an existing one, or changing the options, reloads the entry.
     """
+    runtime = entry.runtime_data
+    async with runtime.lock:
+        await _async_apply_changes(hass, entry)
+
+
+async def _async_apply_changes(
+    hass: HomeAssistant, entry: CompaniesHouseConfigEntry
+) -> None:
     runtime = entry.runtime_data
     before = runtime.snapshot
     after = _subentry_snapshot(entry)
@@ -286,6 +305,18 @@ async def _async_update_listener(
         data = after["subentries"][sid]
         if (officer := runtime.officers.get(sid)) is not None:
             _rename_officer(hass, officer, data.get(CONF_OFFICER_NAME, ""))
+            watch = bool(data.get(CONF_WATCH_COMPANIES, False))
+            if watch and not officer.watch_companies:
+                officer.watch_companies = True
+                await officer.async_watch_companies()
+            officer.watch_companies = watch
+            ids = list(data.get(CONF_OFFICER_IDS) or [officer.officer_id])
+            if set(ids) != set(officer.officer_ids):
+                officer.officer_ids = [officer.officer_id] + [
+                    i for i in ids if i != officer.officer_id
+                ]
+                await officer.appointments.async_refresh_now()
+                officer.records.async_update_listeners()
         if (company := runtime.companies.get(sid)) is not None:
             company.close_watch = bool(data.get(CONF_CLOSE_WATCH, False))
             company.recompute_tier()

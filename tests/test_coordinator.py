@@ -782,6 +782,88 @@ async def test_disqualification_exact_match_sets_sensor(
     assert [e.data["event_type"] for e in events] == ["disqualified"]
 
 
+async def test_new_register_record_is_followed_automatically(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A record with the same name and date of birth is pooled in; a namesake is not."""
+    from .conftest import appointments_at
+
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    entry = await setup_entry(officers=True)
+    officer = entry.runtime_data.officers["sub_officer"]
+    records = hass.states.get("sensor.jane_elizabeth_smith_register_records")
+    assert records.state == "1"
+    assert records.attributes["records"] == ["officer-jane"]
+    # The other Jane SMITH has a different date of birth: listed, never added.
+    assert [m["name"] for m in records.attributes["possible_matches"]] == ["Jane SMITH"]
+
+    # The register opens a new record for her, with the same name and birth date.
+    search = load_fixture("search/officers")
+    search["items"].append(
+        {
+            **search["items"][0],
+            "links": {"self": "/officers/officer-jane-2/appointments"},
+            "appointment_count": 1,
+        }
+    )
+    aioclient_mock.clear_requests()
+    mock_officer(aioclient_mock, records_search=search)
+    aioclient_mock.get(
+        f"{API_BASE}/officers/officer-jane-2/appointments",
+        json=appointments_at("34567890"),
+    )
+    await officer.records.async_refresh()
+    await hass.async_block_till_done()
+    assert entry.subentries["sub_officer"].data["officer_ids"] == [
+        "officer-jane",
+        "officer-jane-2",
+    ]
+    assert officer.officer_ids == ["officer-jane", "officer-jane-2"]
+    records = hass.states.get("sensor.jane_elizabeth_smith_register_records")
+    assert records.state == "2"
+    assert (
+        hass.states.get("sensor.jane_elizabeth_smith_appointments_active").state == "19"
+    )
+    new_record = [e.data for e in events if e.data["event_type"] == "new-record"]
+    assert new_record == [
+        {
+            "officer_id": "officer-jane-2",
+            "officer_name": "Jane Elizabeth SMITH",
+            "name": "Jane Elizabeth SMITH",
+            "kind": "appointment",
+            "event_type": "new-record",
+        }
+    ]
+    # Checking again finds nothing new and raises nothing twice.
+    await officer.records.async_refresh()
+    await hass.async_block_till_done()
+    assert len([e for e in events if e.data["event_type"] == "new-record"]) == 1
+
+
+def test_match_records_rules() -> None:
+    """Records already followed are skipped; names must agree exactly."""
+    from custom_components.companies_house.coordinator import match_records
+
+    dob = DateOfBirth(month=6, year=1978)
+    search = load_fixture("search/officers")
+    found, possible = match_records("Jane Elizabeth SMITH", dob, ["x"], search)
+    assert found == ["officer-jane"]
+    assert [m.officer_id for m in possible] == ["officer-other-jane"]
+    found, possible = match_records(
+        "Jane Elizabeth SMITH", dob, ["officer-jane", "officer-other-jane"], search
+    )
+    assert (found, possible) == ([], [])
+    # Without a date of birth to confirm with, a name match is only possible.
+    found, possible = match_records("Jane Elizabeth SMITH", None, [], search)
+    assert found == []
+    assert [m.officer_id for m in possible] == ["officer-jane", "officer-other-jane"]
+    assert match_records("Someone ELSE", dob, [], search) == ([], [])
+    search["items"].append("junk")
+    assert match_records("Jane Elizabeth SMITH", dob, ["officer-jane"], search)[0] == []
+
+
 def test_match_disqualification_rules() -> None:
     """Name only never matches; name plus month and year does."""
     dob = DateOfBirth(month=6, year=1978)

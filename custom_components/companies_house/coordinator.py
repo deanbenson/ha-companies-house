@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
@@ -35,6 +36,12 @@ from .api import (
 )
 from .const import (
     CONF_CADENCE_MULTIPLIER,
+    CONF_CLOSE_WATCH,
+    CONF_COMPANY_NAME,
+    CONF_COMPANY_NUMBER,
+    CONF_DATASETS,
+    CONF_LABEL,
+    CONF_OFFICER_IDS,
     DEFAULT_CADENCE_MULTIPLIER,
     DOMAIN,
     EVENT_COMPANIES_HOUSE,
@@ -44,7 +51,9 @@ from .const import (
     FILING_UNKNOWN_REFRESH,
     FINISHED_STATUSES,
     LOGGER,
+    OPTIONAL_DATASETS,
     STATUS_DETAIL_STRIKE_OFF,
+    SUBENTRY_TYPE_COMPANY,
     Dataset,
     OfficerDataset,
     Tier,
@@ -62,8 +71,11 @@ from .models import (
     JsonDict,
     OfficerList,
     PscData,
+    RecordCandidate,
+    RecordSearch,
     StorableModel,
     Structure,
+    officer_id_from_link,
     parse_date,
 )
 from .repairs import (
@@ -80,6 +92,7 @@ from .scheduler import (
     probe_interval,
     profile_interval,
     reconciliation_due,
+    records_next_run,
     structure_due,
 )
 from .store import ChangeStore, CompanyState, DatasetSnapshot, OfficerState
@@ -1091,18 +1104,26 @@ class OfficerRuntime(_Runtime):
         officer_id: str,
         officer_name: str,
         date_of_birth: DateOfBirth | None,
+        officer_ids: list[str] | None = None,
+        watch_companies: bool = False,
     ) -> None:
         """Create the coordinators for an officer."""
         super().__init__(hass, subentry)
         self.entry = entry
         self.officer_id = officer_id
+        # The main record first, then any others followed as the same person.
+        self.officer_ids = [officer_id] + [
+            i for i in (officer_ids or []) if i != officer_id
+        ]
         self.configured_name = officer_name
         self.date_of_birth = date_of_birth
+        self.watch_companies = watch_companies
         self.state: OfficerState = store.officer(officer_id)
         self.appointments = AppointmentsCoordinator(hass, entry, client, store, self)
         self.disqualification = DisqualificationCoordinator(
             hass, entry, client, store, self
         )
+        self.records = RecordsCoordinator(hass, entry, client, store, self)
 
     @property
     def coordinators(self) -> dict[OfficerDataset, CompaniesHouseCoordinator[Any]]:
@@ -1110,7 +1131,82 @@ class OfficerRuntime(_Runtime):
         return {
             OfficerDataset.APPOINTMENTS: self.appointments,
             OfficerDataset.DISQUALIFICATION: self.disqualification,
+            OfficerDataset.RECORDS: self.records,
         }
+
+    @property
+    def known_date_of_birth(self) -> DateOfBirth | None:
+        """Return the register's date of birth, else the one saved at setup."""
+        if self.appointments.data is not None and self.appointments.data.date_of_birth:
+            return self.appointments.data.date_of_birth
+        return self.date_of_birth
+
+    def _watched_companies(self) -> set[str]:
+        return {
+            s.unique_id or ""
+            for s in self.entry.subentries.values()
+            if s.subentry_type == SUBENTRY_TYPE_COMPANY
+        }
+
+    async def async_watch_companies(self) -> None:
+        """Add every company the person currently holds a role at.
+
+        Each one becomes a watched company of its own, labelled with the
+        person's name, and is started in place by the entry's update listener.
+        """
+        if not self.watch_companies or self.appointments.data is None:
+            return
+        watched = self._watched_companies()
+        for appointment in self.appointments.data.active:
+            number = appointment.company_number
+            if not number or number in watched:
+                continue
+            watched.add(number)
+            name = appointment.company_name or number
+            self.hass.config_entries.async_add_subentry(
+                self.entry,
+                ConfigSubentry(
+                    data=MappingProxyType(
+                        {
+                            CONF_COMPANY_NUMBER: number,
+                            CONF_COMPANY_NAME: name,
+                            CONF_DATASETS: [d.value for d in OPTIONAL_DATASETS],
+                            CONF_CLOSE_WATCH: False,
+                            CONF_LABEL: self.officer_name,
+                        }
+                    ),
+                    subentry_type=SUBENTRY_TYPE_COMPANY,
+                    title=f"{name} ({self.officer_name})",
+                    unique_id=number,
+                ),
+            )
+            LOGGER.info(
+                "Now watching %s (%s) because %s holds a role there",
+                name,
+                number,
+                self.officer_name,
+            )
+            self.dispatch(
+                ChangeEvent(
+                    "appointment",
+                    "company-now-watched",
+                    _appointment_payload(appointment),
+                )
+            )
+
+    async def async_add_records(self, officer_ids: list[str]) -> None:
+        """Follow more register records as this same person."""
+        new = [i for i in officer_ids if i not in self.officer_ids]
+        if not new:
+            return
+        self.officer_ids = [*self.officer_ids, *new]
+        self.hass.config_entries.async_update_subentry(
+            self.entry,
+            self.subentry,
+            data={**self.subentry.data, CONF_OFFICER_IDS: self.officer_ids},
+        )
+        await self.appointments.async_refresh_now()
+        self.records.async_update_listeners()
 
     @property
     def register_name(self) -> str:
@@ -1211,9 +1307,27 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
         return appointments_next_run(self.officer.officer_id, now, self.fetched_at)
 
     async def _fetch(self, priority: Priority) -> AppointmentList:
-        return await self.client.get_officer_appointments(
+        """Fetch the main record, then pool in any other records of the person."""
+        primary = await self.client.get_officer_appointments(
             self.officer.officer_id, priority=priority
         )
+        others: list[AppointmentList] = []
+        for officer_id in self.officer.officer_ids[1:]:
+            try:
+                others.append(
+                    await self.client.get_officer_appointments(
+                        officer_id, priority=priority
+                    )
+                )
+            except CompaniesHouseNotFoundError:
+                LOGGER.warning(
+                    "Register record %s of %s no longer exists; skipping it",
+                    officer_id,
+                    self.officer.officer_name,
+                )
+        if not others:
+            return primary
+        return AppointmentList.merge(primary, others)
 
     def _on_not_found(self) -> None:
         self.officer.state.not_found = True
@@ -1230,7 +1344,7 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
 
     @callback
     def _async_refresh_finished(self) -> None:
-        """Clear the not found issue once the officer resolves again."""
+        """Clear the not found issue, then pick up any company newly joined."""
         if (
             self.last_update_success
             and self.data is not None
@@ -1240,6 +1354,8 @@ class AppointmentsCoordinator(_OfficerCoordinator[AppointmentList]):
             async_clear_subentry_issue(
                 self.hass, "officer_not_found", self.officer.officer_id
             )
+        if self.last_update_success and self.officer.watch_companies:
+            self.hass.async_create_task(self.officer.async_watch_companies())
 
     def _detect_changes(
         self, previous: AppointmentList, current: AppointmentList
@@ -1413,6 +1529,114 @@ class DisqualificationCoordinator(_OfficerCoordinator[DisqualificationResult]):
                     },
                 )
             )
+
+
+def match_records(
+    officer_name: str,
+    date_of_birth: DateOfBirth | None,
+    known_ids: Iterable[str],
+    search: JsonDict,
+) -> tuple[list[str], list[RecordCandidate]]:
+    """Split a name search into records that are surely this person, and maybes.
+
+    Sure means the surname, first forename and month and year of birth all
+    agree, which is the same test used against the disqualified register.
+    Records already followed are left out of both lists.
+    """
+    target_surname, target_forename = _normalise_name(officer_name)
+    known = set(known_ids)
+    found: list[str] = []
+    possible: list[RecordCandidate] = []
+    for item in search.get("items") or []:
+        if not isinstance(item, dict):
+            continue
+        raw_links = item.get("links")
+        links: JsonDict = raw_links if isinstance(raw_links, dict) else {}
+        officer_id = officer_id_from_link(links.get("self"))
+        if not officer_id or officer_id in known:
+            continue
+        title = str(item.get("title", ""))
+        surname, forename = _normalise_name(title)
+        if not surname or surname != target_surname or forename != target_forename:
+            continue
+        dob = DateOfBirth.from_api(item.get("date_of_birth"))
+        if (
+            date_of_birth is not None
+            and dob is not None
+            and dob.month == date_of_birth.month
+            and dob.year == date_of_birth.year
+        ):
+            found.append(officer_id)
+            continue
+        possible.append(
+            RecordCandidate(
+                officer_id=officer_id,
+                title=title,
+                date_of_birth=dob,
+                address_snippet=item.get("address_snippet")
+                if isinstance(item.get("address_snippet"), str)
+                else None,
+                appointment_count=item.get("appointment_count")
+                if isinstance(item.get("appointment_count"), int)
+                else None,
+            )
+        )
+    return found, possible
+
+
+class RecordsCoordinator(_OfficerCoordinator[RecordSearch]):
+    """Weekly search of the register for new records of a followed person.
+
+    The register opens a fresh record whenever someone is appointed with
+    slightly different details, so a new company can appear under a record
+    nobody follows yet. A record whose name and date of birth both match is
+    followed automatically; a name-only match is only listed.
+    """
+
+    model = RecordSearch
+    snapshot_key = OfficerDataset.RECORDS.value
+    period = timedelta(days=7)
+
+    def _slot(self, now: datetime) -> datetime:
+        return records_next_run(self.officer.officer_id, now, self.fetched_at)
+
+    async def _fetch(self, priority: Priority) -> RecordSearch:
+        try:
+            search = await self.client.search_officers(
+                self.officer.register_name, items_per_page=50, priority=priority
+            )
+        except CompaniesHouseNotFoundError:
+            # A search with no hits answers 404.
+            search = {"items": []}
+        found, possible = match_records(
+            self.officer.register_name,
+            self.officer.known_date_of_birth,
+            self.officer.officer_ids,
+            search,
+        )
+        return RecordSearch(
+            checked_on=dt_util.now().date(),
+            found=found,
+            possible_matches=possible[:10],
+        )
+
+    @callback
+    def _async_refresh_finished(self) -> None:
+        """Follow any record found, then refresh the appointments."""
+        if not self.last_update_success or self.data is None:
+            return
+        new = [i for i in self.data.found if i not in self.officer.officer_ids]
+        if not new:
+            return
+        for officer_id in new:
+            self.officer.dispatch(
+                ChangeEvent(
+                    "appointment",
+                    "new-record",
+                    {"officer_id": officer_id, "name": self.officer.register_name},
+                )
+            )
+        self.hass.async_create_task(self.officer.async_add_records(new))
 
 
 # ---------------------------------------------------------------- account

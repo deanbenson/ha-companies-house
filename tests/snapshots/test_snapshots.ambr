@@ -6029,6 +6029,8 @@
         'resigned',
         'company-status-changed',
         'disqualified',
+        'new-record',
+        'company-now-watched',
       ]),
     }),
     'config_entry_id': <ANY>,
@@ -6070,6 +6072,8 @@
         'resigned',
         'company-status-changed',
         'disqualified',
+        'new-record',
+        'company-now-watched',
       ]),
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Appointment',
     }),
@@ -7400,7 +7404,7 @@
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': '10.3',
+    'state': '10.5',
   })
 # ---
 # name: test_entities[sensor][sensor.companies_house_api_requests_remaining-entry]
@@ -7453,7 +7457,7 @@
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': '538',
+    'state': '537',
   })
 # ---
 # name: test_entities[sensor][sensor.companies_house_api_requests_used_in_the_last_5_minutes-entry]
@@ -7509,7 +7513,7 @@
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': '62',
+    'state': '63',
   })
 # ---
 # name: test_entities[sensor][sensor.companies_house_companies_monitored-entry]
@@ -17108,6 +17112,69 @@
     'state': 'director',
   })
 # ---
+# name: test_entities[sensor][sensor.jane_elizabeth_smith_register_records-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.jane_elizabeth_smith_register_records',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Register records',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Register records',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'register_records',
+    'unique_id': 'companies_house_officer_officer-jane_register_records',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[sensor][sensor.jane_elizabeth_smith_register_records-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'checked_on': '2026-09-15',
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Register records',
+      'possible_matches': list([
+        dict({
+          'address': '1 Other Street, Leeds, LS1 1AA',
+          'appointments': 1,
+          'date_of_birth': '02/1981',
+          'name': 'Jane SMITH',
+          'officer_id': 'officer-other-jane',
+        }),
+      ]),
+      'records': list([
+        'officer-jane',
+      ]),
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.jane_elizabeth_smith_register_records',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': '1',
+  })
+# ---
 # name: test_entities[sensor][sensor.old_ventures_limited_accounting_reference_date-entry]
   EntityRegistryEntrySnapshot({
     'aliases': list([
@@ -25506,5 +25573,55 @@
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': '0',
+  })
+# ---
+# name: test_entities[switch][switch.jane_elizabeth_smith_watch_their_companies-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': list([
+      None,
+    ]),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'config_subentry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'switch',
+    'entity_category': <EntityCategory.CONFIG: 'config'>,
+    'entity_id': 'switch.jane_elizabeth_smith_watch_their_companies',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'object_id_base': 'Watch their companies',
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Watch their companies',
+    'platform': 'companies_house',
+    'previous_unique_id': None,
+    'suggested_object_id': None,
+    'supported_features': 0,
+    'translation_key': 'watch_companies',
+    'unique_id': 'companies_house_officer_officer-jane_watch_companies',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_entities[switch][switch.jane_elizabeth_smith_watch_their_companies-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'Jane Elizabeth SMITH Watch their companies',
+    }),
+    'context': <ANY>,
+    'entity_id': 'switch.jane_elizabeth_smith_watch_their_companies',
+    'last_changed': <ANY>,
+    'last_reported': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'off',
   })
 # ---
