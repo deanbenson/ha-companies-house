@@ -92,7 +92,7 @@ from .repairs import (
     async_raise_rate_limited,
     async_raise_subentry_issue,
 )
-from .risk import RiskResult, TrackedPerson, compute_risk
+from .risk import SCORING_VERSION, RiskResult, TrackedPerson, compute_risk
 from .scheduler import (
     appointments_next_run,
     compute_tier,
@@ -675,8 +675,11 @@ class CompanyRuntime(_Runtime):
         once by the entry when every company and person has started, so the
         first rating after a restart already sees the followed people. The
         band is remembered in the store and a ``risk-changed`` event fires
-        only when it moves, never for the score alone and never on the first
-        rating after setup.
+        only when it moves, never for the score alone, never on the first
+        rating after setup and never on the first rating under a new scoring
+        table: a band the new table reads differently is not news about the
+        company, and announcing it for every company at once would drown
+        the real changes.
         """
         coverage = {
             dataset.value: coordinator.fetched_at
@@ -694,6 +697,7 @@ class CompanyRuntime(_Runtime):
             coverage=coverage,
             people=self._tracked_people(),
             profile_failing_since=self.profile.failing_since,
+            accounts=self.accounts.data,
             today=dt_util.now().date(),
         )
         result = replace(result, computed_at=dt_util.utcnow())
@@ -708,11 +712,13 @@ class CompanyRuntime(_Runtime):
             "; ".join(result.reasons) or "no concerns",
         )
         old_band = self.state.risk_band
-        if result.band is not None and result.band != old_band:
+        same_table = self.state.risk_version == SCORING_VERSION
+        if result.band is not None and (result.band != old_band or not same_table):
             self.state.risk_band = result.band
             self.state.risk_score = result.score
+            self.state.risk_version = SCORING_VERSION
             self.store.save()
-            if old_band is not None:
+            if old_band is not None and same_table and result.band != old_band:
                 self.dispatch(
                     ChangeEvent(
                         "status",

@@ -109,6 +109,9 @@ class AccountsYear(StorableModel):
     accounts_type_member: str | None = None
     figures: dict[str, Figure] = field(default_factory=dict)
     error: str | None = None
+    # A fresh read was asked for (``read_accounts`` with ``force``): the
+    # figures on hand stay, and keep feeding the rating, until it lands.
+    reread: bool = False
 
     @property
     def is_read(self) -> bool:
@@ -190,8 +193,8 @@ class AccountsHistory(StorableModel):
 
     @property
     def pending(self) -> list[AccountsYear]:
-        """Return the years still to be read."""
-        return [y for y in self.years if y.status == "pending"]
+        """Return the years still to be read, or read again."""
+        return [y for y in self.years if y.status == "pending" or y.reread]
 
     def series(self) -> list[JsonDict]:
         """Return one row per year with plain numbers, oldest first."""
