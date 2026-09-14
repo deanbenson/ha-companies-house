@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
+from .charges import charge_filing_link, charges_overview
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
 from .enumerations import COMPANY_STATUS
 from .models import JsonDict, display_name
@@ -84,7 +85,16 @@ def company_pages(number: str, *, insolvency: bool = False) -> list[JsonDict]:
     return pages
 
 
-def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
+def _charge_pdf_known(event_type: str, payload: JsonDict) -> bool:
+    """Whether a charge change opens a filing's PDF rather than the charges page."""
+    if event_type in ("satisfied", "part-satisfied"):
+        return bool(payload.get("satisfied_transaction_id"))
+    return bool(payload.get("created_transaction_id"))
+
+
+def _more_links(
+    kind: str, payload: JsonDict, number: str, event_type: str = ""
+) -> list[JsonDict]:
     """Return further register pages worth a click for one change."""
     company_number = number or str(payload.get("company_number") or "")
     if not company_number:
@@ -102,7 +112,8 @@ def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
                 "href": company + "/persons-with-significant-control",
             }
         )
-    elif kind == "charge":
+    elif kind == "charge" and _charge_pdf_known(event_type, payload):
+        # The change itself opens the filing's PDF; this is the page behind it.
         links.append({"text": "Charges", "href": company + "/charges"})
     elif kind == "status":
         links.append(
@@ -132,6 +143,81 @@ def _status_word(status: str | None) -> str:
 
 def _role(role: str | None) -> str:
     return (role or "officer").replace("-", " ")
+
+
+def _sentence(text: str) -> str:
+    """End a sentence with a full stop, unless it already trails off with "…"."""
+    return text if text.endswith(("…", ".")) else f"{text}."
+
+
+def _describe_charge(
+    event_type: str, p: JsonDict, *, subject: str, number: str
+) -> tuple[str, str, str]:
+    """Describe a charge change: who lent, secured on what, created or satisfied.
+
+    The link opens the filing's PDF (the MR01 that created the charge, the
+    MR04 that satisfied it) when the register gave its id, else the charges
+    page. A satisfaction the register has not yet listed a filing for links
+    to the charges page rather than to the deed that created the charge.
+    """
+    who = (
+        str(p.get("lender") or "")
+        or ", ".join(str(x) for x in p.get("persons_entitled") or [])
+        or "a lender"
+    )
+    security = str(p.get("security") or "")
+    detail = f" — {security}" if security else ""
+    created = (
+        f" (created {_pretty_date(p['created_on'])})" if p.get("created_on") else ""
+    )
+    creation_pdf = (
+        charge_filing_link(number, p.get("created_transaction_id")) if number else ""
+    )
+    satisfaction_pdf = (
+        charge_filing_link(number, p.get("satisfied_transaction_id")) if number else ""
+    )
+    if event_type == "created":
+        return (
+            f"{subject}: new charge registered",
+            _sentence(
+                f"A charge in favour of {who} was registered"
+                + (
+                    f" on {_pretty_date(p['created_on'])}"
+                    if p.get("created_on")
+                    else ""
+                )
+                + detail
+            ),
+            creation_pdf,
+        )
+    if event_type == "acquired":
+        return (
+            f"{subject}: charge acquired with property",
+            _sentence(
+                f"Property acquired on {_on(p.get('acquired_on'))} came with a "
+                f"charge in favour of {who}{created}{detail}"
+            ),
+            creation_pdf,
+        )
+    if event_type == "satisfied":
+        return (
+            f"{subject}: charge satisfied",
+            f"The charge in favour of {who}{created} was satisfied in full"
+            + (
+                f" on {_pretty_date(p['satisfied_on'])}"
+                if p.get("satisfied_on")
+                else ""
+            )
+            + ".",
+            satisfaction_pdf,
+        )
+    return (
+        f"{subject}: charge part satisfied",
+        _sentence(
+            f"The charge in favour of {who}{created} has been partly satisfied{detail}"
+        ),
+        satisfaction_pdf,
+    )
 
 
 def describe_change(
@@ -261,31 +347,7 @@ def describe_change(
         )
 
     if kind == "charge":
-        who = ", ".join(str(x) for x in p.get("persons_entitled") or []) or "a lender"
-        code = p.get("charge_code") or ""
-        if event_type in ("created", "acquired"):
-            return (
-                f"{subject}: new charge registered",
-                f"A charge in favour of {who} was registered"
-                + (
-                    f" on {_pretty_date(p.get('created_on'))}"
-                    if p.get("created_on")
-                    else ""
-                )
-                + ".",
-                link + "/charges",
-            )
-        if event_type == "satisfied":
-            return (
-                f"{subject}: charge satisfied",
-                f"The charge in favour of {who} ({code}) has been satisfied in full.",
-                link + "/charges",
-            )
-        return (
-            f"{subject}: charge part satisfied",
-            f"The charge in favour of {who} ({code}) has been partly satisfied.",
-            link + "/charges",
-        )
+        return _describe_charge(event_type, p, subject=subject, number=number)
 
     if kind == "insolvency":
         return (
@@ -471,7 +533,7 @@ def _change_entry(
         "score": score_change(kind, event_type, weight=weight),
         "document_id": payload.get("document_id"),
         "transaction_id": payload.get("transaction_id"),
-        "links": _more_links(kind, payload, number),
+        "links": _more_links(kind, payload, number, event_type),
     }
 
 
@@ -588,6 +650,19 @@ def _iso(value: date | None) -> str | None:
     return value.isoformat() if value else None
 
 
+def _charges_meta(company: CompanyRuntime) -> JsonDict | None:
+    """Return what the company card says about charges: how many, and to whom."""
+    overview = charges_overview(company)
+    if overview is None:
+        return None
+    return {
+        "outstanding": overview["outstanding"],
+        "total": overview["total"],
+        "lenders": overview["lenders"],
+        "link": overview["link"],
+    }
+
+
 def _company_card(company: CompanyRuntime, since: datetime, today: date) -> JsonDict:
     profile = company.profile.data
     website = (company.website or "").strip()
@@ -644,6 +719,7 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         if deadline
         else None,
         "attention": _attention(company, changes, since, today),
+        "charges": _charges_meta(company),
         "changes": changes,
         "score": max((c["score"] for c in changes), default=0),
     }
@@ -1021,8 +1097,8 @@ def _change_links(change: JsonDict) -> list[JsonDict]:
     """Return the links a change offers: the document or page first, then more."""
     links: list[JsonDict] = []
     if change.get("link"):
-        first = "Open PDF" if change.get("document_id") else "Open"
-        links.append({"text": first, "href": change["link"]})
+        is_pdf = change.get("document_id") or "format=pdf" in change["link"]
+        links.append({"text": "Open PDF" if is_pdf else "Open", "href": change["link"]})
     links.extend(change.get("links") or [])
     return links
 
@@ -1074,6 +1150,20 @@ def _card(avatar: str, heading: str, meta: str, body: str) -> str:
     )
 
 
+def _charges_line(charges: JsonDict | None) -> str:
+    """Say "2 outstanding charges · Lloyds Bank plc, HSBC UK", or nothing."""
+    if not charges or not charges.get("outstanding"):
+        return ""
+    line = _plural(charges["outstanding"], "outstanding charge")
+    lenders = list(charges.get("lenders") or [])
+    if lenders:
+        named = ", ".join(lenders[:3])
+        if len(lenders) > 3:
+            named += f" and {len(lenders) - 3} more"
+        line += f" · {named}"
+    return line
+
+
 def _company_block(card: JsonDict) -> str:
     deadline = card.get("next_deadline")
     meta = [_link(card["number"], card["link"], "#6b7280")]
@@ -1091,6 +1181,8 @@ def _company_block(card: JsonDict) -> str:
         meta.append(
             f'<span style="{due_style}">{_e(deadline["what"].replace("_", " "))} {_e(due_text)}</span>'
         )
+    if charges_line := _charges_line(card.get("charges")):
+        meta.append(_link(charges_line, (card.get("charges") or {}).get("link", "")))
     badges = "".join(
         _badge(a["issue"], new=a["new"]) for a in card.get("attention") or []
     )
@@ -1387,6 +1479,8 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
         lines.append("")
     for card in digest["companies"]:
         lines.append(card["name"])
+        if charges_line := _charges_line(card.get("charges")):
+            lines.append(f"  {charges_line}")
         lines += [
             f"  - {_when(c['at'])}: {c['title'].split(': ', 1)[-1]} — {c['message']}"
             for c in card["changes"]

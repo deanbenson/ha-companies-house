@@ -2,8 +2,8 @@
   "etag": "charges-etag",
   "items": [
     {
-      "charge_code": "123456780001",
-      "charge_number": 1,
+      "charge_code": "123456780002",
+      "charge_number": 2,
       "classification": {
         "description": "A registered charge",
         "type": "charge-description"
@@ -17,27 +17,32 @@
       "particulars": {
         "contains_fixed_charge": true,
         "contains_floating_charge": true,
-        "contains_negative_pledge": true
+        "contains_negative_pledge": true,
+        "floating_charge_covers_all": true
       },
       "persons_entitled": [
         {
           "name": "HSBC UK Bank Plc"
         }
       ],
+      "secured_details": {
+        "description": "All monies due or to become due from the company to the chargee on any account whatsoever",
+        "type": "obligations-secured"
+      },
       "status": "outstanding",
       "transactions": [
         {
           "delivered_on": "2022-05-10",
           "filing_type": "create-charge-with-deed",
           "links": {
-            "filing": "/company/12345678/filing-history/MzAwMDAwMDAwMGFkaXF6a2N4"
+            "filing": "/company/12345678/filing-history/MzM0MDAwMDAwMGFkaXF6a2N4"
           }
         }
       ]
     },
     {
-      "charge_code": "123456780002",
-      "charge_number": 2,
+      "charge_code": "123456780001",
+      "charge_number": 1,
       "classification": {
         "description": "A registered charge",
         "type": "charge-description"
@@ -51,7 +56,9 @@
       "particulars": {
         "contains_fixed_charge": true,
         "contains_floating_charge": true,
-        "contains_negative_pledge": true
+        "contains_negative_pledge": true,
+        "description": "The freehold property known as Unit 4, Example Business Park, Exampleton, registered at HM Land Registry under title number EX123456.",
+        "type": "charged-property-description"
       },
       "persons_entitled": [
         {
@@ -66,6 +73,13 @@
           "filing_type": "create-charge-with-deed",
           "links": {
             "filing": "/company/12345678/filing-history/MzAwMDAwMDAwMGFkaXF6a2N4"
+          }
+        },
+        {
+          "delivered_on": "2021-12-02",
+          "filing_type": "charge-satisfaction",
+          "links": {
+            "filing": "/company/12345678/filing-history/MzMxMDAwMDAwMGFkaXF6a2N4"
           }
         }
       ]

@@ -800,6 +800,68 @@ class PscData(StorableModel):
         )
 
 
+def _object(value: Any) -> JsonDict:
+    """Return an object the API documents as an array but sends as an object.
+
+    The charge resource's ``classification``, ``particulars`` and
+    ``secured_details`` are typed as arrays in the specification and arrive
+    as single objects on the live API; accept either.
+    """
+    if isinstance(value, list):
+        value = value[0] if value else None
+    return _dict(value)
+
+
+# Filing types on a charge's transactions, by prefix (the register's
+# mortgage_descriptions enumeration): those that registered the charge (MR01
+# to MR03, MR08 to MR10 and their pre-2013 forms) and those that satisfied or
+# released it, wholly or partly (MR04 / MR05 and kin). Anything else on the
+# list — an alteration (MR07), a trustee statement (MR06), supporting evidence,
+# a receiver's appointment or ceasing to act (RM01 / RM02, "liquidation-*") —
+# is neither, even where its name contains "create" or "cease".
+_CHARGE_CREATION_PREFIXES = ("create-", "acquire-", "debenture-")
+_CHARGE_SATISFACTION_PREFIXES = (
+    "charge-satisfaction",
+    "charge-part",
+    "charge-whole",
+    "charge-release",
+)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ChargeTransaction(StorableModel):
+    """One filing on a charge: its creation, an alteration, its satisfaction."""
+
+    filing_type: str | None = None
+    delivered_on: date | None = None
+    transaction_id: str | None = None
+    insolvency_case_number: str | None = None
+
+    @classmethod
+    def from_api(cls, data: JsonDict) -> ChargeTransaction:
+        """Build from a ``transactions`` item."""
+        links = _dict(data.get("links"))
+        case_number = data.get("insolvency_case_number")
+        return cls(
+            filing_type=_str(data.get("filing_type")),
+            delivered_on=parse_date(data.get("delivered_on")),
+            transaction_id=last_path_segment(links.get("filing")),
+            insolvency_case_number=str(case_number)
+            if case_number not in (None, "")
+            else None,
+        )
+
+    @property
+    def is_creation(self) -> bool:
+        """Whether this filing registered the charge."""
+        return (self.filing_type or "").startswith(_CHARGE_CREATION_PREFIXES)
+
+    @property
+    def is_satisfaction(self) -> bool:
+        """Whether this filing satisfied or released the charge, wholly or partly."""
+        return (self.filing_type or "").startswith(_CHARGE_SATISFACTION_PREFIXES)
+
+
 @dataclass(frozen=True, kw_only=True)
 class Charge(StorableModel):
     """A registered charge (mortgage)."""
@@ -812,15 +874,32 @@ class Charge(StorableModel):
     delivered_on: date | None = None
     satisfied_on: date | None = None
     acquired_on: date | None = None
+    resolved_on: date | None = None
+    covering_instrument_date: date | None = None
     persons_entitled: list[str] = field(default_factory=list)
+    more_than_four_persons_entitled: bool = False
     classification: str | None = None
+    classification_type: str | None = None
+    particulars_description: str | None = None
+    particulars_type: str | None = None
+    contains_fixed_charge: bool | None = None
+    contains_floating_charge: bool | None = None
+    contains_negative_pledge: bool | None = None
+    floating_charge_covers_all: bool | None = None
+    chargor_acting_as_bare_trustee: bool | None = None
+    secured_description: str | None = None
+    secured_type: str | None = None
     assets_ceased_released: str | None = None
+    transactions: list[ChargeTransaction] = field(default_factory=list)
+    insolvency_case_numbers: list[str] = field(default_factory=list)
 
     @classmethod
     def from_api(cls, data: JsonDict) -> Charge:
         """Build from a charge list item."""
         links = _dict(data.get("links"))
-        classification = _dict(data.get("classification"))
+        classification = _object(data.get("classification"))
+        particulars = _object(data.get("particulars"))
+        secured = _object(data.get("secured_details"))
         return cls(
             charge_id=last_path_segment(links.get("self")) or _str(data.get("id")),
             charge_code=_str(data.get("charge_code")),
@@ -830,19 +909,76 @@ class Charge(StorableModel):
             delivered_on=parse_date(data.get("delivered_on")),
             satisfied_on=parse_date(data.get("satisfied_on")),
             acquired_on=parse_date(data.get("acquired_on")),
+            resolved_on=parse_date(data.get("resolved_on")),
+            covering_instrument_date=parse_date(data.get("covering_instrument_date")),
             persons_entitled=[
                 str(p.get("name"))
                 for p in _list(data.get("persons_entitled"))
                 if isinstance(p, dict) and p.get("name")
             ],
+            more_than_four_persons_entitled=_bool(
+                data.get("more_than_four_persons_entitled")
+            )
+            or False,
             classification=_str(classification.get("description")),
-            assets_ceased_released=_str(data.get("assets_ceased_released")),
+            classification_type=_str(classification.get("type")),
+            particulars_description=_str(particulars.get("description")),
+            particulars_type=_str(particulars.get("type")),
+            contains_fixed_charge=_bool(particulars.get("contains_fixed_charge")),
+            contains_floating_charge=_bool(particulars.get("contains_floating_charge")),
+            contains_negative_pledge=_bool(particulars.get("contains_negative_pledge")),
+            floating_charge_covers_all=_bool(
+                particulars.get("floating_charge_covers_all")
+            ),
+            chargor_acting_as_bare_trustee=_bool(
+                particulars.get("chargor_acting_as_bare_trustee")
+            ),
+            secured_description=_str(secured.get("description")),
+            secured_type=_str(secured.get("type")),
+            # The specification spells this key "assests"; read both.
+            assets_ceased_released=_str(data.get("assets_ceased_released"))
+            or _str(data.get("assests_ceased_released")),
+            transactions=[
+                ChargeTransaction.from_api(t)
+                for t in _list(data.get("transactions"))
+                if isinstance(t, dict)
+            ],
+            insolvency_case_numbers=[
+                str(c.get("case_number"))
+                for c in _list(data.get("insolvency_cases"))
+                if isinstance(c, dict) and c.get("case_number") not in (None, "")
+            ],
         )
 
     @property
     def is_outstanding(self) -> bool:
         """Return True while the charge is not fully satisfied."""
         return self.status in ("outstanding", "part-satisfied")
+
+    @property
+    def is_satisfied(self) -> bool:
+        """Return True once the charge has been satisfied in full."""
+        return self.status in ("fully-satisfied", "satisfied")
+
+    @property
+    def creation_transaction_id(self) -> str | None:
+        """The filing that registered the charge, for its PDF (MR01 or the like)."""
+        for transaction in self.transactions:
+            if transaction.is_creation and transaction.transaction_id:
+                return transaction.transaction_id
+        # An older charge may list only one filing without saying what it was.
+        first = self.transactions[0] if self.transactions else None
+        if first is not None and not first.is_satisfaction:
+            return first.transaction_id
+        return None
+
+    @property
+    def satisfaction_transaction_id(self) -> str | None:
+        """The newest filing that satisfied or released the charge (MR04 / MR05)."""
+        for transaction in reversed(self.transactions):
+            if transaction.is_satisfaction and transaction.transaction_id:
+                return transaction.transaction_id
+        return None
 
 
 @dataclass(frozen=True, kw_only=True)

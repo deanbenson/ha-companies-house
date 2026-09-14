@@ -20,6 +20,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.util import dt as dt_util
 
+from .charges import CHARGE_LIST_CAP, charge_record, lenders, newest_first
 from .const import (
     ATTR_APPOINTMENTS_CAP,
     ATTR_LIST_CAP,
@@ -169,6 +170,25 @@ def _charges(company: CompanyRuntime) -> Any:
     return company.charges.data
 
 
+def _charge_rows(company: CompanyRuntime, *, outstanding_only: bool) -> Attrs:
+    """List the charges newest first, each with its lender, security and PDF.
+
+    The outstanding list also names the lenders still owed. Both lists are
+    capped and kept out of the recorder (see ``ChargesSensor``).
+    """
+    items = newest_first(
+        c for c in _charges(company).items if c.is_outstanding or not outstanding_only
+    )
+    rows = {
+        "charges": [
+            charge_record(c, company.company_number) for c in items[:CHARGE_LIST_CAP]
+        ]
+    }
+    if outstanding_only:
+        return {"lenders": lenders(items), **rows}
+    return rows
+
+
 def _count_roles(company: CompanyRuntime, roles: tuple[str, ...]) -> int:
     return sum(
         1 for o in _officers(company).items if o.is_active and o.officer_role in roles
@@ -276,18 +296,7 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
         dataset=Dataset.CHARGES,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda c: _charges(c).outstanding_count,
-        attrs_fn=lambda c: {
-            "charges": [
-                {
-                    "charge_code": ch.charge_code,
-                    "status": ch.status,
-                    "created_on": _iso(ch.created_on),
-                    "persons_entitled": ch.persons_entitled,
-                }
-                for ch in _charges(c).items
-                if ch.is_outstanding
-            ][:ATTR_LIST_CAP]
-        },
+        attrs_fn=lambda c: _charge_rows(c, outstanding_only=True),
     ),
     # Diagnostic
     CompanySensorDescription(
@@ -501,6 +510,7 @@ COMPANY_SENSORS: tuple[CompanySensorDescription, ...] = (
         key="charges_total",
         dataset=Dataset.CHARGES,
         value_fn=lambda c: _charges(c).total_count,
+        attrs_fn=lambda c: _charge_rows(c, outstanding_only=False),
     ),
     CompanySensorDescription(
         key="charges_part_satisfied",
@@ -634,6 +644,16 @@ class CompanySensor(CompanyEntity[Any], SensorEntity):
         if self.entity_description.attrs_fn is None:
             return None
         return dict(self.entity_description.attrs_fn(self.company))
+
+
+class ChargesSensor(CompanySensor):
+    """A charge count whose attributes list the charges themselves.
+
+    The list is long-lived detail (lender, security, a link to each filing)
+    that changes a few times a year, so it stays out of the recorder.
+    """
+
+    _unrecorded_attributes = frozenset({"charges", "lenders"})
 
 
 class PollingTierSensor(CompanySensor):
@@ -978,6 +998,14 @@ class ServiceSensor(ServiceEntity, SensorEntity):
 # ---------------------------------------------------------------- setup
 
 
+# Sensors that need more than the plain class, by key.
+_SENSOR_CLASSES: dict[str, type[CompanySensor]] = {
+    "polling_tier": PollingTierSensor,
+    "charges_outstanding": ChargesSensor,
+    "charges_total": ChargesSensor,
+}
+
+
 def _company_sensors(company: CompanyRuntime) -> list[CompanySensor]:
     coordinators = company.coordinators
     entities: list[CompanySensor] = []
@@ -985,7 +1013,7 @@ def _company_sensors(company: CompanyRuntime) -> list[CompanySensor]:
         coordinator = coordinators.get(description.dataset)
         if coordinator is None:
             continue
-        cls = PollingTierSensor if description.key == "polling_tier" else CompanySensor
+        cls = _SENSOR_CLASSES.get(description.key, CompanySensor)
         entities.append(cls(company, coordinator, description))
     return entities
 

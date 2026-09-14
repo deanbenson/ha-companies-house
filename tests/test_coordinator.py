@@ -273,6 +273,28 @@ async def test_officer_and_charge_changes_fire_events(
     assert logged[0]["at"]
     assert logged[0]["payload"]
     assert len(entry.runtime_data.store.company(ACTIVE).changes) == 8
+    # Charge events say who lent, what secures it and which filing to open,
+    # and the payload's own words never clobber the event's kind.
+    satisfied = next(e.data for e in events if e.data["event_type"] == "satisfied")
+    assert satisfied["kind"] == "charge"
+    assert satisfied["charge_code"] == "123456780002"
+    assert satisfied["lender"] == "HSBC UK Bank Plc"
+    assert satisfied["persons_entitled"] == ["HSBC UK Bank Plc"]
+    assert satisfied["charge_kind"] == (
+        "fixed and floating charge over all the company's assets"
+    )
+    assert satisfied["security"].startswith(
+        "fixed and floating charge over all the company's assets; secures all monies"
+    )
+    assert satisfied["created_transaction_id"] == "MzM0MDAwMDAwMGFkaXF6a2N4"
+    assert satisfied["satisfied_transaction_id"] is None
+    assert satisfied["transaction_ids"] == ["MzM0MDAwMDAwMGFkaXF6a2N4"]
+    acquired = next(e.data for e in events if e.data["event_type"] == "acquired")
+    assert acquired["kind"] == "charge"
+    assert acquired["acquired_on"] == "2026-09-01"
+    assert acquired["lender"] == "Lloyds Bank Plc"
+    assert acquired["particulars"].startswith("The freehold property known as Unit 4")
+    assert acquired["satisfied_transaction_id"] == "MzMxMDAwMDAwMGFkaXF6a2N4"
     resigned = next(e.data for e in events if e.data["event_type"] == "resigned")
     assert resigned["name"] == "PATEL, Priya"
     assert resigned["resigned_on"] == "2026-09-12"
