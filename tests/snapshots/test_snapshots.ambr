@@ -603,6 +603,7 @@
     'attributes': ReadOnlyDict({
       'caveat': "Assumes the usual two months' notice; the register does not say when the 28-day rule for false registrations applies. Postal objections must arrive two weeks before the earliest date; online objections are taken until the company is struck off.",
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': '2026-10-25',
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'DORMANT HOLDINGS LIMITED Proposed strike off',
       'gazette_notice_on': '2026-08-25',
@@ -1329,6 +1330,7 @@
     'attributes': ReadOnlyDict({
       'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'EXAMPLE TRADING LIMITED Proposed strike off',
       'gazette_notice_on': None,
@@ -2054,6 +2056,7 @@
     'attributes': ReadOnlyDict({
       'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'HISTORIC PARTNERS LLP Proposed strike off',
       'gazette_notice_on': None,
@@ -2890,6 +2893,7 @@
     'attributes': ReadOnlyDict({
       'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'OLD VENTURES LIMITED Proposed strike off',
       'gazette_notice_on': None,
@@ -3615,6 +3619,7 @@
     'attributes': ReadOnlyDict({
       'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUBSIDIARY SERVICES LIMITED Proposed strike off',
       'gazette_notice_on': None,
@@ -4340,6 +4345,7 @@
     'attributes': ReadOnlyDict({
       'caveat': None,
       <EntityStateAttribute.DEVICE_CLASS: 'device_class'>: 'problem',
+      'discontinued_on': None,
       'earliest_on': None,
       <EntityStateAttribute.FRIENDLY_NAME: 'friendly_name'>: 'SUNSET RETAIL LIMITED Proposed strike off',
       'gazette_notice_on': None,

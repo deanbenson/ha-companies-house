@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.util import dt as dt_util
 
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
-from .enumerations import COMPANY_STATUS
+from .enumerations import COMPANY_STATUS, COMPANY_STATUS_DETAIL
 from .gazette import notice_link
 from .models import JsonDict, display_name
 from .scheduler import days_until
@@ -169,10 +169,13 @@ def describe_change(
 
     if kind == "status":
         if event_type == "strike-off-proposed":
-            detail = str(
-                p.get("detail")
-                or "Companies House has proposed to strike the company off."
-            ).rstrip(".")
+            detail = str(p.get("detail") or "").rstrip(".")
+            if not detail or detail in COMPANY_STATUS_DETAIL:
+                # Seen in the register's status detail, not in a Gazette
+                # notice filing: never echo the register's key.
+                detail = "Companies House has proposed to strike the company off"
+                if not p.get("earliest_on"):
+                    detail += "; the Gazette notice has not appeared in the filings yet"
             if p.get("earliest_on"):
                 # The probe saw the Gazette notice itself, so the clock is known.
                 detail += (

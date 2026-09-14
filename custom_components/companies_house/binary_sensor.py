@@ -118,6 +118,11 @@ COMPANY_BINARY_SENSORS: tuple[CompanyBinarySensorDescription, ...] = (
         attrs_fn=lambda c: {
             "status_detail": _profile(c).company_status_detail,
             "gazette_notice_on": (d := c.state.strike_off_notice_on) and d.isoformat(),
+            # Set when a filing ended the strike-off before the register's
+            # status detail caught up: the sensor is off although the detail
+            # still says "proposal to strike off".
+            "discontinued_on": (d := c.state.strike_off_discontinued_on)
+            and d.isoformat(),
             **countdown_attributes(
                 c.strike_off_countdown(dt_util.now().date()), c.company_number
             ),

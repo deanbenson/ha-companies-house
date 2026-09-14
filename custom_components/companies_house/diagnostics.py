@@ -59,6 +59,10 @@ def _company_info(company: CompanyRuntime, *, include_data: bool) -> dict[str, A
         "tier_reason": company.tier_reason,
         "strike_off_proposed": company.strike_off_proposed,
         "strike_off": c.as_dict() if (c := company.strike_off_countdown()) else None,
+        "strike_off_discontinued_on": company.state.strike_off_discontinued_on.isoformat()
+        if company.state.strike_off_discontinued_on
+        else None,
+        "strike_off_awaiting_notice": company.state.strike_off_awaiting_notice,
         "state": {
             "filings_total_count": company.state.filings_total_count,
             "newest_transaction_id": company.state.newest_transaction_id,

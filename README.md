@@ -179,7 +179,9 @@ insolvency cases, registers held.
 
 Binary sensors (problem class, on by default): accounts overdue, confirmation
 statement overdue, accounts due soon, confirmation statement due soon,
-**proposed strike off** (from `company_status_detail` and from GAZ1 filings),
+**proposed strike off** (from `company_status_detail` and from GAZ1 filings;
+off again as soon as a later filing discontinues the strike-off, with
+`discontinued_on` saying so while the register's status detail lags),
 **insolvent** (liquidation, receivership, administration, voluntary
 arrangement, insolvency proceedings), registered office in dispute,
 undeliverable registered office. Plus *is active*, can file, has outstanding
@@ -208,14 +210,30 @@ Two honest limits. The 28-day rule for false registrations cannot be told
 from the filings, so two months is always assumed and the caveat says so. And
 the register's status detail is not trusted on its own: a company can read
 "active proposal to strike off" a year after its last notice was suspended.
-The countdown keys off the newest first-notice filing kept for the company
-and stops on a later discontinuation (`gazette-filings-brought-up-to-date`,
-withdrawal); a **suspension** filing (a successful objection) keeps the notice
-and moves the earliest date to six months after it, firing a
-`strike-off-suspended` status event. A company already under a notice when it
-is added has its notice recovered from the filings kept; when no notice is
-there the sensors stay unknown and say "notice date unknown" rather than
-guess.
+The countdown keys off the newest first-notice filing kept for the company.
+A later **discontinuation** filing (`gazette-filings-brought-up-to-date`,
+withdrawal) ends it outright: the binary sensor goes off, the countdown
+sensors go unknown and the report shows "strike-off dropped" rather than a
+live problem, however long the status detail takes to catch up. A
+**suspension** filing (a successful objection) keeps the notice and moves the
+earliest date to six months after it, firing a `strike-off-suspended` status
+event; once that hold has run out the line reads "hold ended 7 Feb 2025,
+could be struck off any day now". A company already under a notice when it
+is added has its notice recovered from the filings kept (so is one recorded
+by an earlier version without its filing); when no notice is there the
+sensors stay unknown and say "notice date unknown" rather than guess.
+
+One notice is announced once, whichever side sees it first. The probe
+announces a Gazette notice the moment it is filed, with the countdown. When
+the status detail flips first, the filings kept are checked, then the filing
+history is read once more on demand (the notice is normally filed the same
+day) so the probe can announce it with the countdown; only when no notice can
+be found does the profile announce "Companies House has proposed to strike
+the company off; the Gazette notice has not appeared in the filings yet",
+and the notice then fills the clock in quietly. The same goes for the end of
+a strike-off: the discontinuation filing or the status detail clearing,
+whichever comes first, and a company struck off is announced as dissolved,
+not as a strike-off dropped.
 
 ### Officer
 
@@ -353,7 +371,7 @@ Event types by kind:
 | officer | appointed, resigned, details-changed | name, role, appointed_on, resigned_on, officer_id, appointment_id |
 | psc | notified, ceased, statement-added, details-changed | name, psc_kind, natures_of_control, notified_on, ceased_on |
 | charge | created, satisfied, part-satisfied, acquired | charge_code, persons_entitled, created_on, delivered_on, satisfied_on, status |
-| status | status-changed, strike-off-proposed, strike-off-suspended, strike-off-discontinued, dissolved | old_status, new_status, detail; strike-off events seen from a filing add strike_off_kind, notice_on, suspended_on, earliest_on, objection_deadline, transaction_id |
+| status | status-changed, strike-off-proposed, strike-off-suspended, strike-off-discontinued, dissolved | old_status, new_status, detail; strike-off events seen from a filing add strike_off_kind, notice_on, suspended_on, earliest_on, objection_deadline, transaction_id (a strike-off-proposed from the status detail alone has none of these) |
 | profile | name-changed, address-changed, sic-changed, accounting-reference-date-changed | old_value, new_value |
 | appointment (officer) | appointed, resigned, company-status-changed, disqualified, new-record, company-now-watched | company_number, company_name, company_status, role, appointed_on, resigned_on; `new-record` carries officer_id and name |
 

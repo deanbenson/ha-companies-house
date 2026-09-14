@@ -141,6 +141,28 @@ STRIKE_OFF_DISCONTINUED_DESCRIPTIONS = frozenset(
 )
 
 
+def find_strike_off(
+    items: Iterable[FilingHistoryItem],
+) -> tuple[FilingHistoryItem | None, FilingHistoryItem | None]:
+    """Return the newest first Gazette notice kept and the filing that ended it.
+
+    ``items`` are newest first. The second item is the newest suspension or
+    discontinuation filing above the notice, which decides whether the notice
+    still runs; when no notice is kept at all it is the newest such filing
+    among them, so a discontinuation is still seen for what it is.
+    """
+    ended_by: FilingHistoryItem | None = None
+    for item in items:
+        if item.description in STRIKE_OFF_NOTICE_DESCRIPTIONS:
+            return item, ended_by
+        if ended_by is None and (
+            item.description in STRIKE_OFF_SUSPENDED_DESCRIPTIONS
+            or item.description in STRIKE_OFF_DISCONTINUED_DESCRIPTIONS
+        ):
+            ended_by = item
+    return None, ended_by
+
+
 def signal_changes(subentry_id: str) -> str:
     """Dispatcher signal carrying change events for a subentry."""
     return f"{DOMAIN}_changes_{subentry_id}"
@@ -625,16 +647,23 @@ class CompanyRuntime(_Runtime):
 
     @property
     def strike_off_proposed(self) -> bool:
-        """Return True from the status detail or a first gazette notice."""
+        """Return True from the status detail or a first gazette notice.
+
+        Not once a later filing discontinued the strike-off: the register's
+        status detail follows that filing days later, or never.
+        """
         profile = self.profile.data
         if profile is not None and profile.company_status in FINISHED_STATUSES:
+            return False
+        state = self.state
+        if state.strike_off_discontinued_on is not None:
             return False
         if (
             profile is not None
             and profile.company_status_detail == STATUS_DETAIL_STRIKE_OFF
         ):
             return True
-        return self.state.strike_off_notice_on is not None
+        return state.strike_off_notice_on is not None
 
     def strike_off_countdown(
         self, today: date | None = None
@@ -651,14 +680,129 @@ class CompanyRuntime(_Runtime):
             today=today or dt_util.now().date(),
         )
 
+    def strike_off_payload(self) -> dict[str, Any]:
+        """Return the countdown fields for a strike-off event.
+
+        The bus event already has a ``kind`` (the change kind), so the
+        strike-off's own kind travels as ``strike_off_kind``.
+        """
+        state = self.state
+        countdown = compute_countdown(
+            kind=state.strike_off_kind,
+            notice_on=state.strike_off_notice_on,
+            suspended_on=state.strike_off_suspended_on,
+            transaction_id=state.strike_off_transaction_id,
+            today=dt_util.now().date(),
+        )
+        return {
+            "strike_off_kind": countdown.kind,
+            "notice_on": _iso(countdown.notice_on),
+            "suspended_on": _iso(countdown.suspended_on),
+            "earliest_on": _iso(countdown.earliest_on),
+            "objection_deadline": _iso(countdown.objection_deadline),
+            "transaction_id": countdown.transaction_id,
+        }
+
     @callback
     def clear_strike_off(self) -> None:
-        """Forget the Gazette notice once the strike-off is dropped or done."""
+        """Forget the strike-off once it is dropped or done."""
         state = self.state
         state.strike_off_notice_on = None
         state.strike_off_kind = None
         state.strike_off_suspended_on = None
         state.strike_off_transaction_id = None
+        state.strike_off_discontinued_on = None
+        state.strike_off_awaiting_notice = False
+
+    @callback
+    def record_strike_off_notice(
+        self, item: FilingHistoryItem, *, suspended_on: date | None = None
+    ) -> None:
+        """Remember a first Gazette notice; it restarts the clock."""
+        self.clear_strike_off()
+        state = self.state
+        state.strike_off_notice_on = item.date
+        state.strike_off_kind = strike_off_kind(item.description)
+        state.strike_off_transaction_id = item.transaction_id
+        state.strike_off_suspended_on = suspended_on
+
+    @callback
+    def record_strike_off_discontinued(self, item: FilingHistoryItem) -> None:
+        """Remember that a filing ended the strike-off, whatever the register says."""
+        self.clear_strike_off()
+        self.state.strike_off_discontinued_on = item.date or dt_util.now().date()
+
+    def _settle_strike_off_from_filings(
+        self, *, announce: dict[str, Any] | None
+    ) -> str | None:
+        """Settle the strike-off from the filings kept.
+
+        Returns "notice" when a first Gazette notice was recovered (running,
+        or suspended by a later suspension filing), "discontinued" when the
+        newest strike-off filing kept is a discontinuation, so the notice is
+        spent whatever the register's status detail says, and None when the
+        filings kept say nothing. Given ``announce`` (the status payload of
+        the profile change that asked) a recovered notice is announced with
+        its countdown, as the probe would have done had it seen the filing
+        arrive.
+        """
+        history = self.probe.data
+        if history is None:
+            return None
+        notice, ended_by = find_strike_off(history.items)
+        if (
+            ended_by is not None
+            and ended_by.description in STRIKE_OFF_DISCONTINUED_DESCRIPTIONS
+        ):
+            LOGGER.debug(
+                "%s: the strike-off was discontinued on %s",
+                self.company_number,
+                ended_by.date,
+            )
+            self.record_strike_off_discontinued(ended_by)
+            self.store.save()
+            return "discontinued"
+        if notice is None:
+            return None
+        self.record_strike_off_notice(
+            notice, suspended_on=ended_by.date if ended_by is not None else None
+        )
+        LOGGER.debug(
+            "%s: recovered the Gazette notice of %s (%s)",
+            self.company_number,
+            notice.date,
+            "suspended" if ended_by is not None else "running",
+        )
+        self.store.save()
+        if announce is not None:
+            self.dispatch(
+                ChangeEvent(
+                    "status",
+                    "strike-off-proposed",
+                    {
+                        **announce,
+                        "detail": notice.rendered_description,
+                        **self.strike_off_payload(),
+                    },
+                )
+            )
+        return "notice"
+
+    def _complete_strike_off_notice(self, items: Iterable[FilingHistoryItem]) -> None:
+        """Fill in the kind and filing of a notice known by its date alone.
+
+        Stores written before the filing was kept have only the date.
+        """
+        state = self.state
+        for item in items:
+            if (
+                item.description in STRIKE_OFF_NOTICE_DESCRIPTIONS
+                and item.date == state.strike_off_notice_on
+            ):
+                state.strike_off_kind = strike_off_kind(item.description)
+                state.strike_off_transaction_id = item.transaction_id
+                self.store.save()
+                return
 
     @callback
     def reconcile_strike_off(self) -> None:
@@ -667,55 +811,61 @@ class CompanyRuntime(_Runtime):
         The first look at a company remembers its filings without firing
         anything, so a company already under a Gazette notice when added has
         no notice date. When the profile says a strike-off is proposed and no
-        notice is known, the newest first-notice filing kept by the probe
-        supplies it, unless a later filing ended that notice: a suspension
-        keeps the notice and records the suspension, a discontinuation means
-        the notice is spent and the date stays unknown. The register's status
+        notice is known, the filings kept by the probe decide: the newest
+        first-notice filing supplies it, unless a later filing ended that
+        notice (a suspension keeps the notice and records the suspension, a
+        discontinuation means the notice is spent). The register's status
         detail alone is not trusted: it can say "proposal to strike off" a
-        year after the last notice was suspended.
+        year after the last notice was suspended or discontinued.
         """
         profile = self.profile.data
         history = self.probe.data
+        if profile is None or history is None:
+            return
+        state = self.state
+        if state.strike_off_notice_on is not None:
+            if state.strike_off_transaction_id is None:
+                self._complete_strike_off_notice(history.items)
+            return
         if (
-            profile is None
-            or history is None
-            or profile.company_status_detail != STATUS_DETAIL_STRIKE_OFF
-            or self.state.strike_off_notice_on is not None
+            profile.company_status_detail != STATUS_DETAIL_STRIKE_OFF
+            or state.strike_off_discontinued_on is not None
         ):
             return
-        ended_by: FilingHistoryItem | None = None
-        for item in history.items:  # newest first
-            if item.description in STRIKE_OFF_NOTICE_DESCRIPTIONS:
-                if ended_by is not None and (
-                    ended_by.description not in STRIKE_OFF_SUSPENDED_DESCRIPTIONS
-                ):
-                    LOGGER.debug(
-                        "%s: the Gazette notice of %s was discontinued on %s",
-                        self.company_number,
-                        item.date,
-                        ended_by.date,
-                    )
-                    return
-                state = self.state
-                state.strike_off_notice_on = item.date
-                state.strike_off_kind = strike_off_kind(item.description)
-                state.strike_off_transaction_id = item.transaction_id
-                state.strike_off_suspended_on = (
-                    ended_by.date if ended_by is not None else None
-                )
-                LOGGER.debug(
-                    "%s: recovered the Gazette notice of %s (%s)",
-                    self.company_number,
-                    item.date,
-                    "suspended" if ended_by is not None else "running",
-                )
-                self.store.save()
-                return
-            if ended_by is None and (
-                item.description in STRIKE_OFF_SUSPENDED_DESCRIPTIONS
-                or item.description in STRIKE_OFF_DISCONTINUED_DESCRIPTIONS
-            ):
-                ended_by = item
+        self._settle_strike_off_from_filings(announce=None)
+
+    async def async_confirm_strike_off(self, status: dict[str, Any]) -> None:
+        """Announce a strike-off the register reports, once the filings are checked.
+
+        Runs when the status detail flips to "proposal to strike off" before
+        the probe has seen a Gazette notice. The filings kept may already
+        hold the notice (from the first look at the company), which is then
+        announced with its countdown, or a later discontinuation, in which
+        case the register is behind and nothing is said. Otherwise the probe
+        is refreshed now: the notice is normally filed the same day, and the
+        probe announces it with the countdown. Only when no notice can be
+        found does the profile announce the proposal on its own, without a
+        clock; the notice fills that in quietly when it arrives, so one
+        notice is announced once whichever side sees it first.
+        """
+        state = self.state
+        settled = self._settle_strike_off_from_filings(announce=status)
+        if settled == "notice":
+            return
+        if settled is None and state.strike_off_discontinued_on is not None:
+            # No strike-off filing among those kept: the register is fresher
+            # than the discontinuation remembered.
+            self.clear_strike_off()
+        await self.probe.async_refresh_now(on_demand=True)
+        if (
+            state.strike_off_notice_on is not None
+            or state.strike_off_discontinued_on is not None
+            or not self.strike_off_proposed
+        ):
+            return
+        state.strike_off_awaiting_notice = True
+        self.store.save()
+        self.dispatch(ChangeEvent("status", "strike-off-proposed", status))
 
     async def async_shutdown(self) -> None:
         """Stop every coordinator."""
@@ -877,55 +1027,38 @@ class ProbeCoordinator(_CompanyCoordinator[FilingHistory]):
             "detail": item.rendered_description,
         }
         if item.description in STRIKE_OFF_NOTICE_DESCRIPTIONS:
-            # A fresh notice restarts the clock, even after a suspension.
-            state.strike_off_notice_on = item.date
-            state.strike_off_kind = strike_off_kind(item.description)
-            state.strike_off_suspended_on = None
-            state.strike_off_transaction_id = item.transaction_id
-            self.company.dispatch(
-                ChangeEvent(
-                    "status",
-                    "strike-off-proposed",
-                    {**status, **self._countdown_payload()},
+            # A fresh notice restarts the clock, even after a suspension. When
+            # the profile announced the proposal first (the notice was not yet
+            # filed) this fills in the countdown without saying it again.
+            announced = state.strike_off_awaiting_notice
+            self.company.record_strike_off_notice(item)
+            if not announced:
+                self.company.dispatch(
+                    ChangeEvent(
+                        "status",
+                        "strike-off-proposed",
+                        {**status, **self.company.strike_off_payload()},
+                    )
                 )
-            )
         elif item.description in STRIKE_OFF_SUSPENDED_DESCRIPTIONS:
             state.strike_off_suspended_on = item.date
             self.company.dispatch(
                 ChangeEvent(
                     "status",
                     "strike-off-suspended",
-                    {**status, **self._countdown_payload()},
+                    {**status, **self.company.strike_off_payload()},
                 )
             )
         elif item.description in STRIKE_OFF_DISCONTINUED_DESCRIPTIONS:
-            self.company.clear_strike_off()
-            self.company.dispatch(
-                ChangeEvent("status", "strike-off-discontinued", status)
-            )
-
-    def _countdown_payload(self) -> dict[str, Any]:
-        """Return the countdown fields for a strike-off event.
-
-        The bus event already has a ``kind`` (the change kind), so the
-        strike-off's own kind travels as ``strike_off_kind``.
-        """
-        state = self.company.state
-        countdown = compute_countdown(
-            kind=state.strike_off_kind,
-            notice_on=state.strike_off_notice_on,
-            suspended_on=state.strike_off_suspended_on,
-            transaction_id=state.strike_off_transaction_id,
-            today=dt_util.now().date(),
-        )
-        return {
-            "strike_off_kind": countdown.kind,
-            "notice_on": _iso(countdown.notice_on),
-            "suspended_on": _iso(countdown.suspended_on),
-            "earliest_on": _iso(countdown.earliest_on),
-            "objection_deadline": _iso(countdown.objection_deadline),
-            "transaction_id": countdown.transaction_id,
-        }
+            # The filing ends the strike-off; the register's status detail
+            # follows later, and the profile then has nothing to add. When
+            # the profile cleared first, it already said so.
+            live = self.company.strike_off_proposed
+            self.company.record_strike_off_discontinued(item)
+            if live:
+                self.company.dispatch(
+                    ChangeEvent("status", "strike-off-discontinued", status)
+                )
 
     async def _async_update_data(self) -> FilingHistory:
         self._pending_refresh = set()
@@ -959,6 +1092,11 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
 
     model = CompanyProfile
     snapshot_key = Dataset.PROFILE.value
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialise with no strike-off waiting to be confirmed."""
+        super().__init__(*args, **kwargs)
+        self._strike_off_flip: dict[str, Any] | None = None
 
     def interval(self, now: datetime) -> tuple[timedelta, str]:
         """Daily, 6 hourly within 14 days of a deadline, monthly once dissolved."""
@@ -998,34 +1136,26 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
                 self.company.clear_strike_off()
         old_strike = previous.company_status_detail == STATUS_DETAIL_STRIKE_OFF
         new_strike = current.company_status_detail == STATUS_DETAIL_STRIKE_OFF
+        status = {
+            "old_status": previous.company_status,
+            "new_status": current.company_status,
+            "detail": current.company_status_detail,
+        }
         if new_strike and not old_strike:
             # The probe announces a Gazette notice the moment it is filed, with
             # the countdown; the status detail catching up is the same news.
+            # Otherwise the filings decide what to say, once this profile is
+            # in place (see CompanyRuntime.async_confirm_strike_off).
             if self.company.state.strike_off_notice_on is None:
-                dispatch(
-                    ChangeEvent(
-                        "status",
-                        "strike-off-proposed",
-                        {
-                            "old_status": previous.company_status,
-                            "new_status": current.company_status,
-                            "detail": current.company_status_detail,
-                        },
-                    )
-                )
+                self._strike_off_flip = status
         elif old_strike and not new_strike:
+            # The probe announced the filing that ended it, when it saw one
+            # first; a company struck off is announced as dissolved, not as
+            # a strike-off dropped.
+            announced = self.company.state.strike_off_discontinued_on is not None
             self.company.clear_strike_off()
-            dispatch(
-                ChangeEvent(
-                    "status",
-                    "strike-off-discontinued",
-                    {
-                        "old_status": previous.company_status,
-                        "new_status": current.company_status,
-                        "detail": current.company_status_detail,
-                    },
-                )
-            )
+            if not announced and current.company_status not in FINISHED_STATUSES:
+                dispatch(ChangeEvent("status", "strike-off-discontinued", status))
         if previous.company_name != current.company_name:
             dispatch(
                 ChangeEvent(
@@ -1087,7 +1217,16 @@ class ProfileCoordinator(_CompanyCoordinator[CompanyProfile]):
         self.company.recompute_tier()
         if not self.last_update_success or self.data is None:
             return
-        self.company.reconcile_strike_off()
+        if self._strike_off_flip is not None:
+            flip, self._strike_off_flip = self._strike_off_flip, None
+            assert self.config_entry is not None
+            self.config_entry.async_create_background_task(
+                self.hass,
+                self.company.async_confirm_strike_off(flip),
+                name=f"{self.name} strike-off",
+            )
+        else:
+            self.company.reconcile_strike_off()
         if self.company.state.not_found:
             self.company.state.not_found = False
             async_clear_subentry_issue(

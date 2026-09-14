@@ -103,7 +103,8 @@ class StrikeOffCountdown:
         days, until = self.days_to_object, self.days_to_strike_off
         if days is None or until is None or self.earliest_on is None:
             return "notice date unknown"
-        if until < 0:
+        if until <= 0:
+            # The earliest date is here or gone: "before today" is no advice.
             return "could be struck off any day now"
         if days < 0:
             return f"object online before {_pretty(self.earliest_on)}"
@@ -114,6 +115,13 @@ class StrikeOffCountdown:
     def attention_line(self) -> str:
         """Return the one-line summary for the report: what and how long is left."""
         if self.suspended and self.earliest_on is not None:
+            if self.days_to_strike_off is not None and self.days_to_strike_off < 0:
+                # The six-month hold has run out; the register may still say
+                # "proposal to strike off" long after (the TRU:VAI case).
+                return (
+                    f"Strike-off suspended{self.kind_words} — hold ended "
+                    f"{_pretty(self.earliest_on)}, could be struck off any day now"
+                )
             return (
                 f"Strike-off suspended{self.kind_words} — "
                 f"earliest strike-off {_pretty(self.earliest_on)}"

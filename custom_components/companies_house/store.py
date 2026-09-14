@@ -99,6 +99,14 @@ class CompanyState:
     strike_off_suspended_on: date | None = None
     # The Gazette notice filing, so the notice can be linked and re-read.
     strike_off_transaction_id: str | None = None
+    # Set by a discontinuation filing (filings brought up to date, application
+    # withdrawn), which ends the strike-off before the register's status
+    # detail catches up; a fresh notice clears it.
+    strike_off_discontinued_on: date | None = None
+    # The register says a strike-off is proposed and that was announced before
+    # the Gazette notice appeared in the filings; the notice, when it comes,
+    # fills in the countdown without announcing the proposal again.
+    strike_off_awaiting_notice: bool = False
     not_found: bool = False
     # Every change detected, newest first, so a report can look back.
     changes: list[JsonDict] = field(default_factory=list)
@@ -125,6 +133,8 @@ class CompanyState:
             "strike_off_kind": self.strike_off_kind,
             "strike_off_suspended_on": _iso(self.strike_off_suspended_on),
             "strike_off_transaction_id": self.strike_off_transaction_id,
+            "strike_off_discontinued_on": _iso(self.strike_off_discontinued_on),
+            "strike_off_awaiting_notice": self.strike_off_awaiting_notice,
             "changes": self.changes[:CHANGE_LOG_CAP],
         }
 
@@ -156,6 +166,10 @@ class CompanyState:
             strike_off_kind=_word(data.get("strike_off_kind")),
             strike_off_suspended_on=parse_date(data.get("strike_off_suspended_on")),
             strike_off_transaction_id=_word(data.get("strike_off_transaction_id")),
+            strike_off_discontinued_on=parse_date(
+                data.get("strike_off_discontinued_on")
+            ),
+            strike_off_awaiting_notice=data.get("strike_off_awaiting_notice") is True,
             changes=_changes(data),
         )
 

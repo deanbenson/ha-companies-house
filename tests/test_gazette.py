@@ -96,7 +96,8 @@ def test_running_countdown() -> None:
         (date(2026, 10, 10), "1 day to object"),
         (date(2026, 10, 11), "last day to object by post"),
         (date(2026, 10, 12), "object online before 25 Oct 2026"),
-        (date(2026, 10, 25), "object online before 25 Oct 2026"),
+        (date(2026, 10, 24), "object online before 25 Oct 2026"),
+        (date(2026, 10, 25), "could be struck off any day now"),
         (date(2026, 10, 26), "could be struck off any day now"),
     ],
 )
@@ -141,7 +142,22 @@ def test_suspension_moves_the_earliest_date_six_months_on() -> None:
     )
     assert stale.days_to_object < 0
     assert stale.objection_phrase() == "could be struck off any day now"
-    assert stale.attention_line().startswith("Strike-off suspended (compulsory)")
+    assert stale.attention_line() == (
+        "Strike-off suspended (compulsory) — hold ended 7 Feb 2025, could be "
+        "struck off any day now"
+    )
+    # On the day the hold ends it is still ahead, just.
+    ending = compute_countdown(
+        kind="compulsory",
+        notice_on=date(2024, 7, 30),
+        suspended_on=date(2024, 8, 7),
+        transaction_id="tx-gaz1",
+        today=date(2025, 2, 7),
+    )
+    assert ending.days_to_strike_off == 0
+    assert ending.attention_line() == (
+        "Strike-off suspended (compulsory) — earliest strike-off 7 Feb 2025"
+    )
 
 
 def test_suspension_before_the_notice_is_ignored() -> None:
