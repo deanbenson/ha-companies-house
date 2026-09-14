@@ -183,6 +183,8 @@ def _prune_store(runtime: CompaniesHouseRuntimeData) -> None:
 
 # Settings that only change what is shown, never what is fetched.
 COSMETIC_KEYS: frozenset[str] = frozenset({CONF_LABEL, CONF_OFFICER_NAME})
+# Settings a running company can take on board without being rebuilt.
+LIVE_KEYS: frozenset[str] = frozenset({CONF_CLOSE_WATCH})
 
 
 def _subentry_snapshot(entry: ConfigEntry) -> dict[str, Any]:
@@ -194,8 +196,8 @@ def _subentry_snapshot(entry: ConfigEntry) -> dict[str, Any]:
 
 
 def _material(data: dict[str, Any]) -> dict[str, Any]:
-    """Return the settings that decide what is fetched and how often."""
-    return {k: v for k, v in data.items() if k not in COSMETIC_KEYS}
+    """Return the settings that need a rebuild to change: what is fetched."""
+    return {k: v for k, v in data.items() if k not in COSMETIC_KEYS | LIVE_KEYS}
 
 
 def _rename_officer(hass: HomeAssistant, officer: OfficerRuntime, name: str) -> None:
@@ -260,8 +262,9 @@ async def _async_update_listener(
     """React to the entry changing.
 
     A company or officer being added, removed or renamed is handled in place,
-    so the ones already running are untouched (no flicker to unavailable).
-    Changed settings on an existing one, or changed options, reload the entry.
+    and so is close watch being switched on or off, so the ones already
+    running are untouched (no flicker to unavailable). Changing what is
+    fetched for an existing one, or changing the options, reloads the entry.
     """
     runtime = entry.runtime_data
     before = runtime.snapshot
@@ -280,10 +283,12 @@ async def _async_update_listener(
     for sid in known & current:
         if before["subentries"][sid] == after["subentries"][sid]:
             continue
+        data = after["subentries"][sid]
         if (officer := runtime.officers.get(sid)) is not None:
-            _rename_officer(
-                hass, officer, after["subentries"][sid].get(CONF_OFFICER_NAME, "")
-            )
+            _rename_officer(hass, officer, data.get(CONF_OFFICER_NAME, ""))
+        if (company := runtime.companies.get(sid)) is not None:
+            company.close_watch = bool(data.get(CONF_CLOSE_WATCH, False))
+            company.recompute_tier()
 
     for sid in known - current:
         if (company := runtime.companies.pop(sid, None)) is not None:

@@ -349,11 +349,24 @@ async def test_adding_a_subentry_does_not_reload_the_others(
         await hass.async_block_till_done()
         reload.assert_not_called()
 
-    # Changing an existing company's settings does reload.
+    # Close watch takes effect in place too: the check rhythm changes at once.
     subentry = entry.subentries["sub_12345678"]
+    tier = "sensor.example_trading_limited_how_often_it_is_checked"
+    assert hass.states.get(tier).state != "close_watch"
     with patch.object(hass.config_entries, "async_reload") as reload:
         hass.config_entries.async_update_subentry(
             entry, subentry, data={**subentry.data, "close_watch": True}
+        )
+        await hass.async_block_till_done()
+        reload.assert_not_called()
+    assert hass.states.get(tier).state == "close_watch"
+    assert entry.runtime_data.companies["sub_12345678"].close_watch is True
+
+    # Changing what is fetched for an existing company does reload.
+    subentry = entry.subentries["sub_12345678"]
+    with patch.object(hass.config_entries, "async_reload") as reload:
+        hass.config_entries.async_update_subentry(
+            entry, subentry, data={**subentry.data, "datasets": ["officers"]}
         )
         await hass.async_block_till_done()
         reload.assert_called_once_with(entry.entry_id)
