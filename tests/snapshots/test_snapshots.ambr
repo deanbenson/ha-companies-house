@@ -7611,7 +7611,7 @@
 # name: test_entities[sensor][sensor.companies_house_connections-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'components': 11,
+      'components': 14,
       'edges': 40,
       'external_companies': 25,
       'followed_people': 1,

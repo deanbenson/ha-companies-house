@@ -922,20 +922,34 @@ def _connections(
 ) -> list[JsonDict]:
     """Return the connections worth knowing about, most serious first, capped.
 
-    A company opted out of the report is left out of these lines too.
+    A company or person opted out of the report is left out of these lines
+    too. A person is matched by any of their register records, since the
+    node can carry a pooled record's id rather than the primary one.
     """
     # Imported here: the connections module reuses this module's helpers.
     from .connections import build_connections
 
+    runtime = entry.runtime_data
     left_out = {
         f"company:{c.company_number}"
-        for c in entry.runtime_data.companies.values()
+        for c in runtime.companies.values()
         if not c.in_weekly_report
     }
+    quiet_records = {
+        record
+        for o in runtime.officers.values()
+        if not o.in_weekly_report
+        for record in o.officer_ids
+    }
+    graph = build_connections(entry, days=days, now=now)
+    left_out.update(
+        n["id"]
+        for n in graph["nodes"]
+        if n["type"] == "person"
+        and not quiet_records.isdisjoint(n["meta"].get("officer_ids") or [])
+    )
     lines = [
-        line
-        for line in build_connections(entry, days=days, now=now)["interesting"]
-        if left_out.isdisjoint(line["node_ids"])
+        line for line in graph["interesting"] if left_out.isdisjoint(line["node_ids"])
     ]
     return [
         {

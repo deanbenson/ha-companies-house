@@ -140,6 +140,7 @@ def company(
     changes: list[dict[str, Any]] | None = None,
     in_report: bool = True,
     datasets: bool = True,
+    no_officers: bool = False,
 ) -> Any:
     """Return something that quacks like a CompanyRuntime, without Home Assistant."""
     profile = CompanyProfile(
@@ -172,7 +173,7 @@ def company(
         strike_off_proposed=detail == "active-proposal-to-strike-off",
         profile=SimpleNamespace(data=profile),
         officers=SimpleNamespace(data=OfficerList(items=officers))
-        if datasets
+        if datasets and not no_officers
         else None,
         psc=SimpleNamespace(data=PscData(items=pscs)) if datasets else None,
         charges=SimpleNamespace(data=ChargeList(items=charges or []))
@@ -192,11 +193,13 @@ def person(
     disqualified: bool = False,
     notify: bool = False,
     configured_name: str = "",
+    in_report: bool = True,
 ) -> Any:
     """Return something that quacks like an OfficerRuntime."""
     return SimpleNamespace(
         officer_id=officer_id,
         officer_ids=[officer_id, *(officer_ids or [])],
+        in_weekly_report=in_report,
         register_name=name,
         configured_name=configured_name,
         officer_name=configured_name or name,
@@ -277,11 +280,65 @@ def test_small_helpers() -> None:
         )
         == "09876543"
     )
+    # Only a UK place or country, or a UK identification type, makes it a
+    # UK number: Ireland and the Isle of Man have a Companies Act too.
     assert (
         _uk_registration(
             {"legal_authority": "Companies Act 2006", "registration_number": "12345"}
         )
-        == "00012345"
+        is None
+    )
+    assert (
+        _uk_registration(
+            {
+                "country_registered": "Ireland",
+                "legal_authority": "Companies Act 2014",
+                "place_registered": "Companies Registration Office, Ireland",
+                "registration_number": "123456",
+            }
+        )
+        is None
+    )
+    assert (
+        _uk_registration(
+            {
+                "country_registered": "Isle Of Man",
+                "legal_authority": "Companies Act 2006",
+                "registration_number": "123456V",
+            }
+        )
+        is None
+    )
+    assert (
+        _uk_registration(
+            {"place_registered": "New South Wales", "registration_number": "123456"}
+        )
+        is None
+    )
+    assert (
+        _uk_registration({"place_registered": "Wales", "registration_number": "123456"})
+        == "00123456"
+    )
+    assert (
+        _uk_registration(
+            {
+                "place_registered": "Register Of Companies",
+                "country_registered": "United Kingdom",
+                "legal_authority": "Companies Act 2006",
+                "registration_number": "123456",
+            }
+        )
+        == "00123456"
+    )
+    # No place at all: the legal authority may still name the country.
+    assert (
+        _uk_registration(
+            {
+                "legal_authority": "England And Wales Companies Act 2006",
+                "registration_number": "123456",
+            }
+        )
+        == "00123456"
     )
     assert (
         _uk_registration({"country_registered": "Delaware", "registration_number": "5"})
@@ -371,6 +428,53 @@ def test_people_are_joined_by_record_then_name_and_birth() -> None:
     assert other["degree"] == 1
     assert node(out, "company:30000001")["status"] == "external"
     assert "external" in node(out, "company:30000001")["flags"]
+
+
+def test_two_register_records_are_never_joined_by_name_alone() -> None:
+    """A secretary (no date of birth on the register) is not the director namesake."""
+    out = graph(
+        company(
+            "10000001",
+            "ALPHA LTD",
+            officers=[officer("SMITH, John", officer_id="sec-1", role="secretary")],
+        ),
+        company(
+            "10000002",
+            "BETA LTD",
+            officers=[officer("SMITH, John", officer_id="dir-2", dob=ALEX)],
+        ),
+        company(
+            "10000003",
+            "GAMMA LTD",
+            officers=[
+                officer("SMITH, John", officer_id="dir-2", dob=ALEX, appointment_id="g")
+            ],
+            # A person with significant control has no record: joined by
+            # name and date of birth to the director, not the secretary.
+            pscs=[psc("Mr John Smith", dob=ALEX)],
+        ),
+    )
+    people = sorted(n["id"] for n in out["nodes"] if n["type"] == "person")
+    assert people == ["person:dir-2", "person:sec-1"]
+    assert node(out, "person:sec-1")["meta"]["officer_ids"] == ["sec-1"]
+    assert node(out, "person:dir-2")["meta"]["officer_ids"] == ["dir-2"]
+    assert node(out, "person:sec-1")["degree"] == 1
+    assert node(out, "person:dir-2")["degree"] == 3  # two roles and the holding
+    assert texts(out, "hub-person") == []
+    assert texts(out, "shared-board") == []
+    # The other way round: a record joins a PSC-only node by name.
+    out = graph(
+        company("10000001", "ALPHA LTD", pscs=[psc("Mr John Smith")]),
+        company(
+            "10000002",
+            "BETA LTD",
+            officers=[officer("SMITH, John", officer_id="dir-2", dob=ALEX)],
+        ),
+    )
+    assert [n["id"] for n in out["nodes"] if n["type"] == "person"] == [
+        "person:mr-john-smith"
+    ]
+    assert node(out, "person:mr-john-smith")["meta"]["officer_ids"] == ["dir-2"]
 
 
 def test_corporate_records_become_company_or_entity_nodes() -> None:
@@ -530,7 +634,7 @@ def test_shared_board_hub_and_simultaneous_moves() -> None:
     out = graph(*companies, days=7)
     assert (
         "Nicholas Cole and Simon Reed both sit on the boards of ORBIT BIDCO LTD and "
-        "ORBIT MIDCO LTD — all joined ORBIT BIDCO LTD on 10 Sep 2026"
+        "ORBIT MIDCO LTD — both joined ORBIT BIDCO LTD on 10 Sep 2026"
     ) in texts(out, "shared-board")
     assert len(texts(out, "shared-board")) == 3
     # Your own company's lines come first; the pair that joined long ago says so.
@@ -718,12 +822,18 @@ def test_risk_next_door_disqualified_and_sanctioned() -> None:
             "HOLDINGS LTD, which is facing strike-off"
         ),
     ]
+    # The role at the dissolved company is history, as it is on the register.
     assert texts(out, "disqualified") == [
         (
-            "Laura Price is disqualified as a director but still holds 3 active roles, at "
-            "GONE LTD, THE VELVET HOG LTD and VELVET HOG SALTBURN LTD"
+            "Laura Price is disqualified as a director but still holds 2 active roles, at "
+            "THE VELVET HOG LTD and VELVET HOG SALTBURN LTD"
         )
     ]
+    assert not any(e["target"] == "company:30000002" for e in out["edges"])
+    history = graph(laura, include_resigned=True)
+    gone = next(e for e in history["edges"] if e["target"] == "company:30000002")
+    assert gone["active"] is False
+    assert node(out, "person:laura")["degree"] == 2
     assert texts(out, "sanctioned") == [
         (
             "Oleg Sanctionov, who controls VELVET HOG SALTBURN LTD (75 to 100% of the "
@@ -735,6 +845,71 @@ def test_risk_next_door_disqualified_and_sanctioned() -> None:
     assert "strike_off" in node(out, "company:10000002")["flags"]
     assert [x["severity"] for x in out["interesting"]][:4] == ["high"] * 4
     assert out["summary"]["high"] == 4
+
+
+def test_trouble_is_said_plainly_for_every_status_and_role() -> None:
+    """Every insolvent status reads as English, and LLP roles keep their capitals."""
+    laura = person(
+        "laura",
+        "Laura PRICE",
+        dob=LAURA,
+        appointments=[
+            appointment("OC000001", "SAFE LLP", appointment_id="a1"),
+            appointment("30000001", "ADMIN LTD", status="administration"),
+            appointment("30000002", "RECV LTD", status="receivership"),
+            appointment("30000003", "CVA LTD", status="voluntary-arrangement"),
+            appointment("30000004", "IP LTD", status="insolvency-proceedings"),
+            appointment("30000005", "LIQ LTD", status="liquidation"),
+        ],
+    )
+    out = graph(
+        company(
+            "OC000001",
+            "SAFE LLP",
+            officers=[
+                officer(
+                    "PRICE, Laura",
+                    officer_id="laura",
+                    dob=LAURA,
+                    appointment_id="a1",
+                    role="llp-designated-member",
+                )
+            ],
+        ),
+        laura,
+    )
+    who = "Laura Price, an LLP designated member of SAFE LLP, also runs"
+    assert texts(out, "risk-next-door") == [
+        f"{who} ADMIN LTD, which is in administration",
+        f"{who} CVA LTD, which is in a voluntary arrangement",
+        f"{who} IP LTD, which is in insolvency proceedings",
+        f"{who} LIQ LTD, which is in liquidation",
+        f"{who} RECV LTD, which is in receivership",
+    ]
+    for role, article in (
+        ("manager-of-an-eeig", "a manager of an EEIG"),
+        ("secretary", "a secretary"),
+        ("llp-member", "an LLP member"),
+        ("nominee-director", "a nominee director"),
+    ):
+        out = graph(
+            company(
+                "10000001",
+                "X LTD",
+                officers=[
+                    officer("PRICE, Laura", officer_id="laura", dob=LAURA, role=role)
+                ],
+            ),
+            person(
+                "laura",
+                "Laura PRICE",
+                dob=LAURA,
+                appointments=[appointment("30000005", "LIQ LTD", status="liquidation")],
+            ),
+        )
+        assert texts(out, "risk-next-door") == [
+            f"Laura Price, {article} of X LTD, also runs LIQ LTD, which is in liquidation"
+        ]
 
 
 def test_new_link_and_link_broken() -> None:
@@ -964,6 +1139,46 @@ def test_sole_director_who_is_not_an_owner() -> None:
             "significant control; Silent Partner is"
         )
     ]
+
+
+def test_owner_rules_need_a_known_board() -> None:
+    """No officers dataset means no owner-not-on-board line; a director who is
+    also the secretary is still a director whichever record comes first."""
+    out = graph(
+        company(
+            "10000001",
+            "ALPHA LTD",
+            no_officers=True,
+            pscs=[psc("Mr Alex Morgan", dob=ALEX)],
+        )
+    )
+    assert node(out, "company:10000001")["meta"]["officers_known"] is False
+    assert texts(out, "owner-not-on-board") == []
+    assert texts(out, "director-not-owner") == []
+    for order in ("director first", "secretary first"):
+        ann = [
+            officer("ONE, Ann", officer_id="ann", dob=ALEX, appointment_id="ann-d"),
+            officer(
+                "ONE, Ann",
+                officer_id="ann",
+                role="secretary",
+                appointment_id="ann-s",
+            ),
+        ]
+        out = graph(
+            company(
+                "10000001",
+                "ALPHA LTD",
+                officers=[
+                    *(ann if order == "director first" else reversed(ann)),
+                    officer("TWO, Bob", officer_id="bob", dob=LAURA),
+                ],
+                pscs=[psc("Mr Ann One", dob=ALEX)],
+            )
+        )
+        assert node(out, "company:10000001")["meta"]["officers_known"] is True
+        assert texts(out, "owner-not-on-board") == []
+        assert texts(out, "director-not-owner") == []
 
 
 def test_reciprocal_control() -> None:
@@ -1244,7 +1459,9 @@ async def test_connections_action_builds_the_map_and_saves_it(
 ) -> None:
     """The action returns the graph from the fixtures and, with save, writes the page."""
     freezer.move_to("2026-09-15T09:00:00+00:00")
-    await setup_entry(list(COMPANY_FIXTURES), officers=True, close_watch={"12345678"})
+    entry = await setup_entry(
+        list(COMPANY_FIXTURES), officers=True, close_watch={"12345678"}
+    )
     for name in ("connections.html", "connections.json"):
         (_www(hass) / name).unlink(missing_ok=True)
     response = await hass.services.async_call(
@@ -1264,7 +1481,8 @@ async def test_connections_action_builds_the_map_and_saves_it(
     assert nodes["company:23456789"]["flags"] == ["dissolved"]
     assert nodes["person:officer-jane"]["status"] == "followed"
     assert nodes["person:officer-jane"]["label"] == "Jane Elizabeth Smith"
-    assert nodes["person:officer-jane"]["degree"] == 22
+    # 23 appointments, less one resigned and two at dissolved companies.
+    assert nodes["person:officer-jane"]["degree"] == 20
     assert nodes["company:11111111"]["label"] == "ACME SECRETARIES LIMITED"
     assert nodes["company:09876543"]["status"] == "external"
     # Jane's PSC record joined her officer record; the LLP owner joined too.
@@ -1285,35 +1503,59 @@ async def test_connections_action_builds_the_map_and_saves_it(
     assert "path" not in response
     assert not (_www(hass) / "connections.json").exists()
 
+    coordinator = entry.runtime_data.connections
+    assert coordinator is not None
+    assert coordinator.data is not None
+    assert coordinator.data.written_at is None
     response = await hass.services.async_call(
         DOMAIN,
         "connections",
-        {"save": True, "include_resigned": True, "days": 30},
+        {"save": True, "include_external": False, "days": 30},
         blocking=True,
         return_response=True,
     )
     assert response is not None
-    edges = {e["id"]: e for e in response["edges"]}
-    assert "appt-3" in edges
-    assert edges["appt-3"]["active"] is False
+    assert response["period_days"] == 30
+    assert "app-1" not in {e["id"] for e in response["edges"]}  # external, trimmed
     assert Path(response["path"]) == _www(hass) / "connections.html"
     assert response["url"].endswith("/local/companies_house/connections.html")
     shell = (_www(hass) / "connections.html").read_text(encoding="utf-8")
     assert "fetch('connections.json', { cache: 'no-store' })" in shell
     assert "<script src" not in shell
     assert "http" not in shell.replace("http://www.w3.org/2000/svg", "")
+    assert "appoints directors" in shell  # control and charge edges are labelled
+    assert not list(_www(hass).glob(".*.tmp"))
+    # The page always gets the whole map, whatever the call asked to see:
+    # resigned roles as history, unwatched companies, the usual week.
     saved = json.loads((_www(hass) / "connections.json").read_text(encoding="utf-8"))
-    assert saved == {k: v for k, v in response.items() if k not in ("path", "url")}
+    assert saved["period_days"] == 7
+    edges = {e["id"]: e for e in saved["edges"]}
+    assert edges["appt-3"]["active"] is False
+    assert "app-1" in edges
+    assert "charge:chg-2:0" in edges
+    assert coordinator.data.written_at is not None
+    assert coordinator.data.path == response["path"]
+    assert saved["summary"] == coordinator.data.graph["summary"]
+
+    # Without a coordinator (never in practice) the action writes it itself.
+    entry.runtime_data.connections = None
+    (_www(hass) / "connections.json").unlink()
+    response = await hass.services.async_call(
+        DOMAIN, "connections", {"save": True}, blocking=True, return_response=True
+    )
+    assert response is not None
+    assert Path(response["path"]) == _www(hass) / "connections.html"
+    assert (_www(hass) / "connections.json").exists()
 
 
 async def test_connections_action_reports_a_write_failure(
     hass: HomeAssistant, setup_entry: Callable[..., Any]
 ) -> None:
     """A folder that cannot be written is a clear error, not a traceback."""
-    await setup_entry(["12345678"])
+    entry = await setup_entry(["12345678"])
     with (
         patch(
-            "custom_components.companies_house.services.async_write_files",
+            "custom_components.companies_house.connections.async_write_files",
             side_effect=OSError("read-only"),
         ),
         pytest.raises(HomeAssistantError) as excinfo,
@@ -1322,6 +1564,10 @@ async def test_connections_action_reports_a_write_failure(
             DOMAIN, "connections", {"save": True}, blocking=True, return_response=True
         )
     assert excinfo.value.translation_key == "document_write_failed"
+    coordinator = entry.runtime_data.connections
+    assert coordinator is not None
+    assert coordinator.data is not None
+    assert coordinator.data.written_at is None
 
 
 async def test_llm_tool_gets_a_trimmed_map(
@@ -1526,6 +1772,119 @@ async def test_adding_a_company_rebuilds_the_map(
         ]
         == 1
     )
+
+
+async def test_day_rollover_and_charge_events_rebuild(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """A charge event rebuilds the map, and "new this week" wears off on its own."""
+    freezer.move_to("2026-09-15T09:00:00+00:00")
+    entry = await setup_entry(["12345678"])
+    coordinator = entry.runtime_data.connections
+    assert coordinator is not None
+    freezer.tick(INITIAL_WRITE_DELAY + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert coordinator.pending_reason is None
+
+    # A charge is an edge of the map, so it arms a rebuild.
+    hass.bus.async_fire(
+        EVENT_COMPANIES_HOUSE, {"kind": "charge", "event_type": "created"}
+    )
+    await hass.async_block_till_done()
+    assert coordinator.pending_reason == "charge created"
+    freezer.tick(REBUILD_DEBOUNCE + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert coordinator.pending_reason is None
+
+    # A director appointed yesterday is new this week...
+    officers = load_fixture("company_active/officers")
+    officers["items"].append(
+        {
+            **officers["items"][1],
+            "name": "NEWMAN, Nina",
+            "appointed_on": "2026-09-14",
+            "date_of_birth": {"month": 1, "year": 1990},
+            "links": {
+                "officer": {"appointments": "/officers/officer-nina/appointments"},
+                "self": "/company/12345678/appointments/appt-nina",
+            },
+        }
+    )
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, "12345678", overrides={"officers": officers})
+    from custom_components.companies_house.const import Dataset
+
+    company = entry.runtime_data.companies["sub_12345678"]
+    await company.async_refresh_datasets([Dataset.OFFICERS], reason="test")
+    freezer.tick(REBUILD_DEBOUNCE + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    state = hass.states.get("sensor.companies_house_connections")
+    assert state is not None
+    assert state.attributes["new_connections"] == 1
+    written = state.attributes["written_at"]
+
+    # ...and, with nothing else happening, stops being new a week later.
+    freezer.move_to("2026-09-22T00:01:30+00:00")
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    assert coordinator.pending_reason == "day rolled over"
+    freezer.tick(REBUILD_DEBOUNCE + timedelta(seconds=1))
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+    state = hass.states.get("sensor.companies_house_connections")
+    assert state is not None
+    assert state.attributes["new_connections"] == 0
+    assert state.attributes["written_at"] > written
+    saved = json.loads((_www(hass) / "connections.json").read_text(encoding="utf-8"))
+    assert saved["since"] == "2026-09-15"
+    assert not any(e["new"] for e in saved["edges"])
+
+
+def test_report_leaves_out_people_opted_out() -> None:
+    """A person opted out of the weekly report is left out of its connection lines."""
+    from custom_components.companies_house.digest import _connections
+
+    laura = person(
+        "laura",
+        "Laura PRICE",
+        dob=LAURA,
+        officer_ids=["laura-2"],
+        appointments=[
+            appointment("10000001", "SAFE LTD", appointment_id="a1"),
+            appointment("30000001", "GONE WRONG LTD", status="liquidation"),
+        ],
+    )
+    companies = {
+        "sub_1": company(
+            "10000001",
+            "SAFE LTD",
+            officers=[
+                # The company lists her under a pooled record.
+                officer(
+                    "PRICE, Laura", officer_id="laura-2", dob=LAURA, appointment_id="a1"
+                ),
+                officer("SMITH, Jane", officer_id="jane", dob=ALEX),
+            ],
+            pscs=[psc("Ms Jane Smith", dob=ALEX)],
+        ),
+        "sub_2": company("10000002", "OTHER LTD", address="1 Group Way"),
+    }
+    entry = SimpleNamespace(
+        runtime_data=SimpleNamespace(companies=companies, officers={"sub_p": laura})
+    )
+    lines = _connections(entry, days=7, now=NOW)  # type: ignore[arg-type]
+    assert [x["rule"] for x in lines] == ["risk-next-door", "shared-office"]
+    laura.in_weekly_report = False
+    lines = _connections(entry, days=7, now=NOW)  # type: ignore[arg-type]
+    assert [x["rule"] for x in lines] == ["shared-office"]
+    companies["sub_2"].in_weekly_report = False
+    assert _connections(entry, days=7, now=NOW) == []  # type: ignore[arg-type]
 
 
 async def test_digest_action_carries_connections(

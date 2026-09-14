@@ -287,20 +287,25 @@ memory: building it costs no API requests.
 Nodes are companies (yours in dark blue, watched in blue, not watched in
 grey), people (followed in teal, other officers in grey) and outside entities
 (lenders, overseas parents, drawn as diamonds). Edges are roles (solid;
-resigned ones dashed and hidden by default), control (a thick arrow pointing
-at the company controlled, labelled with the share band) and charges (a
-dotted arrow from the lender). Companies in liquidation or facing strike-off
-get a red ring, dissolved ones fade, a disqualified director or a sanctioned
-owner gets a red badge, and anything that changed in the last week says
-**new**.
+resigned ones dashed and hidden by default; roles at dissolved companies
+count as resigned, as they do on the register), control (a thick arrow
+pointing at the company controlled, labelled with the share band or
+"appoints directors", the full wording on hover) and charges (a dotted arrow
+from the lender, labelled "charge"). Companies in liquidation or facing
+strike-off get a red ring, dissolved ones fade, a disqualified director or a
+sanctioned owner gets a red badge, and anything that changed in the last week
+says **new**.
 
 Identity is handled honestly. A followed person is one node however many
 register records they have. A person with significant control has no record
 id, so they are joined to a director by surname, first forename and month and
 year of birth (the same test the disqualification check uses); by name alone
-only when there is no date of birth to check. A corporate owner or corporate
-secretary registered in the UK becomes its company; anything registered
-abroad stays an outside entity.
+only when there is no date of birth to check. Two register records are never
+joined by name alone, so a secretary (the register gives secretaries no date
+of birth) is not mistaken for a director who shares their name. A corporate
+owner or corporate secretary registered in the UK becomes its company;
+anything registered abroad (an Irish or Isle of Man parent has a "Companies
+Act" of its own) stays an outside entity.
 
 The map is also read for the **connections worth knowing about**, each with a
 severity and links:
@@ -330,10 +335,13 @@ outside requests; search box, legend, hover to highlight neighbours, click to
 open the register, toggles for resigned roles, unwatched companies and other
 officers) and `connections.json`, which the page fetches fresh every time it
 opens. Called from an assistant, the action returns only the counts and the
-lines. The map is kept current on its own too: a change to any role, holding,
-status or name, or a company or person being added or removed, rebuilds it a
-minute later and rewrites the files only when it actually changed. The first
-write happens shortly after start-up.
+lines; with `save: true` the page always gets the whole map (the toggles trim
+it on screen), whatever the call asked to be returned. The map is kept current
+on its own too: a change to any role, holding, charge, status or name, or a
+company or person being added or removed, rebuilds it a minute later and
+rewrites the files only when it actually changed; it is also rebuilt once a
+day so last week's **new** stops saying so. The first write happens shortly
+after start-up.
 
 The service device gets a **Connections** sensor: its state is the number of
 live connections between the companies and people you watch, and its

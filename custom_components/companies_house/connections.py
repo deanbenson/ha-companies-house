@@ -21,13 +21,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import json
+import os
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.event import async_call_later
+from homeassistant.helpers.event import async_call_later, async_track_utc_time_change
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
@@ -63,8 +64,13 @@ if TYPE_CHECKING:
 
 # Which change events can alter the map, and how long to wait for a burst of
 # them (a weekly reconciliation touches every company) to settle.
-REBUILD_KINDS = frozenset({"officer", "psc", "appointment", "status", "profile"})
+REBUILD_KINDS = frozenset(
+    {"officer", "psc", "appointment", "status", "profile", "charge"}
+)
 REBUILD_DEBOUNCE = timedelta(seconds=60)
+# "New this week" is measured in whole days, so the map is also rebuilt once a
+# day, just after midnight UTC, for the window to roll on when nothing happens.
+DAY_ROLLOVER_MINUTE = 1
 # The first write after setup waits a little so the files never slow setup.
 INITIAL_WRITE_DELAY = timedelta(seconds=30)
 DEFAULT_DAYS = 7
@@ -75,16 +81,23 @@ SENSOR_LINES_CAP = 20
 CHAIN_LINES_CAP = 10
 
 _SEVERITY_RANK = {"high": 0, "medium": 1, "low": 2}
-_UK_PLACES = (
-    "england",
-    "wales",
-    "scotland",
-    "northern ireland",
-    "united kingdom",
-    "great britain",
-    "companies act",
-    "companies house",
+# Whole words that name a UK register. "Wales" on its own is fine; "New South
+# Wales" is not. "Companies Act" is deliberately absent: Ireland and the Isle
+# of Man have one too.
+_UK_PLACE_RE = re.compile(
+    r"\b(?:england|scotland|northern ireland|united kingdom|great britain"
+    r"|companies house|uk)\b|(?<!south )\bwales\b"
 )
+# What is wrong with a company, in the words the risk line uses.
+_TROUBLE_PHRASES = {
+    "liquidation": "in liquidation",
+    "administration": "in administration",
+    "receivership": "in receivership",
+    "voluntary-arrangement": "in a voluntary arrangement",
+    "insolvency-proceedings": "in insolvency proceedings",
+}
+# Letters whose names start with a vowel sound, for "an LLP member".
+_AN_LETTERS = "AEFHILMNORSX"
 _COMPANY_NUMBER_RE = re.compile(r"^([A-Z]{0,2})(\d{5,8})$")
 _DIRECTOR_ROLES = frozenset({"director", "llp-designated-member", "llp-member"})
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
@@ -120,14 +133,19 @@ def _uk_registration(identification: dict[str, str]) -> str | None:
     Only when the record says it is a UK company: overseas numbers look the
     same but mean nothing on this register.
     """
-    kind = identification.get("identification_type", "")
+    number = _company_number(identification.get("registration_number"))
+    if number is None:
+        return None
+    if identification.get("identification_type", "").startswith("uk-"):
+        return number
+    # A place or country that is given but names somewhere else is decisive,
+    # whatever the legal authority says; only a blank one falls back to it.
     where = " ".join(
-        identification.get(k, "")
-        for k in ("place_registered", "country_registered", "legal_authority")
-    ).casefold()
-    if kind.startswith("uk-") or any(place in where for place in _UK_PLACES):
-        return _company_number(identification.get("registration_number"))
-    return None
+        identification.get(k, "") for k in ("place_registered", "country_registered")
+    ).strip()
+    if not where:
+        where = identification.get("legal_authority", "")
+    return number if _UK_PLACE_RE.search(where.casefold()) else None
 
 
 def _share_band(natures: Iterable[str]) -> str | None:
@@ -299,9 +317,12 @@ class _Graph:
         """Return the node for a person, joining records of the same human.
 
         Precedence: a register record already seen; then surname, first
-        forename and month and year of birth; then, only when one side has
-        no date of birth to check, the name alone. The register never gives
-        two different people the same record id, so that always wins.
+        forename and month and year of birth; then the name alone, but only
+        to join a record that has no id of its own (a person with
+        significant control) and only when one side has no date of birth to
+        check. Two register records are never joined by name alone: that is
+        how a secretary, who has no date of birth on the register, would be
+        mistaken for a director who shares their name.
         """
         name_key = _normalise_name(name)
         dob_key = (
@@ -319,7 +340,10 @@ class _Graph:
             node_id = self._by_dob_key[dob_key]
         elif name_key[0] and name_key in self._by_name_key:
             candidate = self._by_name_key[name_key]
-            if dob_key is None or candidate not in self._node_dob:
+            two_records = bool(
+                officer_id and self.nodes[candidate]["meta"].get("officer_ids")
+            )
+            if not two_records and (dob_key is None or candidate not in self._node_dob):
                 node_id = candidate
         if node_id is None:
             base = f"person:{officer_id}" if officer_id else f"person:{_slug(name)}"
@@ -467,7 +491,8 @@ def _status_phrase(node: JsonDict) -> str:
     """Say what is wrong with a company: "in liquidation", "facing strike-off"."""
     if "strike_off" in node["flags"]:
         return "facing strike-off"
-    return f"in {_status_word(node.get('company_status'))}"
+    status = node.get("company_status")
+    return _TROUBLE_PHRASES.get(status or "", f"in {_status_word(status)}")
 
 
 # ---------------------------------------------------------------- building
@@ -504,8 +529,14 @@ def _add_company(graph: _Graph, company: CompanyRuntime) -> None:
     )
     graph.weights[node["id"]] = _company_weight(company)
     company_link = _company_link(number)
+    # The register counts a role at a dissolved company as inactive, and so
+    # does the map; a holding there is no more current.
+    finished = profile.company_status in FINISHED_STATUSES
 
     officers = company.officers.data if company.officers is not None else None
+    # Rules that compare the board with the owners need to know whether the
+    # board is known at all (the officers dataset can be switched off).
+    graph.add_node(node["id"], meta={"officers_known": officers is not None})
     for officer in officers.items if officers else []:
         corporate = bool(officer.identification) or (
             officer.officer_role or ""
@@ -529,7 +560,7 @@ def _add_company(graph: _Graph, company: CompanyRuntime) -> None:
             source,
             node["id"],
             "officer",
-            active=officer.is_active,
+            active=officer.is_active and not finished,
             since=officer.appointed_on or officer.appointed_before,
             until=officer.resigned_on,
             link=company_link + "/officers",
@@ -559,7 +590,7 @@ def _add_company(graph: _Graph, company: CompanyRuntime) -> None:
             holder["id"],
             node["id"],
             "psc",
-            active=not psc.ceased,
+            active=not psc.ceased and not finished,
             since=psc.notified_on,
             until=psc.ceased_on,
             link=company_link + "/persons-with-significant-control",
@@ -625,7 +656,7 @@ def _add_person(graph: _Graph, officer: OfficerRuntime) -> None:
             node["id"],
             company["id"],
             "officer",
-            active=appointment.resigned_on is None,
+            active=appointment.is_active,
             since=appointment.appointed_on or appointment.appointed_before,
             until=appointment.resigned_on,
             link=_company_link(number) + "/officers",
@@ -652,12 +683,25 @@ def _finish(graph: _Graph) -> None:
 
 
 def _people_at(graph: _Graph, company_id: str) -> dict[str, JsonDict]:
-    """Return person node id -> officer edge for the active officers of a company."""
-    return {
-        e["source"]: e
-        for e in graph.edges_of(company_id, kind="officer")
-        if e["target"] == company_id and graph.nodes[e["source"]]["type"] == "person"
-    }
+    """Return person node id -> officer edge for the active officers of a company.
+
+    A person often holds two records at one company (director and
+    secretary); the director one is the one kept, whatever order the
+    register lists them in, so the lines never churn between refreshes.
+    """
+    board: dict[str, JsonDict] = {}
+    edges = sorted(
+        (
+            e
+            for e in graph.edges_of(company_id, kind="officer")
+            if e["target"] == company_id
+            and graph.nodes[e["source"]]["type"] == "person"
+        ),
+        key=lambda e: ((e.get("role") or "") not in _DIRECTOR_ROLES, e["id"]),
+    )
+    for edge in edges:
+        board.setdefault(edge["source"], edge)
+    return board
 
 
 def _companies_of(graph: _Graph, person_id: str) -> dict[str, JsonDict]:
@@ -678,14 +722,15 @@ def _rule_shared_board(graph: _Graph, watched: list[str]) -> list[_Line]:
             if len(shared) < 2:
                 continue
             names = [graph.label(n) for n in shared]
+            word = "both" if len(names) == 2 else "all"
             text = (
-                f"{_list_names(names)} {'both' if len(names) == 2 else 'all'} sit on "
-                f"the boards of {graph.label(a)} and {graph.label(b)}"
+                f"{_list_names(names)} {word} sit on the boards of "
+                f"{graph.label(a)} and {graph.label(b)}"
             )
             joined = {boards[a][n]["since"] for n in shared}
             if len(joined) == 1 and None not in joined:
                 text += (
-                    f" — all joined {graph.label(a)} on {_pretty_date(joined.pop())}"
+                    f" — {word} joined {graph.label(a)} on {_pretty_date(joined.pop())}"
                 )
             out.append(
                 graph.line(
@@ -851,8 +896,14 @@ def _troubled(graph: _Graph) -> set[str]:
 
 
 def _a_role(edge: JsonDict) -> str:
-    role = str(edge.get("role_label") or "officer").lower()
-    return ("an " if role[0] in "aeiou" else "a ") + role
+    """Say a role with its article: "a director", "an LLP member"."""
+    words = str(edge.get("role_label") or "officer").split()
+    role = " ".join(w if w.isupper() else w.lower() for w in words)
+    first = words[0]
+    vowel_sound = (
+        first[0] in _AN_LETTERS if first.isupper() else first[0].lower() in "aeiou"
+    )
+    return ("an " if vowel_sound else "a ") + role
 
 
 def _rule_disqualified(graph: _Graph) -> list[_Line]:
@@ -1139,6 +1190,8 @@ def _rule_unwatched_parent(graph: _Graph, watched: list[str]) -> list[_Line]:
 def _rule_owner_not_on_board(graph: _Graph, watched: list[str]) -> list[_Line]:
     out: list[_Line] = []
     for company in watched:
+        if not graph.nodes[company]["meta"].get("officers_known"):
+            continue  # No board to compare the owners with.
         board = _people_at(graph, company)
         owners = {
             e["source"]: e
@@ -1441,12 +1494,19 @@ def connections_url(hass: HomeAssistant) -> str:
     return f"{base}/local/{DOMAIN}/{SHELL_FILENAME}"
 
 
+def _replace(path: Path, text: str) -> None:
+    """Write a file in one step, so a page fetching it mid-write never sees half."""
+    temp = path.with_name(f".{path.name}.tmp")
+    temp.write_text(text, encoding="utf-8")
+    os.replace(temp, path)
+
+
 def _write_files(folder: Path, data: str) -> Path:
     folder.mkdir(parents=True, exist_ok=True)
     shell = folder / SHELL_FILENAME
     if not shell.exists() or shell.read_text(encoding="utf-8") != SHELL_HTML:
-        shell.write_text(SHELL_HTML, encoding="utf-8")
-    (folder / DATA_FILENAME).write_text(data, encoding="utf-8")
+        _replace(shell, SHELL_HTML)
+    _replace(folder / DATA_FILENAME, data)
     return shell
 
 
@@ -1480,11 +1540,13 @@ class ConnectionsCoordinator(DataUpdateCoordinator[ConnectionsData]):
     """Keep the map current and its files on disk, without polling anything.
 
     A change event of a kind that can alter the map (a role, a holding, a
-    status, a name, a person's appointments) or a company or person being
-    added arms one timer; when it fires the map is rebuilt in memory and,
-    only if it actually changed, written to ``www/companies_house`` in the
-    executor. Setup builds it once straight away so the sensor has a state,
-    and writes it shortly after.
+    charge, a status, a name, a person's appointments) or a company or
+    person being added arms one timer; when it fires the map is rebuilt in
+    memory and, only if it actually changed, written to
+    ``www/companies_house`` in the executor. Setup builds it once straight
+    away so the sensor has a state, and writes it shortly after. Once a day
+    the map is rebuilt anyway, so what counted as new last week stops
+    saying so.
     """
 
     # None until the first build, like the dataset coordinators.
@@ -1539,6 +1601,10 @@ class ConnectionsCoordinator(DataUpdateCoordinator[ConnectionsData]):
         def _on_new(_runtime: Any) -> None:
             self.request_rebuild("new company or person")
 
+        @callback
+        def _on_day(_now: datetime) -> None:
+            self.request_rebuild("day rolled over")
+
         self._unsubs = [
             self.hass.bus.async_listen(EVENT_COMPANIES_HOUSE, _on_event, _wanted),
             async_dispatcher_connect(
@@ -1546,6 +1612,9 @@ class ConnectionsCoordinator(DataUpdateCoordinator[ConnectionsData]):
             ),
             async_dispatcher_connect(
                 self.hass, signal_new_officer(self.entry.entry_id), _on_new
+            ),
+            async_track_utc_time_change(
+                self.hass, _on_day, hour=0, minute=DAY_ROLLOVER_MINUTE, second=0
             ),
         ]
         self._arm(INITIAL_WRITE_DELAY, "setup")
@@ -1567,8 +1636,12 @@ class ConnectionsCoordinator(DataUpdateCoordinator[ConnectionsData]):
         reason, self.pending_reason = self.pending_reason, None
         await self.async_rebuild(force=reason == "setup")
 
-    async def async_rebuild(self, *, force: bool = False) -> bool:
-        """Rebuild the map and write the files if it changed. Return whether it did."""
+    async def async_rebuild(self, *, force: bool = False, strict: bool = False) -> bool:
+        """Rebuild the map and write the files if it changed. Return whether it did.
+
+        A write that fails is logged and the old path kept, unless ``strict``
+        (the action asked for the write) in which case ``OSError`` is raised.
+        """
         graph = build_connections(
             self.entry, days=DEFAULT_DAYS, include_resigned=True, include_external=True
         )
@@ -1588,6 +1661,8 @@ class ConnectionsCoordinator(DataUpdateCoordinator[ConnectionsData]):
             path = await async_write_files(self.hass, graph)
             written_at = dt_util.utcnow()
         except OSError as err:
+            if strict:
+                raise
             LOGGER.warning("Could not write the connections map: %s", err)
             path = previous.path if previous else None
         self.async_set_updated_data(

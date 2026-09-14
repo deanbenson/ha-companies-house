@@ -40,6 +40,11 @@ SHELL_HTML = r"""<!DOCTYPE html>
   .edge.inactive { stroke-dasharray:5 4; stroke-opacity:.5; }
   .edge.new { stroke-width:2.4; }
   .edge:hover { stroke-width:3; cursor:pointer; }
+  .elabel { font-size:9px; fill:var(--muted); pointer-events:none; text-anchor:middle;
+    paint-order:stroke; stroke:#f9fafb; stroke-width:2.5px; }
+  .elabel.psc { fill:var(--psc); }
+  .elabel.charge { fill:var(--charge); }
+  .elabel.inactive { opacity:.5; }
   .node { cursor:pointer; }
   .node .shape { stroke:#fff; stroke-width:1.5; }
   .node.risk .shape { stroke:var(--risk); stroke-width:3; }
@@ -131,6 +136,15 @@ SHELL_HTML = r"""<!DOCTYPE html>
     return 'var(--external)';
   }
   function radius(n) { return 6 + Math.min(n.degree || 0, 12) * 0.9; }
+  // Control and charge edges carry a short label; roles are read on hover.
+  function edgeLabel(e) {
+    if (e.kind === 'charge') return 'charge';
+    if (e.kind !== 'psc') return '';
+    if (e.share_band) return e.share_band.replace('-', '\u2013') + '%';
+    var c = e.control || [];
+    function any(word) { return c.some(function (x) { return x.indexOf(word) >= 0; }); }
+    return any('right-to-appoint-and-remove') ? 'appoints directors' : any('voting-rights') ? 'votes' : any('significant-influence') ? 'influence' : 'controls';
+  }
   function has(n, flag) { return (n.flags || []).indexOf(flag) >= 0; }
 
   function visibleNode(n) {
@@ -154,7 +168,7 @@ SHELL_HTML = r"""<!DOCTYPE html>
       if (shown[n.id] && !touched[n.id] && !(n.type === 'company' && n.status !== 'external')) shown[n.id] = false;
     });
     edges.forEach(function (e) {
-      if (!visibleEdge(e)) { e.el = null; return; }
+      if (!visibleEdge(e)) { e.el = null; e.lab = null; return; }
       var cls = 'edge ' + e.kind + (e.active ? '' : ' inactive') + (e.new ? ' new' : '');
       var line = el('line', { 'class': cls }, gEdges);
       if (e.kind === 'psc') line.setAttribute('marker-end', 'url(#arrow)');
@@ -163,6 +177,9 @@ SHELL_HTML = r"""<!DOCTYPE html>
       line.addEventListener('mouseenter', function (ev) { showTip(ev, edgeTip(e)); });
       line.addEventListener('mouseleave', hideTip);
       e.el = line;
+      var text = edgeLabel(e);
+      e.lab = text ? el('text', { 'class': 'elabel ' + e.kind + (e.active ? '' : ' inactive') }, gEdges) : null;
+      if (e.lab) e.lab.textContent = text;
     });
     nodes.forEach(function (n) {
       if (!shown[n.id]) { n.el = null; return; }
@@ -199,11 +216,15 @@ SHELL_HTML = r"""<!DOCTYPE html>
   function highlight(n) {
     var keep = neighbours(n);
     nodes.forEach(function (m) { if (m.el) m.el.classList.toggle('dim', !keep[m.id]); });
-    edges.forEach(function (e) { if (e.el) e.el.classList.toggle('dim', !(e.source === n.id || e.target === n.id)); });
+    edges.forEach(function (e) { dimEdge(e, !(e.source === n.id || e.target === n.id)); });
+  }
+  function dimEdge(e, dim) {
+    if (e.el) e.el.classList.toggle('dim', dim);
+    if (e.lab) e.lab.classList.toggle('dim', dim);
   }
   function clearHighlight() {
     nodes.forEach(function (m) { if (m.el) m.el.classList.remove('dim'); });
-    edges.forEach(function (e) { if (e.el) e.el.classList.remove('dim'); });
+    edges.forEach(function (e) { dimEdge(e, false); });
     applySearch();
   }
   function applySearch() {
@@ -214,7 +235,7 @@ SHELL_HTML = r"""<!DOCTYPE html>
       m.el.classList.toggle('hit', !!hit);
       m.el.classList.toggle('dim', !!q && !hit);
     });
-    edges.forEach(function (e) { if (e.el) e.el.classList.toggle('dim', !!q); });
+    edges.forEach(function (e) { dimEdge(e, !!q); });
   }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -293,6 +314,7 @@ SHELL_HTML = r"""<!DOCTYPE html>
       var rb = radius(b) + (e.kind === 'officer' ? 0 : 4);
       e.el.setAttribute('x1', a.x.toFixed(1)); e.el.setAttribute('y1', a.y.toFixed(1));
       e.el.setAttribute('x2', (b.x - dx / d * rb).toFixed(1)); e.el.setAttribute('y2', (b.y - dy / d * rb).toFixed(1));
+      if (e.lab) { e.lab.setAttribute('x', ((a.x + b.x) / 2).toFixed(1)); e.lab.setAttribute('y', ((a.y + b.y) / 2 - 3).toFixed(1)); }
     });
     alpha *= 0.97;
     if (alpha > 0.005) frame = requestAnimationFrame(tick);

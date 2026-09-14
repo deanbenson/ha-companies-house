@@ -626,14 +626,26 @@ async def _connections(
         include_external=bool(call.data.get(ATTR_INCLUDE_EXTERNAL, True)),
     )
     if call.data.get(ATTR_SAVE):
+        # The page always gets the whole map (the toggles trim it on screen);
+        # the trimmed one is only what this call returns. Going through the
+        # coordinator keeps its idea of what is on disk in step.
+        coordinator = entry.runtime_data.connections
         try:
-            result["path"] = await async_write_files(hass, result)
+            if coordinator is None:
+                whole = build_connections(
+                    entry, include_resigned=True, include_external=True
+                )
+                path: str | None = await async_write_files(hass, whole)
+            else:
+                await coordinator.async_rebuild(force=True, strict=True)
+                path = coordinator.data.path if coordinator.data else None
         except OSError as err:
             raise HomeAssistantError(
                 translation_domain=DOMAIN,
                 translation_key="document_write_failed",
                 translation_placeholders={"error": str(err)},
             ) from err
+        result["path"] = path
         result["url"] = connections_url(hass)
     return result
 
