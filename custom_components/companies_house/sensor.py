@@ -684,6 +684,15 @@ class RiskRatingSensor(CompanySensor):
     coordinators, to change events and to the runtime's own re-rating signal.
     """
 
+    @property
+    def available(self) -> bool:
+        """Available whenever there is a rating, even while refreshes are failing.
+
+        Stale data is one of the things the rating reports, so a run of
+        failed refreshes must not take the rating away as well.
+        """
+        return self.coordinator.data is not None
+
     async def async_added_to_hass(self) -> None:
         """Subscribe to re-ratings, change events and every dataset."""
         await super().async_added_to_hass()

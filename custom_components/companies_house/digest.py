@@ -610,7 +610,13 @@ def _attention(
             since_date=due,
         )
     risk = company.risk
-    if risk is not None and risk.band in (BAND_AMBER, BAND_RED):
+    if (
+        risk is not None
+        and risk.band in (BAND_AMBER, BAND_RED)
+        # A dissolved company is red for being dissolved, which the status
+        # line already says; the report keeps finished companies quiet.
+        and not is_finished(profile.company_status)
+    ):
         # New when the band got worse this period. The reasons are in the
         # report's own Risk section, so the badge stays short.
         out.append(
@@ -691,6 +697,7 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         }
         if company.risk is not None
         else None,
+        "finished": bool(profile and is_finished(profile.company_status)),
     }
 
 
@@ -855,7 +862,11 @@ def _risk_counts(companies: list[JsonDict]) -> dict[str, int]:
 
 
 def _risk_list(companies: list[JsonDict]) -> list[JsonDict]:
-    """List the amber and red companies, worst first, with the one-line reason."""
+    """List the amber and red companies, worst first, with the one-line reason.
+
+    Finished companies are left out: they are red for being dissolved, which
+    is not news, and the counts in the summary still include them.
+    """
     out = [
         {
             "company": card["name"],
@@ -868,7 +879,9 @@ def _risk_list(companies: list[JsonDict]) -> list[JsonDict]:
             "pages": card.get("pages") or [],
         }
         for card in companies
-        if card.get("risk") and card["risk"]["band"] in (BAND_AMBER, BAND_RED)
+        if card.get("risk")
+        and card["risk"]["band"] in (BAND_AMBER, BAND_RED)
+        and not card.get("finished")
     ]
     out.sort(key=lambda r: (-BAND_RANK.get(r["band"], 0), -r["score"], r["company"]))
     return out

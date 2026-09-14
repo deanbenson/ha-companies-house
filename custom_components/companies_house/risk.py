@@ -20,7 +20,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Final
 
-from .const import FINISHED_STATUSES, INSOLVENT_STATUSES, STATUS_DETAIL_STRIKE_OFF
+from .const import (
+    FINISHED_STATUSES,
+    INSOLVENT_STATUSES,
+    STATUS_DETAIL_STRIKE_OFF,
+    STRIKE_OFF_DISCONTINUED_DESCRIPTIONS,
+    STRIKE_OFF_NOTICE_DESCRIPTIONS,
+)
 from .enumerations import COMPANY_STATUS, INSOLVENCY_CASE_TYPE
 from .models import (
     AppointmentList,
@@ -153,35 +159,28 @@ CORPORATE_ROLES: Final = frozenset(
     }
 )
 
+# The Gazette notice keys and what kind of strike-off each announces.
 STRIKE_OFF_NOTICES: Final[dict[str, str]] = {
-    "gazette-notice-voluntary": "voluntary",
-    "gazette-notice-compulsory": "compulsory",
-    "gazette-notice-compulsary": "compulsory",
+    key: "voluntary" if "voluntary" in key else "compulsory"
+    for key in STRIKE_OFF_NOTICE_DESCRIPTIONS
 }
-STRIKE_OFF_ENDED: Final = frozenset(
-    {
-        "gazette-filings-brought-up-to-date",
-        "dissolution-voluntary-strike-off-discontinued",
-        "dissolution-voluntary-strike-off-suspended",
-        "dissolved-compulsory-strike-off-suspended",
-    }
-)
+# Everything that ends a strike-off, notice or application alike: the same
+# list the probe clears the stored notice date on, so the two never disagree.
+STRIKE_OFF_ENDED: Final = STRIKE_OFF_DISCONTINUED_DESCRIPTIONS
 STRIKE_OFF_APPLICATIONS: Final = frozenset(
     {
         "dissolution-application-strike-off-company",
         "dissolution-application-strike-off-limited-liability-partnership",
     }
 )
-STRIKE_OFF_WITHDRAWALS: Final = frozenset(
-    {
-        "dissolution-withdrawal-application-strike-off-company",
-        "dissolution-withdrawal-application-strike-off-limited-liability-partnership",
-    }
-)
 DEFAULT_ADDRESS_FILING: Final = (
     "default-companies-house-registered-office-address-applied"
 )
-DEFAULT_ADDRESS_MARKERS: Final = ("crown way", "po box 4385")
+# The registrar's own address, as the register has spelt it over the years:
+# "PO Box 4385, Crown Way, Cardiff CF14 3UZ", later "Companies House Default
+# Address, Cardiff CF14 8LH". Either wording, or the PO box with Cardiff, is it.
+DEFAULT_ADDRESS_MARKERS: Final = ("companies house default address",)
+DEFAULT_ADDRESS_PO_BOX: Final = ("po box 4385", "cardiff")
 
 INSOLVENCY_START_DATES: Final = frozenset(
     {
@@ -237,6 +236,9 @@ ACCOUNTS_DEADLINE_MONTHS: Final = 9
 PLC_ACCOUNTS_DEADLINE_MONTHS: Final = 6
 FIRST_ACCOUNTS_MONTHS: Final = 21
 STALE_PROFILE_DAYS: Final = 14
+# Refreshes failing for longer than this count as stale data too, however
+# recent the last copy that landed.
+FAILING_REFRESH_DAYS: Final = 7
 LATE_FILING_LOOKBACK_DAYS: Final = 3 * 365
 NOTHING_FILED_DAYS: Final = 456
 YEAR_DAYS: Final = 365
@@ -412,6 +414,7 @@ class _Scorer:
         state: CompanyState,
         coverage: Mapping[str, datetime | None],
         people: Sequence[TrackedPerson],
+        profile_failing_since: datetime | None,
         today: date,
     ) -> None:
         self.profile = profile
@@ -423,6 +426,7 @@ class _Scorer:
         self.state = state
         self.coverage = coverage
         self.people = people
+        self.profile_failing_since = profile_failing_since
         self.today = today
         self.items: list[RiskItem] = []
         self.overrides: list[str] = []
@@ -531,11 +535,11 @@ class _Scorer:
                 text += f", suspended on {_pretty_date(ended.date)}"
             self.add("R4", text)
             return
+        # A DS01 counts until it is withdrawn, or the strike-off it led to
+        # is discontinued or suspended (which the probe treats the same way).
         application = _latest_of(self.filings, STRIKE_OFF_APPLICATIONS)
-        withdrawal = _latest_of(self.filings, STRIKE_OFF_WITHDRAWALS)
         if application is not None and (
-            withdrawal is None
-            or (withdrawal.date or date.min) < (application.date or date.min)
+            ended is None or (ended.date or date.min) < (application.date or date.min)
         ):
             self.add(
                 "R4",
@@ -545,8 +549,26 @@ class _Scorer:
 
     def _default_address(self) -> None:
         address = self.profile.registered_office_address
-        line = address.one_line().casefold() if address else ""
-        at_default = all(marker in line for marker in DEFAULT_ADDRESS_MARKERS)
+        # Every field, not one_line(): the PO box is what gives the address away.
+        text = (
+            " ".join(
+                str(part)
+                for part in (
+                    address.po_box,
+                    address.premises,
+                    address.address_line_1,
+                    address.address_line_2,
+                    address.locality,
+                    address.postal_code,
+                )
+                if part
+            ).casefold()
+            if address
+            else ""
+        )
+        at_default = any(marker in text for marker in DEFAULT_ADDRESS_MARKERS) or all(
+            marker in text for marker in DEFAULT_ADDRESS_PO_BOX
+        )
         moved = _latest_of(self.filings, frozenset({DEFAULT_ADDRESS_FILING}))
         moved_back = _newest(
             i
@@ -965,20 +987,51 @@ class _Scorer:
         """Unknown is not green. Returns the uncertainty points added."""
         before = sum(i.points for i in self.items)
         age = self.data_age_days()
+        failing = self.refresh_failing_days()
+        if failing is not None:
+            self.info["refresh_failing_days"] = failing
         if age is not None and age > STALE_PROFILE_DAYS:
             self.add("D2", f"register data is {age} days old")
+        elif failing is not None and failing > FAILING_REFRESH_DAYS:
+            # The last copy is recent enough, but nothing newer will land.
+            self.add(
+                "D2",
+                f"register data is {age} days old and has not refreshed for "
+                f"{failing} days"
+                if age is not None
+                else f"register data has not refreshed for {failing} days",
+            )
         checks = (
-            ("officers", "D3_officers", "directors not checked"),
-            ("charges", "D3_charges", "charges not checked"),
-            ("insolvency", "D3_insolvency", "insolvency record not checked"),
-            ("psc", "D3_psc", "ownership not checked"),
+            ("officers", "D3_officers", "directors"),
+            ("charges", "D3_charges", "charges"),
+            ("insolvency", "D3_insolvency", "insolvency record"),
+            ("psc", "D3_psc", "ownership"),
         )
-        for dataset, code, text in checks:
-            if dataset not in self.coverage:
-                self.add(code, text)
+        missing = [(code, what) for d, code, what in checks if d not in self.coverage]
+        if missing:
+            # One line for everything unchecked, so it takes one slot of the
+            # one-liner rather than crowding out the real findings.
+            what = [w for _, w in missing]
+            self.add(
+                "D3",
+                (
+                    what[0]
+                    if len(what) == 1
+                    else ", ".join(what[:-1]) + f" and {what[-1]}"
+                )
+                + " not checked",
+                points=sum(POINTS[code] for code, _ in missing),
+            )
         if self.profile.partial_data_available:
             self.add("D4", "the register holds only partial data")
         return sum(i.points for i in self.items) - before
+
+    def refresh_failing_days(self) -> int | None:
+        """How long the profile has failed to refresh, in days; None while healthy."""
+        since = self.profile_failing_since
+        if since is None:
+            return None
+        return max(0, (self.today - since.date()).days)
 
     def data_age_days(self) -> int | None:
         """How old the profile is, in days."""
@@ -992,13 +1045,15 @@ def _order(items: list[RiskItem]) -> list[RiskItem]:
     return sorted(items, key=lambda i: (-i.points, _SECTION_ORDER.get(i.section, 9)))
 
 
-def _reason_line(band: str, reasons: list[str]) -> str:
+def _reason_line(band: str, reasons: list[str], caveat: str | None) -> str:
+    """Build the one-liner: the band, up to four reasons, then the data-age caveat."""
     if not reasons:
-        return f"{band.capitalize()}: no concerns on the register"
-    line = f"{band.capitalize()}: " + "; ".join(reasons[:4])
-    if len(reasons) > 4:
-        line += f" and {len(reasons) - 4} more"
-    return line
+        line = f"{band.capitalize()}: no concerns on the register"
+    else:
+        line = f"{band.capitalize()}: " + "; ".join(reasons[:4])
+        if len(reasons) > 4:
+            line += f" and {len(reasons) - 4} more"
+    return f"{line}; {caveat}" if caveat else line
 
 
 def _coverage_out(coverage: Mapping[str, datetime | None]) -> dict[str, str | None]:
@@ -1020,6 +1075,7 @@ def compute_risk(
     state: CompanyState | None = None,
     coverage: Mapping[str, datetime | None] | None = None,
     people: Sequence[TrackedPerson] = (),
+    profile_failing_since: datetime | None = None,
     today: date,
     accounts: object | None = None,
 ) -> RiskResult:
@@ -1028,9 +1084,12 @@ def compute_risk(
     ``coverage`` maps each dataset that has been fetched (by its ``Dataset``
     value) to when it was fetched; a dataset missing from it counts as not
     checked. ``people`` are the followed people, for disqualification and
-    connected-party rules. ``accounts`` is reserved for the structured
-    accounts feature (net liabilities, falling cash and the like); it is
-    accepted and ignored until that lands, so callers can pass it now.
+    connected-party rules. ``profile_failing_since`` is when the profile's
+    refreshes started failing, if they are: a copy that will not refresh
+    counts as stale after a week however recent it is. ``accounts`` is
+    reserved for the structured accounts feature (net liabilities, falling
+    cash and the like); it is accepted and ignored until that lands, so
+    callers can pass it now.
     """
     del accounts  # Hook for the accounts feature: not scored yet.
     state = state or CompanyState()
@@ -1062,6 +1121,7 @@ def compute_risk(
         state=state,
         coverage=coverage,
         people=people,
+        profile_failing_since=profile_failing_since,
         today=today,
     )
     if profile.company_status in FINISHED_STATUSES:
@@ -1093,13 +1153,20 @@ def compute_risk(
         band = BAND_GREEN
     reasons = [i.text for i in items if not i.quiet or band != BAND_GREEN]
     age = scorer.data_age_days()
-    if age is not None and age > 1:
-        reasons.append(f"register data {age} days old")
+    # The data-age caveat comes last, unless stale data is already a reason.
+    caveat = (
+        f"register data {age} days old"
+        if age is not None and age > 1 and not any(i.code == "D2" for i in items)
+        else None
+    )
+    line = _reason_line(band, reasons, caveat)
+    if caveat:
+        reasons.append(caveat)
     return RiskResult(
         band=band,
         score=score,
         reasons=reasons,
-        reason=_reason_line(band, reasons),
+        reason=line,
         overrides=list(scorer.overrides),
         items=items,
         coverage=_coverage_out(coverage),

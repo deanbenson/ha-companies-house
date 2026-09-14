@@ -235,13 +235,22 @@ def test_profile_only_is_amber_because_unknown_is_not_green() -> None:
     result = compute_risk(profile=_profile(), coverage={"profile": NOW}, today=TODAY)
     assert result.band == BAND_AMBER
     assert result.score == 14
+    # One line for everything unchecked, so the one-liner keeps its slots.
     assert result.reasons == [
-        "directors not checked",
-        "charges not checked",
-        "insolvency record not checked",
-        "ownership not checked",
+        "directors, charges, insolvency record and ownership not checked"
     ]
+    assert result.reason == (
+        "Amber: directors, charges, insolvency record and ownership not checked"
+    )
+    assert codes(result) == ["D3"]
     assert result.coverage["officers"] is None
+    two = rate(
+        coverage={k: v for k, v in FULL_COVERAGE.items() if k in ("profile", "psc")},
+        officers=None,
+        charges=None,
+    )
+    assert two.reasons == ["directors, charges and insolvency record not checked"]
+    assert two.score == 12
 
 
 def test_uncertainty_alone_never_lets_a_low_score_go_green() -> None:
@@ -405,6 +414,50 @@ def test_strike_off_from_the_status_detail_and_from_notices() -> None:
     )
 
 
+def test_strike_off_ends_the_way_the_probe_says_it_does() -> None:
+    """Withdrawals, discontinuations and suspensions all end a notice or a DS01.
+
+    The scorer reads the same list of ending filings as the probe, which
+    clears the stored notice date on them, so the two never disagree.
+    """
+    withdrawn_after_notice = rate(
+        filings=[
+            _filing("dissolution-application-strike-off-company", "2026-05-01"),
+            _filing("gazette-notice-voluntary", "2026-06-01"),
+            _filing(
+                "dissolution-withdrawal-application-strike-off-company", "2026-06-20"
+            ),
+        ]
+    )
+    assert withdrawn_after_notice.overrides == []
+    assert withdrawn_after_notice.band == BAND_GREEN
+    discontinued_after_application = rate(
+        filings=[
+            _filing("dissolution-application-strike-off-company", "2026-05-01"),
+            _filing("gazette-notice-voluntary", "2026-06-01"),
+            _filing("dissolution-voluntary-strike-off-discontinued", "2026-06-20"),
+        ]
+    )
+    assert discontinued_after_application.overrides == []
+    suspended_after_application = rate(
+        filings=[
+            _filing("dissolution-application-strike-off-company", "2026-05-01"),
+            _filing("dissolution-voluntary-strike-off-suspended", "2026-06-20"),
+        ]
+    )
+    assert suspended_after_application.overrides == []
+    # A fresh application after the last ending counts again.
+    applied_again = rate(
+        filings=[
+            _filing("dissolution-application-strike-off-company", "2026-05-01"),
+            _filing("dissolution-voluntary-strike-off-discontinued", "2026-06-20"),
+            _filing("dissolution-application-strike-off-company", "2026-08-01"),
+        ]
+    )
+    assert applied_again.overrides == ["R4"]
+    assert applied_again.reasons[0].endswith("on 1 Aug 2026")
+
+
 def test_strike_off_application_by_the_directors() -> None:
     """A DS01 counts until it is withdrawn."""
     applied = rate(
@@ -478,6 +531,51 @@ def test_default_registered_office_address() -> None:
         ]
     )
     assert "R5" not in moved_on.overrides
+
+
+def test_default_address_is_seen_in_every_field() -> None:
+    """The PO box field and the register's newer wording both give it away.
+
+    A company already at the default address when added has no filing
+    among the recent ones to say so, so the address itself must do.
+    """
+    po_box = rate(
+        _profile(
+            registered_office_address={
+                "address_line_1": "Crown Way",
+                "po_box": "PO Box 4385",
+                "locality": "Cardiff",
+                "postal_code": "CF14 3UZ",
+            }
+        )
+    )
+    assert po_box.overrides == ["R5"]
+    worded = rate(
+        _profile(
+            registered_office_address={
+                "address_line_1": "Companies House Default Address",
+                "po_box": "4385",
+                "locality": "Cardiff",
+                "postal_code": "CF14 8LH",
+            }
+        )
+    )
+    assert worded.overrides == ["R5"]
+    assert worded.reasons[0] == (
+        "registered office moved to the Companies House default address"
+    )
+    # A PO box 4385 somewhere else is somebody's own.
+    elsewhere = rate(
+        _profile(
+            registered_office_address={
+                "po_box": "PO Box 4385",
+                "locality": "Leeds",
+                "postal_code": "LS1 1AA",
+            }
+        )
+    )
+    assert elsewhere.overrides == []
+    assert rate(_profile(registered_office_address=None)).overrides == []
 
 
 def test_sanctioned_controller_is_red() -> None:
@@ -1148,21 +1246,67 @@ def test_cannot_file_is_quiet_information() -> None:
 
 
 def test_stale_register_data_and_the_age_caveat() -> None:
-    """Old data costs points past two weeks; older than a day it is always mentioned."""
+    """Old data costs points past two weeks; older than a day it is always mentioned.
+
+    The age is said once: as the scored reason when it costs points, as the
+    trailing caveat otherwise.
+    """
     stale = rate(coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=20)})
     assert stale.data_age_days == 20
-    assert stale.reasons == [
-        "register data is 20 days old",
-        "register data 20 days old",
-    ]
+    assert stale.reasons == ["register data is 20 days old"]
+    assert stale.reason == "Amber: register data is 20 days old"
     assert stale.band == BAND_AMBER
     fresh = rate(coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=3)})
     assert fresh.reasons == ["register data 3 days old"]
     assert fresh.band == BAND_GREEN
-    assert fresh.reason == "Green: register data 3 days old"
+    # The caveat never stands in for the reason a company is green.
+    assert (
+        fresh.reason == "Green: no concerns on the register; register data 3 days old"
+    )
+    charged = rate(
+        charges=_charges(_charge()),
+        coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=3)},
+    )
+    assert charged.reasons == ["1 outstanding charge", "register data 3 days old"]
+    assert charged.reason == "Green: 1 outstanding charge; register data 3 days old"
     unknown_age = rate(coverage={**FULL_COVERAGE, "profile": None})
     assert unknown_age.data_age_days is None
     assert unknown_age.coverage["profile"] is None
+    assert unknown_age.reason == "Green: no concerns on the register"
+
+
+def test_refreshes_failing_for_over_a_week_count_as_stale() -> None:
+    """A recent copy that will not refresh is stale after seven days of failures."""
+    failing = rate(
+        coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=10)},
+        profile_failing_since=NOW - timedelta(days=8),
+    )
+    assert failing.band == BAND_AMBER
+    assert codes(failing) == ["D2"]
+    assert failing.reasons == [
+        "register data is 10 days old and has not refreshed for 8 days"
+    ]
+    assert failing.info["refresh_failing_days"] == 8
+    # A week of failures is tolerated; the caveat still says the age.
+    tolerated = rate(
+        coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=10)},
+        profile_failing_since=NOW - timedelta(days=7),
+    )
+    assert tolerated.band == BAND_GREEN
+    assert tolerated.reasons == ["register data 10 days old"]
+    assert tolerated.info["refresh_failing_days"] == 7
+    # Past two weeks the age alone is the reason, said once.
+    old_and_failing = rate(
+        coverage={**FULL_COVERAGE, "profile": NOW - timedelta(days=20)},
+        profile_failing_since=NOW - timedelta(days=9),
+    )
+    assert old_and_failing.reasons == ["register data is 20 days old"]
+    no_age = rate(
+        coverage={**FULL_COVERAGE, "profile": None},
+        profile_failing_since=NOW - timedelta(days=9),
+    )
+    assert no_age.reasons == ["register data has not refreshed for 9 days"]
+    assert no_age.band == BAND_AMBER
 
 
 def test_partial_data_is_uncertainty() -> None:

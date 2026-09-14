@@ -45,6 +45,9 @@ def _coordinator_info(coordinator: CompaniesHouseCoordinator[Any]) -> dict[str, 
         else None,
         "next_run": coordinator.next_run.isoformat() if coordinator.next_run else None,
         "last_reason": coordinator.last_reason,
+        "failing_since": coordinator.failing_since.isoformat()
+        if coordinator.failing_since
+        else None,
         "has_data": coordinator.data is not None,
     }
 

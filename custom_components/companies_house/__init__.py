@@ -133,6 +133,11 @@ async def async_setup_entry(
 
     _prune_store(runtime)
     await runtime.account.async_config_entry_first_refresh()
+    # Rate only now that every company and person is up: a rating depends on
+    # the followed people, so rating each company as it started would drop a
+    # band that rests on a person listed after it, and announce the drop.
+    for company in runtime.companies.values():
+        company.recompute_risk()
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     for company in runtime.companies.values():
         company.mark_ready()
@@ -350,14 +355,27 @@ async def _async_apply_changes(
             await officer.async_shutdown()
             runtime.store.forget_officer(officer.officer_id)
 
+    new_companies: list[CompanyRuntime] = []
+    new_officers: list[OfficerRuntime] = []
     for sid in current - known:
         started = await _async_start_subentry(hass, entry, entry.subentries[sid])
         if isinstance(started, CompanyRuntime):
-            async_dispatcher_send(hass, signal_new_company(entry.entry_id), started)
+            new_companies.append(started)
         elif isinstance(started, OfficerRuntime):
-            async_dispatcher_send(hass, signal_new_officer(entry.entry_id), started)
-        if started is not None:
-            started.mark_ready()
+            new_officers.append(started)
+    if new_officers:
+        # A newly followed person feeds every company's rating at once.
+        for company in runtime.companies.values():
+            company.recompute_risk()
+    else:
+        for company in new_companies:
+            company.recompute_risk()
+    for company in new_companies:
+        async_dispatcher_send(hass, signal_new_company(entry.entry_id), company)
+        company.mark_ready()
+    for officer in new_officers:
+        async_dispatcher_send(hass, signal_new_officer(entry.entry_id), officer)
+        officer.mark_ready()
     _raise_if_auth_failed(runtime)
     runtime.snapshot = after
     await runtime.account.async_refresh()

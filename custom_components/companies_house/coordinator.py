@@ -53,6 +53,8 @@ from .const import (
     LOGGER,
     OPTIONAL_DATASETS,
     STATUS_DETAIL_STRIKE_OFF,
+    STRIKE_OFF_DISCONTINUED_DESCRIPTIONS,
+    STRIKE_OFF_NOTICE_DESCRIPTIONS,
     SUBENTRY_TYPE_COMPANY,
     SUBENTRY_TYPE_OFFICER,
     Dataset,
@@ -117,23 +119,6 @@ PROBE_CATCH_UP_MAX = 25
 # recent history stays available (for the report) without another request.
 PROBE_KEEP_ITEMS = 25
 ACCOUNT_INTERVAL = timedelta(seconds=60)
-STRIKE_OFF_NOTICE_DESCRIPTIONS = frozenset(
-    {
-        "gazette-notice-voluntary",
-        "gazette-notice-compulsory",
-        "gazette-notice-compulsary",
-    }
-)
-STRIKE_OFF_DISCONTINUED_DESCRIPTIONS = frozenset(
-    {
-        "gazette-filings-brought-up-to-date",
-        "dissolution-voluntary-strike-off-discontinued",
-        "dissolution-voluntary-strike-off-suspended",
-        "dissolved-compulsory-strike-off-suspended",
-        "dissolution-withdrawal-application-strike-off-company",
-        "dissolution-withdrawal-application-strike-off-limited-liability-partnership",
-    }
-)
 
 
 def signal_changes(subentry_id: str) -> str:
@@ -297,6 +282,8 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
         self.fetched_at: datetime | None = None
         self.next_run: datetime | None = None
         self.last_reason = "not run"
+        # When the current run of failed refreshes began; None while healthy.
+        self.failing_since: datetime | None = None
         self._first_run = True
         self._force_fetch = False
 
@@ -423,6 +410,7 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             ) from err
         except CompaniesHouseBudgetError as err:
             if self.data is None:
+                self.failing_since = self.failing_since or now
                 raise UpdateFailed(
                     translation_domain=DOMAIN,
                     translation_key="budget_exhausted",
@@ -433,17 +421,20 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             LOGGER.debug("%s deferred: %s", self.name, err)
             return self.data
         except CompaniesHouseRateLimitError as err:
+            self.failing_since = self.failing_since or now
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="rate_limited",
                 retry_after=err.retry_after,
             ) from err
         except CompaniesHouseNotFoundError as err:
+            self.failing_since = self.failing_since or now
             self._on_not_found()
             raise UpdateFailed(
                 translation_domain=DOMAIN, translation_key="not_found"
             ) from err
         except CompaniesHouseConnectionError as err:
+            self.failing_since = self.failing_since or now
             raise UpdateFailed(
                 translation_domain=DOMAIN,
                 translation_key="cannot_connect",
@@ -451,6 +442,7 @@ class CompaniesHouseCoordinator[DataT: StorableModel](DataUpdateCoordinator[Data
             ) from err
         previous = self.data
         self.fetched_at = now
+        self.failing_since = None
         self.last_reason = "fetched"
         if previous is not None:
             self._detect_changes(previous, current)
@@ -578,14 +570,16 @@ class CompanyRuntime(_Runtime):
         """Refresh every coordinator once at setup, tolerating failures.
 
         Snapshots are loaded first so a fresh one costs no request, and so
-        changes since the last run are detected rather than replayed.
+        changes since the last run are detected rather than replayed. The
+        risk rating is not computed here: it depends on the followed people,
+        who may not have started yet, so the entry rates every company once
+        all of its subentries are up (see ``recompute_risk``).
         """
         for coordinator in self.coordinators.values():
             coordinator.load_snapshot()
         for coordinator in self.coordinators.values():
             await coordinator.async_refresh()
         self.recompute_tier()
-        self.recompute_risk()
 
     @callback
     def recompute_tier(self) -> None:
@@ -646,9 +640,11 @@ class CompanyRuntime(_Runtime):
         """Re-rate the company from the data on hand.
 
         Called after every refresh that lands once the company is live, and
-        once at the end of setup. The band is remembered in the store and a
-        ``risk-changed`` event fires only when it moves, never for the score
-        alone and never on the first rating after setup.
+        once by the entry when every company and person has started, so the
+        first rating after a restart already sees the followed people. The
+        band is remembered in the store and a ``risk-changed`` event fires
+        only when it moves, never for the score alone and never on the first
+        rating after setup.
         """
         coverage = {
             dataset.value: coordinator.fetched_at
@@ -665,6 +661,7 @@ class CompanyRuntime(_Runtime):
             state=self.state,
             coverage=coverage,
             people=self._tracked_people(),
+            profile_failing_since=self.profile.failing_since,
             today=dt_util.now().date(),
         )
         result = replace(result, computed_at=dt_util.utcnow())
@@ -704,7 +701,8 @@ class CompanyRuntime(_Runtime):
             previous.band,
             previous.score,
             previous.reasons,
-        ) != (result.band, result.score, result.reasons):
+            previous.info,
+        ) != (result.band, result.score, result.reasons, result.info):
             async_dispatcher_send(self.hass, signal_risk(self.subentry.subentry_id))
 
     @property
@@ -754,11 +752,13 @@ class _CompanyCoordinator[DataT: StorableModel](CompaniesHouseCoordinator[DataT]
     def _async_refresh_finished(self) -> None:
         """Re-rate the company once a refresh has landed.
 
-        Every dataset feeds the rating. Setup refreshes are skipped: the
-        runtime rates once after all of them, so a new company is never
-        announced as amber for want of data that is still on its way.
+        Every dataset feeds the rating. Refreshes before the first rating are
+        skipped: the entry rates once after every company and person has
+        started, so a new company is never announced as amber for want of
+        data that is still on its way. Anything landing after that first
+        rating, ready or not, is rated (events wait in the buffer).
         """
-        if self.company.ready:
+        if self.company.risk is not None:
             self.company.recompute_risk()
 
 

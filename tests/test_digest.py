@@ -436,8 +436,21 @@ def test_risk_helpers() -> None:
                 "reasons": ["z"],
             },
         },
+        {
+            "name": "G",
+            "number": "7",
+            "link": "l7",
+            "finished": True,
+            "risk": {
+                "band": "red",
+                "score": 100,
+                "reason": "Red: dissolved on 13 Aug 2024",
+                "reasons": ["dissolved on 13 Aug 2024"],
+            },
+        },
     ]
-    assert _risk_counts(cards) == {"red": 1, "amber": 2, "green": 1, "unknown": 2}
+    # The dissolved company counts as red but is not listed: not news.
+    assert _risk_counts(cards) == {"red": 2, "amber": 2, "green": 1, "unknown": 2}
     assert [(r["band"], r["company"]) for r in _risk_list(cards)] == [
         ("red", "B"),
         ("amber", "F"),

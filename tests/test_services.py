@@ -457,8 +457,9 @@ async def test_digest_action_reports_the_week(
     from custom_components.companies_house.const import Dataset
 
     freezer.move_to("2026-09-14 12:00:00+00:00")
+    # A dissolved company rides along: rated red, counted, but never listed.
     entry = await setup_entry(
-        ["12345678", "34567890"],
+        ["12345678", "34567890", "23456789"],
         officers=True,
         close_watch={"12345678"},
         options={"document_directory": str(tmp_path)},
@@ -506,7 +507,7 @@ async def test_digest_action_reports_the_week(
     )
     assert response is not None
     assert response["days"] == 7
-    assert response["summary"]["companies"] == 2
+    assert response["summary"]["companies"] == 3
     assert response["summary"]["people"] == 1
     # The resignation, the accounts filing, and the rating the resignation
     # pushed from green to amber.
@@ -515,7 +516,7 @@ async def test_digest_action_reports_the_week(
     assert response["summary"]["new_issues"] == 1
     assert response["summary"]["still_open"] == 1
     assert response["summary"]["risk"] == {
-        "red": 1,
+        "red": 2,
         "amber": 1,
         "green": 0,
         "unknown": 0,
@@ -572,6 +573,8 @@ async def test_digest_action_reports_the_week(
         }
     ]
     # The risk list: red first, then amber, each with the one-line reason.
+    # The dissolved company is red for being dissolved, which is not news,
+    # so it is counted above but listed nowhere.
     assert [(r["band"], r["company"]) for r in response["risk"]] == [
         ("red", "SUNSET RETAIL LIMITED"),
         ("amber", "EXAMPLE TRADING LIMITED"),
@@ -579,7 +582,11 @@ async def test_digest_action_reports_the_week(
     assert response["risk"][0]["reason"].startswith(
         "Red: being wound up (solvent liquidation) since 1 Jul 2026"
     )
-    assert "SUNSET RETAIL LIMITED" in response["quiet_companies"]
+    assert entry.runtime_data.companies["sub_23456789"].risk.band == "red"
+    assert response["quiet_companies"] == [
+        "OLD VENTURES LIMITED",
+        "SUNSET RETAIL LIMITED",
+    ]
     assert response["new_companies"] == []
     assert response["attachments"] == []
     html = response["html"]
@@ -587,7 +594,7 @@ async def test_digest_action_reports_the_week(
     assert "Worth a look" in html
     assert "Still open" in html
     assert "director resigned" in html
-    assert "risk: 1 red, 1 amber" in html
+    assert "risk: 2 red, 1 amber" in html
     assert ">amber</span>" in html  # the pill in the company card heading
     assert "<script" not in html
     text = response["text"]
@@ -687,7 +694,7 @@ async def test_digest_action_reports_the_week(
         DOMAIN, "digest", {"days": 7}, blocking=True, return_response=True
     )
     assert response is not None
-    assert response["summary"]["companies"] == 1
+    assert response["summary"]["companies"] == 2
     assert response["companies"] == []
     assert "EXAMPLE TRADING LIMITED" not in response["html"]
     assert "new role" in response["html"]

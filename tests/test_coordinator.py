@@ -664,6 +664,7 @@ async def test_errors_mark_unavailable_and_recover(
     """Connection errors, 429s and 404s are translated; recovery restores the state."""
     entry = await setup_entry([ACTIVE])
     company = _company(entry)
+    assert company.profile.failing_since is None
     aioclient_mock.clear_requests()
     aioclient_mock.get(f"{API_BASE}/company/{ACTIVE}", status=500)
     await company.profile.async_refresh()
@@ -672,6 +673,9 @@ async def test_errors_mark_unavailable_and_recover(
         hass.states.get("sensor.example_trading_limited_company_status").state
         == "unavailable"
     )
+    # The run of failures is dated from the first one, whatever follows.
+    failing_since = company.profile.failing_since
+    assert failing_since is not None
     aioclient_mock.clear_requests()
     aioclient_mock.get(
         f"{API_BASE}/company/{ACTIVE}", status=429, headers={"Retry-After": "7"}
@@ -679,6 +683,7 @@ async def test_errors_mark_unavailable_and_recover(
     await company.profile.async_refresh()
     assert company.profile.next_run is not None
     assert company.profile.next_run - dt_util.utcnow() <= timedelta(seconds=8)
+    assert company.profile.failing_since == failing_since
     # The limiter is blocked for those 7 seconds; scheduled work defers.
     await company.profile.async_refresh()
     assert company.profile.last_reason.startswith("deferred")
@@ -687,10 +692,12 @@ async def test_errors_mark_unavailable_and_recover(
     aioclient_mock.get(f"{API_BASE}/company/{ACTIVE}", status=404)
     await company.profile.async_refresh()
     assert company.state.not_found
+    assert company.profile.failing_since == failing_since
     aioclient_mock.clear_requests()
     mock_company(aioclient_mock, ACTIVE)
     await company.profile.async_refresh()
     assert company.profile.last_update_success
+    assert company.profile.failing_since is None
     assert (
         hass.states.get("sensor.example_trading_limited_company_status").state
         == "active"
@@ -1115,3 +1122,4 @@ async def test_budget_error_on_first_fetch_fails_update(
     company.structure._fetch = _boom  # type: ignore[method-assign]
     await company.structure.async_refresh()
     assert not company.structure.last_update_success
+    assert company.structure.failing_since is not None

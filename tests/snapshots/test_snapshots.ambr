@@ -13402,11 +13402,12 @@
       ]),
       'overrides': list([
       ]),
-      'reason': 'Green: 1 outstanding charge',
+      'reason': 'Green: Jane Elizabeth SMITH has been a director of 3 dissolved companies; 1 outstanding charge',
       'reasons': list([
+        'Jane Elizabeth SMITH has been a director of 3 dissolved companies',
         '1 outstanding charge',
       ]),
-      'score': 2,
+      'score': 5,
       'scoring_version': '1',
     }),
     'context': <ANY>,

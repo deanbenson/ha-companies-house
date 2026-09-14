@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import replace
+from datetime import timedelta
 from typing import Any
 
 from freezegun.api import FrozenDateTimeFactory
@@ -15,7 +16,12 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import (
     AiohttpClientMocker,
 )
 
-from custom_components.companies_house.const import DOMAIN, EVENT_COMPANIES_HOUSE
+from custom_components.companies_house.const import (
+    API_BASE,
+    DOMAIN,
+    EVENT_COMPANIES_HOUSE,
+    Dataset,
+)
 from custom_components.companies_house.coordinator import (
     ChangeEvent,
     CompanyRuntime,
@@ -300,3 +306,162 @@ async def test_rerate_skips_companies_without_a_profile(
     officer.rerate_companies()
     assert company._tracked_people() == []
     entry.runtime_data = runtime
+
+
+async def test_restart_keeps_a_band_that_rests_on_a_followed_person(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """A company red for a disqualified follower stays red through a restart.
+
+    Companies are rated only once every person has started, so the restart
+    neither drops the band for want of the person nor announces a change.
+    """
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    entry = await setup_entry([ACTIVE], officers=True)
+    officer = entry.runtime_data.officers["sub_officer"]
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, ACTIVE)
+    mock_officer(
+        aioclient_mock,
+        disqualified_search=load_fixture("officer_many/disqualified_search"),
+    )
+    await officer.disqualification.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get(SENSOR).state == "red"
+
+    def rated() -> list[tuple[str, str]]:
+        return [
+            (e.data["old_band"], e.data["new_band"])
+            for e in events
+            if e.data["event_type"] == "risk-changed"
+        ]
+
+    assert rated() == [("green", "red")]
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert entry.state is ConfigEntryState.LOADED
+    company = _company(entry)
+    assert hass.states.get(SENSOR).state == "red"
+    assert company.state.risk_band == "red"
+    assert rated() == [("green", "red")]
+    # Nor does the next refresh of any dataset find anything to announce.
+    await company.async_refresh_datasets(
+        [Dataset.FILINGS, Dataset.PROFILE], reason="test"
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(SENSOR).state == "red"
+    assert rated() == [("green", "red")]
+
+
+async def test_a_profile_that_will_not_refresh_goes_amber_after_a_week(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Failed refreshes count as stale data after seven days, and clear on success."""
+    freezer.move_to("2026-09-15T09:00:00+00:00")
+    entry = await setup_entry([ACTIVE])
+    company = _company(entry)
+    assert hass.states.get(SENSOR).state == "green"
+    aioclient_mock.clear_requests()
+    aioclient_mock.get(f"{API_BASE}/company/{ACTIVE}", status=500)
+    mock_company(aioclient_mock, ACTIVE)  # the first match wins: only the profile fails
+    await company.profile.async_refresh()
+    await hass.async_block_till_done()
+    # A day of failures changes nothing but the note in the workings.
+    freezer.tick(timedelta(days=1))
+    await company.profile.async_refresh()
+    await hass.async_block_till_done()
+    state = hass.states.get(SENSOR)
+    assert state.state == "green"
+    assert state.attributes["info"]["refresh_failing_days"] == 1
+    assert state.attributes["reasons"] == ["1 outstanding charge"]
+    # Eight days on the copy is only nine days old, but it is not refreshing.
+    freezer.tick(timedelta(days=7))
+    await company.profile.async_refresh()
+    await hass.async_block_till_done()
+    state = hass.states.get(SENSOR)
+    assert state.state == "amber"
+    assert state.attributes["data_age_days"] == 8
+    assert state.attributes["reasons"] == [
+        "register data is 8 days old and has not refreshed for 8 days",
+        "1 outstanding charge",
+    ]
+    assert company.state.risk_band == "amber"
+    # The register answers again: green, and the failure note is gone.
+    aioclient_mock.clear_requests()
+    mock_company(aioclient_mock, ACTIVE)
+    await company.profile.async_refresh()
+    await hass.async_block_till_done()
+    state = hass.states.get(SENSOR)
+    assert state.state == "green"
+    assert "refresh_failing_days" not in state.attributes["info"]
+
+
+async def test_people_and_companies_added_later_are_rated_at_once(
+    hass: HomeAssistant,
+    setup_entry: Callable[..., Any],
+    aioclient_mock: AiohttpClientMocker,
+) -> None:
+    """Following a disqualified director re-rates their company on the spot.
+
+    A company added later is rated as it starts, with the followed people in
+    place, so its first rating is announced by nobody and right first time.
+    """
+    from types import MappingProxyType
+
+    from homeassistant.config_entries import ConfigSubentry
+
+    from .conftest import company_subentry, officer_subentry
+
+    events = async_capture_events(hass, EVENT_COMPANIES_HOUSE)
+    entry = await setup_entry([ACTIVE])
+    assert hass.states.get(SENSOR).state == "green"
+
+    mock_officer(
+        aioclient_mock,
+        disqualified_search=load_fixture("officer_many/disqualified_search"),
+    )
+    officer = officer_subentry()
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType(dict(officer["data"])),
+            subentry_type=officer["subentry_type"],
+            title=officer["title"],
+            unique_id=officer["unique_id"],
+            subentry_id="sub_officer",
+        ),
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get(SENSOR)
+    assert state.state == "red"
+    assert state.attributes["overrides"] == ["R7"]
+    rated = [e.data for e in events if e.data["event_type"] == "risk-changed"]
+    assert [(r["old_band"], r["new_band"]) for r in rated] == [("green", "red")]
+
+    mock_company(aioclient_mock, "34567890")
+    data = company_subentry("34567890", subentry_id="sub_34567890")
+    hass.config_entries.async_add_subentry(
+        entry,
+        ConfigSubentry(
+            data=MappingProxyType(dict(data["data"])),
+            subentry_type=data["subentry_type"],
+            title=data["title"],
+            unique_id=data["unique_id"],
+            subentry_id="sub_34567890",
+        ),
+    )
+    await hass.async_block_till_done()
+    added = hass.states.get("sensor.sunset_retail_limited_risk_rating")
+    assert added is not None
+    assert added.state == "red"
+    assert added.attributes["overrides"] == ["R2"]
+    assert _company(entry, "34567890").state.risk_band == "red"
+    # The company already rated was left alone: still one announcement.
+    assert len([e for e in events if e.data["event_type"] == "risk-changed"]) == 1
