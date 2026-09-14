@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, fields, is_dataclass
 import datetime as dt
 from datetime import date
+from decimal import Decimal, InvalidOperation
 import hashlib
 import json
 import re
@@ -52,6 +53,17 @@ def parse_date(value: Any) -> date | None:
         return date.fromisoformat(value)
     except ValueError:
         return None
+
+
+def parse_decimal(value: Any) -> Decimal | None:
+    """Parse a stored number back into a Decimal. Anything unreadable is None."""
+    if isinstance(value, bool) or value is None:
+        return None
+    try:
+        parsed = Decimal(str(value))
+    except InvalidOperation:
+        return None
+    return parsed if parsed.is_finite() else None
 
 
 def format_date(value: date | None) -> str | None:
@@ -137,6 +149,8 @@ def _encode(value: Any) -> Any:
         return {f.name: _encode(getattr(value, f.name)) for f in fields(value)}
     if isinstance(value, date):
         return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
     if isinstance(value, list | tuple):
         return [_encode(v) for v in value]
     if isinstance(value, dict):
@@ -153,6 +167,8 @@ def _decode(hint: Any, value: Any) -> Any:
         return _decode(args[0], value)
     if hint is date:
         return parse_date(value)
+    if hint is Decimal:
+        return parse_decimal(value)
     if origin is list:
         (item_hint,) = get_args(hint)
         return [_decode(item_hint, v) for v in value or []]

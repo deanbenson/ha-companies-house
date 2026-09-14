@@ -53,7 +53,12 @@ packages = ["custom_components.companies_house"]
 plugins = []
 
 [[tool.mypy.overrides]]
-module = ["aioresponses.*", "syrupy.*", "pytest_homeassistant_custom_component.*"]
+module = [
+  "aioresponses.*",
+  "defusedxml.*",
+  "syrupy.*",
+  "pytest_homeassistant_custom_component.*",
+]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

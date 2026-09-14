@@ -76,6 +76,12 @@ COMPANY_SENSORS = {
     "officers_active": "Officers active",
     "psc_active": "People with significant control",
     "charges_outstanding": "Outstanding charges",
+    "accounts_latest": "Latest accounts",
+    "turnover": "Turnover",
+    "profit_before_tax": "Profit before tax",
+    "cash": "Cash",
+    "net_assets": "Net assets",
+    "employees": "Employees",
     "company_name": "Company name",
     "company_status_detail": "Company status detail",
     "company_type": "Company type",
@@ -547,6 +553,9 @@ def build() -> dict:
                 "message": "{company_number} is not a valid company number."
             },
             "invalid_kind": {"message": "{kind} is not a valid kind."},
+            "company_not_watched": {
+                "message": "Company {company_number} is not being watched. Add it first, or use get_company for a one-off look."
+            },
             "invalid_target": {
                 "message": "Pick a Companies House company or officer, or the Companies House account itself."
             },

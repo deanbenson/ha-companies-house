@@ -19,6 +19,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.typing import ConfigType
 
+from .accounts_coordinator import AccountsBackfill
 from .api import CompaniesHouseClient
 from .const import (
     CONF_API_KEY,
@@ -73,6 +74,8 @@ class CompaniesHouseRuntimeData:
     client: CompaniesHouseClient
     store: ChangeStore
     account: AccountCoordinator
+    # Reads filed accounts for the companies one at a time, after setup.
+    accounts_backfill: AccountsBackfill
     service_device_id: str = ""
     companies: dict[str, CompanyRuntime] = field(default_factory=dict)
     officers: dict[str, OfficerRuntime] = field(default_factory=dict)
@@ -113,8 +116,10 @@ async def async_setup_entry(
             lambda: list(entry.runtime_data.companies.values()),
             lambda: list(entry.runtime_data.officers.values()),
         ),
+        accounts_backfill=AccountsBackfill(hass, entry),
     )
     entry.runtime_data = runtime
+    entry.async_on_unload(runtime.accounts_backfill.async_shutdown)
 
     # The service device must exist before company devices point at it.
     device_registry = dr.async_get(hass)
@@ -256,6 +261,8 @@ async def _async_start_subentry(
         )
         await company.async_first_refresh()
         runtime.companies[subentry.subentry_id] = company
+        if company.accounts.wants_reading:
+            runtime.accounts_backfill.enqueue(company)
         return company
     if subentry.subentry_type == SUBENTRY_TYPE_OFFICER:
         month = subentry.data.get(CONF_DATE_OF_BIRTH_MONTH)
@@ -344,6 +351,7 @@ async def _async_apply_changes(
 
     for sid in known - current:
         if (company := runtime.companies.pop(sid, None)) is not None:
+            runtime.accounts_backfill.discard(company)
             await company.async_shutdown()
             runtime.store.forget_company(company.company_number)
         if (officer := runtime.officers.pop(sid, None)) is not None:

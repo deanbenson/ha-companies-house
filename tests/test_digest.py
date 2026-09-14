@@ -216,6 +216,51 @@ DIGEST = {
         }
         for i in range(14)
     ],
+    "accounts_read": [
+        {
+            "company": "ACME LTD",
+            "number": "12345678",
+            "link": "https://example.invalid/company/12345678",
+            "made_up_to": "2025-12-31",
+            "accounts_type": "full accounts",
+            "document": "https://example.invalid/company/12345678/filing-history/t1/document",
+            "rows": [
+                {
+                    "metric": "turnover",
+                    "name": "Turnover",
+                    "value": "£1.2m",
+                    "prior": "£1.5m",
+                    "change": "down 20 %",
+                    "change_percent": -20.0,
+                    "worse": True,
+                },
+                {
+                    "metric": "cash",
+                    "name": "Cash",
+                    "value": "£40k",
+                    "prior": "",
+                    "change": "",
+                    "change_percent": None,
+                    "worse": False,
+                },
+            ],
+            "flags": ["Turnover down 20 %+"],
+            "undisclosed": None,
+            "weight": 3,
+        },
+        {
+            "company": "TINY LTD",
+            "number": "17000002",
+            "link": "https://example.invalid/company/17000002",
+            "made_up_to": "2025-06-30",
+            "accounts_type": "micro-entity accounts",
+            "document": "https://example.invalid/company/17000002/filing-history/t2/document",
+            "rows": [],
+            "flags": [],
+            "undisclosed": "not disclosed (micro-entity accounts)",
+            "weight": 1,
+        },
+    ],
     "quiet_companies": ["QUIET LTD"],
 }
 
@@ -236,6 +281,14 @@ def test_render_html_covers_every_section() -> None:
         "Due in the next 30 days",
         "due today",
         "in 16 days",
+        "Accounts read this week",
+        "full accounts to 31 Dec 2025",
+        "£1.2m",
+        "down 20 %",
+        "Turnover down 20 %+",
+        "No headline figures disclosed.",
+        "Turnover, profit and cash: not disclosed (micro-entity accounts).",
+        "Open accounts PDF",
         "Who controls what",
         "Mark Taylor</strong> ★",
         "and 3 more",
@@ -266,6 +319,14 @@ def test_render_html_covers_every_section() -> None:
     assert "New companies:" in text
     assert "NEW CO LTD (set up 1 Sep 2026): Jane Smith" in text
     assert "Due in the next 30 days:" in text
+    assert "Accounts read this week:" in text
+    assert "  - ACME LTD: full accounts to 31 Dec 2025" in text
+    assert "      Turnover: £1.2m (last year £1.5m, down 20 %)" in text
+    assert "      Cash: £40k\n" in text
+    assert "      Flags: Turnover down 20 %+" in text
+    assert (
+        "      Turnover, profit and cash: not disclosed (micro-entity accounts)" in text
+    )
     assert "Still open (known before this week):" in text
 
 
@@ -280,10 +341,12 @@ def test_render_quiet_week() -> None:
         "new_companies": [],
         "companies": [],
         "people": [],
+        "accounts_read": [],
         "summary": {**DIGEST["summary"], "changes": 0, "by_kind": {}},
     }
     html = render_html(quiet, title="T")
     assert "A quiet week" in html
+    assert "Accounts read this week" not in html
     assert "Who controls what" not in html
     assert "0 changes ·" in html
     assert "Nothing changed at any watched company or person." in render_text(

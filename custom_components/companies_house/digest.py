@@ -13,6 +13,16 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.util import dt as dt_util
 
+from .accounts import (
+    METRIC_NAMES,
+    METRICS,
+    describe_figures,
+    flags_for,
+    format_change,
+    format_figure,
+    history_summary,
+    percent_change,
+)
 from .const import FIND_AND_UPDATE_BASE, FINISHED_STATUSES
 from .enumerations import COMPANY_STATUS
 from .models import JsonDict, display_name
@@ -109,6 +119,13 @@ def _more_links(kind: str, payload: JsonDict, number: str) -> list[JsonDict]:
             {
                 "text": "Gazette notices",
                 "href": company + "/filing-history?category=gazette",
+            }
+        )
+    elif kind == "accounts":
+        links.append(
+            {
+                "text": "Accounts filed",
+                "href": company + "/filing-history?category=accounts",
             }
         )
     elif kind == "appointment":
@@ -287,6 +304,15 @@ def describe_change(
             link + "/charges",
         )
 
+    if kind == "accounts":
+        when = _pretty_date(p.get("made_up_to"))
+        words = str(p.get("accounts_type_words") or "accounts")
+        return (
+            f"{subject}: accounts read",
+            f"{words[0].upper()}{words[1:]} to {when}: {describe_figures(p)}",
+            _document_link(number, p.get("transaction_id")),
+        )
+
     if kind == "insolvency":
         return (
             f"{subject}: insolvency update",
@@ -367,6 +393,7 @@ _KIND_WEIGHT: dict[tuple[str, str], int] = {
     ("officer", "appointed"): 6,
     ("officer", "resigned"): 6,
     ("officer", "details-changed"): 2,
+    ("accounts", "read"): 6,
     ("filing", "accounts"): 5,
     ("filing", "capital"): 5,
     ("filing", "change-of-name"): 5,
@@ -646,7 +673,118 @@ def _company_card(company: CompanyRuntime, since: datetime, today: date) -> Json
         "attention": _attention(company, changes, since, today),
         "changes": changes,
         "score": max((c["score"] for c in changes), default=0),
+        "accounts": _accounts_card(company),
     }
+
+
+def _accounts_card(company: CompanyRuntime) -> JsonDict | None:
+    """Return the newest figures and flags, for the risk model and the assistant."""
+    history = company.accounts.data
+    if history is None:
+        return None
+    summary = history_summary(history)
+    latest = summary["latest"]
+    if latest is None:
+        return None
+    return {
+        "made_up_to": latest["made_up_to"],
+        "accounts_type": latest["accounts_type_words"],
+        "status": latest["status"],
+        "source": latest["source"],
+        "figures": {metric: latest["figures"][metric]["value"] for metric in METRICS},
+        "changes": {
+            metric: latest["figures"][metric]["change_percent"]
+            for metric in METRICS
+            if latest["figures"][metric]["change_percent"] is not None
+        },
+        "flags": latest["flags"],
+        "link": _document_link(company.company_number, latest["transaction_id"]),
+    }
+
+
+def _accounts_read(
+    companies: Iterable[CompanyRuntime], since: datetime
+) -> list[JsonDict]:
+    """Return every set of accounts read this period, newest per company, best first.
+
+    Each entry carries a compact table of the figures present: this year,
+    last year and the change, plus the flags and where the accounts are.
+    """
+    out: list[JsonDict] = []
+    for company in companies:
+        history = company.accounts.data
+        if history is None:
+            continue
+        read = [
+            c
+            for c in _since(company.state.changes, since)
+            if c.get("kind") == "accounts" and c.get("event_type") == "read"
+        ]
+        if not read:
+            continue
+        newest = max(
+            read, key=lambda c: str((c.get("payload") or {}).get("made_up_to"))
+        )
+        payload = dict(newest.get("payload") or {})
+        year = next(
+            (
+                y
+                for y in history.years
+                if y.transaction_id == payload.get("transaction_id")
+            ),
+            None,
+        )
+        rows: list[JsonDict] = []
+        undisclosed = False
+        for metric in METRICS:
+            figure = year.figure(metric) if year else None
+            if figure is None or figure.value is None:
+                undisclosed = undisclosed or metric in (
+                    "turnover",
+                    "profit_before_tax",
+                    "cash",
+                )
+                continue
+            change = percent_change(figure.value, figure.prior)
+            rows.append(
+                {
+                    "metric": metric,
+                    "name": METRIC_NAMES[metric],
+                    "value": format_figure(metric, figure.value),
+                    "prior": format_figure(metric, figure.prior)
+                    if figure.prior is not None
+                    else "",
+                    "change": format_change(change),
+                    "change_percent": change,
+                    "worse": change is not None
+                    and (
+                        change > 0
+                        if metric == "creditors_within_one_year"
+                        else change < 0
+                    ),
+                }
+            )
+        reason = year.undisclosed_reason if year else None
+        out.append(
+            {
+                "company": company.company_name,
+                "number": company.company_number,
+                "link": _company_link(company.company_number),
+                "made_up_to": payload.get("made_up_to"),
+                "accounts_type": payload.get("accounts_type_words") or "accounts",
+                "document": _document_link(
+                    company.company_number, payload.get("transaction_id")
+                ),
+                "rows": rows,
+                "flags": flags_for(year.figures)
+                if year
+                else [str(f) for f in payload.get("flags") or []],
+                "undisclosed": reason if undisclosed and reason else None,
+                "weight": _company_weight(company),
+            }
+        )
+    out.sort(key=lambda a: (-len(a["flags"]), -a["weight"], a["company"]))
+    return out
 
 
 def _person_card(officer: OfficerRuntime, since: datetime) -> JsonDict:
@@ -884,6 +1022,9 @@ def build_digest(
     for change in all_changes:
         by_kind[change["kind"]] = by_kind.get(change["kind"], 0) + 1
     new_companies = _new_companies(companies, people, since, today)
+    accounts_read = _accounts_read(
+        (c for c in all_companies if c.in_weekly_report), since
+    )
     return {
         "generated_at": now.isoformat(),
         "since": since.isoformat(),
@@ -899,12 +1040,14 @@ def build_digest(
             "still_open": len(still_open),
             "deadlines_soon": len(deadlines),
             "new_companies": len(new_companies),
+            "accounts_read": len(accounts_read),
         },
         "top": all_changes[:5],
         "needs_attention": new_issues,
         "still_open": still_open,
         "deadlines": deadlines,
         "new_companies": new_companies,
+        "accounts_read": accounts_read,
         "companies": changed_companies,
         "people": changed_people,
         "ownership": _ownership(all_companies, all_people),
@@ -940,6 +1083,7 @@ _KIND_LABEL = {
     "status": "status change",
     "profile": "details change",
     "appointment": "role change",
+    "accounts": "set of accounts read",
 }
 
 
@@ -1226,6 +1370,58 @@ def _ownership_rows(holders: list[JsonDict], limit: int = 12) -> str:
     )
 
 
+_AMBER = "color:#b45309;"
+
+
+def _accounts_rows(items: list[JsonDict]) -> str:
+    """Render one compact table per company: this year, last year, change."""
+    blocks = []
+    for a in items:
+        title = (
+            f'<div style="font-size:14px;font-weight:600;color:#111827;{_FONT}">'
+            f"{_link(a['company'], a['link'], '#111827')}"
+            f'<span style="font-weight:400;{_MUTED}"> · {_e(a["accounts_type"])} to '
+            f"{_e(_pretty_date(a['made_up_to']))}</span></div>"
+        )
+        rows = "".join(
+            f'<tr><td style="padding:3px 8px 3px 0;font-size:13px;{_FONT}">{_e(r["name"])}</td>'
+            f'<td style="padding:3px 8px;font-size:13px;{_FONT}text-align:right;white-space:nowrap">{_e(r["value"])}</td>'
+            f'<td style="padding:3px 8px;font-size:13px;{_MUTED}{_FONT}text-align:right;white-space:nowrap">{_e(r["prior"])}</td>'
+            f'<td style="padding:3px 0 3px 8px;font-size:12px;{_FONT}white-space:nowrap;'
+            f'{_AMBER if r["worse"] else _MUTED}">{_e(r["change"])}</td></tr>'
+            for r in a["rows"]
+        )
+        table = (
+            '<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:4px">'
+            f'<tr><td></td><td style="padding:0 8px;font-size:11px;{_MUTED}{_FONT}text-align:right">This year</td>'
+            f'<td style="padding:0 8px;font-size:11px;{_MUTED}{_FONT}text-align:right">Last year</td><td></td></tr>'
+            f"{rows}</table>"
+            if a["rows"]
+            else f'<div style="font-size:13px;{_MUTED}{_FONT}">No headline figures disclosed.</div>'
+        )
+        flags = "".join(
+            f'<span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:999px;'
+            f'padding:2px 8px;font-size:12px;margin:4px 6px 0 0;{_FONT}">{_e(f)}</span>'
+            for f in a["flags"]
+        )
+        note = (
+            f'<div style="font-size:12px;{_MUTED}{_FONT}margin-top:4px">'
+            f"Turnover, profit and cash: {_e(a['undisclosed'])}.</div>"
+            if a.get("undisclosed")
+            else ""
+        )
+        links = _link_row(
+            [
+                {"text": "Open accounts PDF", "href": a["document"]},
+                {"text": "Company", "href": a["link"]},
+            ]
+        )
+        blocks.append(
+            f'<div style="padding:8px 0;border-top:1px solid #f3f4f6">{title}{table}{flags}{note}{links}</div>'
+        )
+    return "".join(blocks)
+
+
 def _plural(n: int, word: str) -> str:
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
@@ -1289,6 +1485,15 @@ def render_html(digest: JsonDict, *, title: str, summary: str | None = None) -> 
                 f"Due in the next {DEADLINE_HORIZON_DAYS} days",
                 _deadline_rows(digest["deadlines"]),
                 icon="📅",
+            )
+        )
+    if digest.get("accounts_read"):
+        parts.append(
+            _section(
+                "Accounts read this week",
+                _accounts_rows(digest["accounts_read"]),
+                icon="📊",
+                intro="Figures read from the accounts filed at Companies House.",
             )
         )
     if digest["companies"]:
@@ -1384,6 +1589,22 @@ def render_text(digest: JsonDict, *, title: str, summary: str | None = None) -> 
             lines.append(
                 f"  - {_pretty_date(d['date'])} {d['company']}: {d['what'].replace('_', ' ')} ({_due(d['days'])[0]})"
             )
+        lines.append("")
+    if digest.get("accounts_read"):
+        lines.append("Accounts read this week:")
+        for a in digest["accounts_read"]:
+            lines.append(
+                f"  - {a['company']}: {a['accounts_type']} to {_pretty_date(a['made_up_to'])}"
+            )
+            lines += [
+                f"      {r['name']}: {r['value']}"
+                + (f" (last year {r['prior']}, {r['change']})" if r["prior"] else "")
+                for r in a["rows"]
+            ]
+            if a["flags"]:
+                lines.append(f"      Flags: {', '.join(a['flags'])}")
+            if a.get("undisclosed"):
+                lines.append(f"      Turnover, profit and cash: {a['undisclosed']}")
         lines.append("")
     for card in digest["companies"]:
         lines.append(card["name"])

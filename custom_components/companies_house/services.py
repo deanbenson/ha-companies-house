@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Coroutine, Mapping
 from dataclasses import dataclass
+from datetime import timedelta
 import hashlib
 from pathlib import Path
 import re
@@ -30,6 +31,7 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util.json import JsonObjectType
 import voluptuous as vol
 
+from .accounts import history_summary
 from .api import (
     CompaniesHouseClient,
     CompaniesHouseError,
@@ -71,6 +73,7 @@ ATTR_TITLE = "title"
 ATTR_SUMMARY = "summary"
 ATTR_SAVE = "save"
 ATTR_ATTACH = "attach"
+ATTR_FORCE = "force"
 
 PSC_KINDS = (
     "individual",
@@ -600,6 +603,62 @@ def _write_report(path: Path, html: str) -> None:
     path.write_text(html, encoding="utf-8")
 
 
+# ---------------------------------------------------------------- accounts
+
+
+def _watched_company(entry: Any, company_number: str) -> Any:
+    """Return the running company for a number, or explain it is not watched."""
+    for company in entry.runtime_data.companies.values():
+        if company.company_number == company_number:
+            return company
+    raise ServiceValidationError(
+        translation_domain=DOMAIN,
+        translation_key="company_not_watched",
+        translation_placeholders={"company_number": company_number},
+    )
+
+
+def _accounts_response(company: Any) -> JsonDict:
+    return {
+        "company_number": company.company_number,
+        "company_name": company.company_name,
+        **history_summary(company.accounts.data),
+    }
+
+
+async def _accounts(
+    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+) -> JsonDict:
+    """Return the figures read from a watched company's accounts, from memory."""
+    entry = _resolve_entry(hass, call)
+    return _accounts_response(_watched_company(entry, _n(call)))
+
+
+async def _read_accounts(
+    hass: HomeAssistant, client: CompaniesHouseClient, call: ServiceCall
+) -> JsonDict:
+    """Read the accounts again: one company now, or every company in turn."""
+    entry = _resolve_entry(hass, call)
+    force = bool(call.data.get(ATTR_FORCE, False))
+    number = call.data.get(ATTR_COMPANY_NUMBER)
+    if number:
+        company = _watched_company(entry, str(number))
+        if force:
+            company.accounts.mark_unread()
+        await company.accounts.async_refresh_now(on_demand=True)
+        return {"read": 1, "companies": [_accounts_response(company)]}
+    queue = entry.runtime_data.accounts_backfill
+    queued: list[str] = []
+    for company in entry.runtime_data.companies.values():
+        if force:
+            company.accounts.mark_unread()
+        elif not company.accounts.wants_reading:
+            continue
+        queue.enqueue(company, delay=timedelta(0))
+        queued.append(company.company_number)
+    return {"queued": len(queued), "companies": queued}
+
+
 # ---------------------------------------------------------------- refresh
 
 
@@ -883,6 +942,32 @@ ACTIONS: tuple[ActionDef, ...] = (
         description="Get metadata for a filed document.",
         schema={**ENTRY_FIELD, vol.Required(ATTR_DOCUMENT_ID): cv.string},
         handler=_get_document_metadata,
+    ),
+    ActionDef(
+        name="accounts",
+        description=(
+            "Get the figures read from a watched company's filed accounts: "
+            "turnover, profit, cash, net assets, creditors and employees for "
+            "up to six years, with the change on the year before and any warnings."
+        ),
+        schema={**ENTRY_FIELD, **COMPANY_FIELD},
+        handler=_accounts,
+    ),
+    ActionDef(
+        name="read_accounts",
+        description=(
+            "Read the filed accounts again for one watched company now, or "
+            "queue every watched company to be read in turn."
+        ),
+        schema={
+            **ENTRY_FIELD,
+            vol.Optional(ATTR_COMPANY_NUMBER): vol.All(
+                cv.string, normalise_company_number
+            ),
+            vol.Optional(ATTR_FORCE, default=False): cv.boolean,
+        },
+        handler=_read_accounts,
+        llm=False,
     ),
     ActionDef(
         name="download_document",

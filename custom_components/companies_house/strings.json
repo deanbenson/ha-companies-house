@@ -304,6 +304,24 @@
       "charges_outstanding": {
         "name": "Outstanding charges"
       },
+      "accounts_latest": {
+        "name": "Latest accounts"
+      },
+      "turnover": {
+        "name": "Turnover"
+      },
+      "profit_before_tax": {
+        "name": "Profit before tax"
+      },
+      "cash": {
+        "name": "Cash"
+      },
+      "net_assets": {
+        "name": "Net assets"
+      },
+      "employees": {
+        "name": "Employees"
+      },
       "company_name": {
         "name": "Company name"
       },
@@ -767,6 +785,9 @@
     },
     "invalid_kind": {
       "message": "{kind} is not a valid kind."
+    },
+    "company_not_watched": {
+      "message": "Company {company_number} is not being watched. Add it first, or use get_company for a one-off look."
     },
     "invalid_target": {
       "message": "Pick a Companies House company or officer, or the Companies House account itself."
@@ -1272,6 +1293,38 @@
         "document_id": {
           "name": "Document id",
           "description": "From a filing's document link or a filing event."
+        }
+      }
+    },
+    "accounts": {
+      "name": "Get accounts figures",
+      "description": "The figures read from a watched company's filed accounts: turnover, profit, cash, net assets, creditors and employees for up to six years, with the change on the year before and any warnings. Read from memory; no request is made.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Companies House account",
+          "description": "Only needed if you have set up more than one API key."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        }
+      }
+    },
+    "read_accounts": {
+      "name": "Read accounts",
+      "description": "Read the filed accounts again. With a company number, reads that company now and returns its figures. Without one, queues every watched company to be read in turn.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Companies House account",
+          "description": "Only needed if you have set up more than one API key."
+        },
+        "company_number": {
+          "name": "Company number",
+          "description": "The 8 character company number, for example 12345678 or SC123456."
+        },
+        "force": {
+          "name": "Read everything again",
+          "description": "Also read accounts that were read before, for example after an update to how they are read."
         }
       }
     },
