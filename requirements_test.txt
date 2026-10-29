@@ -3,3 +3,4 @@ syrupy==6.0.0
 pytest-cov
 ruff==0.16.7
 mypy==2.3.1
+defusedxml>=0.7.1
