@@ -11,6 +11,6 @@
   "issue_tracker": "https://github.com/deanbenson/ha-companies-house/issues",
   "loggers": [],
   "quality_scale": "platinum",
-  "requirements": ["defusedxml==0.7.1"],
+  "requirements": ["defusedxml>=0.7.1"],
   "version": "0.5.5"
 }
